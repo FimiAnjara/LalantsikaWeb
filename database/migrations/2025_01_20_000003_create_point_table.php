@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('point', function (Blueprint $table) {
             $table->id('id_point');
-            $table->geography('coordonnee');
+            $table->point('coordonnee');
             $table->timestamps();
         });
     }

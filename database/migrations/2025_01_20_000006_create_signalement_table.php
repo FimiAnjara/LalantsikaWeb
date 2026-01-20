@@ -18,6 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('id_utilisateur');
             $table->unsignedBigInteger('id_statut');
             $table->unsignedBigInteger('id_point')->unique();
+               $table->decimal('budget', 15, 2)->nullable();
+               $table->text('description')->nullable();
             $table->timestamps();
             
             $table->foreign('id_entreprise')

@@ -41,6 +41,8 @@ CREATE TABLE signalement(
    id_utilisateur INTEGER NOT NULL,
    id_statut INTEGER NOT NULL,
    id_point INTEGER NOT NULL,
+   budget NUMERIC,
+   description TEXT,
    PRIMARY KEY(id_signalement),
    UNIQUE(id_point),
    FOREIGN KEY(id_entreprise) REFERENCES entreprise(id_entreprise),
@@ -54,6 +56,7 @@ CREATE TABLE histo_statut(
    daty TIMESTAMP,
    id_statut INTEGER NOT NULL,
    id_signalement INTEGER NOT NULL,
+   description TEXT,
    PRIMARY KEY(id_histo_statut),
    FOREIGN KEY(id_statut) REFERENCES statut(id_statut),
    FOREIGN KEY(id_signalement) REFERENCES signalement(id_signalement)

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->timestamp('daty')->nullable();
             $table->unsignedBigInteger('id_statut');
             $table->unsignedBigInteger('id_signalement');
+               $table->text('description')->nullable();
             $table->timestamps();
             
             $table->foreign('id_statut')

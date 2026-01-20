@@ -14,13 +14,14 @@ return new class extends Migration
         Schema::create('signalement', function (Blueprint $table) {
             $table->id('id_signalement');
             $table->timestamp('daty')->nullable();
+            $table->decimal('surface', 15, 2)->nullable();
+            $table->decimal('budget', 15, 2)->nullable();
+            $table->text('description')->nullable();
+            $table->string('photo', 150)->nullable();
             $table->unsignedBigInteger('id_entreprise')->nullable();
             $table->unsignedBigInteger('id_utilisateur');
             $table->unsignedBigInteger('id_statut');
             $table->unsignedBigInteger('id_point')->unique();
-               $table->decimal('budget', 15, 2)->nullable();
-               $table->text('description')->nullable();
-            $table->timestamps();
             
             $table->foreign('id_entreprise')
                 ->references('id_entreprise')

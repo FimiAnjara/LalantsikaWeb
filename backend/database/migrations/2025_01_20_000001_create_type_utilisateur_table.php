@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('type_utilisateur', function (Blueprint $table) {
             $table->id('id_type_utilisateur');
             $table->string('libelle', 50)->unique();
-            $table->timestamps();
         });
     }
 

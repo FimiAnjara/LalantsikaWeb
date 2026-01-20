@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('statut', function (Blueprint $table) {
             $table->id('id_statut');
             $table->string('libelle', 50)->unique();
-            $table->timestamps();
         });
     }
 

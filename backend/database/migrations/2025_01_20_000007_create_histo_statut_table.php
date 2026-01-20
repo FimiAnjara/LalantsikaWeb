@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('histo_statut', function (Blueprint $table) {
             $table->id('id_histo_statut');
             $table->timestamp('daty')->nullable();
+            $table->string('image', 250)->nullable();
+            $table->text('description')->nullable();
             $table->unsignedBigInteger('id_statut');
             $table->unsignedBigInteger('id_signalement');
-               $table->text('description')->nullable();
-            $table->timestamps();
             
             $table->foreign('id_statut')
                 ->references('id_statut')

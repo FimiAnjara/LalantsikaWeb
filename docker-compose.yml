@@ -23,7 +23,7 @@ services:
       - laravel
 
   postgres:
-    image: postgres:15
+    image: postgis/postgis:15-3.3
     container_name: laravel_postgres
     restart: unless-stopped
     environment:

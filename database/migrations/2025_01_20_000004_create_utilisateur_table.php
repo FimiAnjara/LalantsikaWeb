@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('utilisateur', function (Blueprint $table) {
             $table->id('id_utilisateur');
             $table->string('identifiant', 50)->unique();
-            $table->string('mdp', 50);
+            $table->string('mdp', 150);
             $table->unsignedBigInteger('id_type_utilisateur');
             $table->timestamps();
             

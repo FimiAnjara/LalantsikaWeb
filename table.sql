@@ -20,14 +20,14 @@ CREATE TABLE point(
 
 CREATE TABLE entreprise(
    id_entreprise SERIAL,
-   nom VARCHAR(50)  NOT NULL,
+   nom VARCHAR(250)  NOT NULL,
    PRIMARY KEY(id_entreprise)
 );
 
 CREATE TABLE utilisateur(
    id_utilisateur SERIAL,
    identifiant VARCHAR(50)  NOT NULL,
-   mdp VARCHAR(50)  NOT NULL,
+   mdp VARCHAR(150)  NOT NULL,
    id_type_utilisateur INTEGER NOT NULL,
    PRIMARY KEY(id_utilisateur),
    UNIQUE(identifiant),

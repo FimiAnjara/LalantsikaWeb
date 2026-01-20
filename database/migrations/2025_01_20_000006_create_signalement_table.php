@@ -14,9 +14,19 @@ return new class extends Migration
         Schema::create('signalement', function (Blueprint $table) {
             $table->id('id_signalement');
             $table->timestamp('daty')->nullable();
+            $table->unsignedBigInteger('id_entreprise')->nullable();
+            $table->unsignedBigInteger('id_utilisateur');
             $table->unsignedBigInteger('id_statut');
             $table->unsignedBigInteger('id_point')->unique();
             $table->timestamps();
+            
+            $table->foreign('id_entreprise')
+                ->references('id_entreprise')
+                ->on('entreprise');
+            
+            $table->foreign('id_utilisateur')
+                ->references('id_utilisateur')
+                ->on('utilisateur');
             
             $table->foreign('id_statut')
                 ->references('id_statut')

@@ -1,0 +1,9 @@
+dans ce projets laravel, j'ai envie que vous me creer un api rest pour lister les utilisateur dont la base de donnée est inci @init.sql et le projets est ceci @projet%20cloud-p17.pptx-1.pdfdonc ajouter les hibernation dans le code 
+
+pour info j'ai pas encore tester ce code mais donc pouver vous faire demarrer le code et ajouter un variable d'environement pour moi seulement car ce projets est dans github avec d'autre dev qui l'utilise 
+ma connexion postgres :
+user: nam
+pwd: 1234
+
+recap: j'ai envie que vous me creer les api et les tables pour le model utilisateur, signalement
+voici les todo qu'on devrait faire @Todo%20Cloud%20S5%20sheet%20-%20tableau.pdf 

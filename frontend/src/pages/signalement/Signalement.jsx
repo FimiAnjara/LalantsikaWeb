@@ -8,7 +8,7 @@ import {
     cilMap, 
     cilCalendar, 
     cilLocationPin, 
-    cilResize, 
+    cilResizeBoth, 
     cilMoney, 
     cilBuilding 
 } from '@coreui/icons'
@@ -99,7 +99,7 @@ export default function Signalement() {
                                             <strong>Statut:</strong> <CBadge color={getStatusColor(s.status)} className="ms-1">{s.status}</CBadge>
                                         </div>
                                         <div className="d-flex align-items-center">
-                                            <CIcon icon={cilResize} className="me-2 text-secondary" />
+                                            <CIcon icon={cilResizeBoth} className="me-2 text-secondary" />
                                             <strong>Surface:</strong> <span className="ms-1">{s.surface} m²</span>
                                         </div>
                                         <div className="d-flex align-items-center">

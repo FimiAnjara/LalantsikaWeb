@@ -5,7 +5,6 @@ export default function Home() {
     return (
         <div>
             <CCarousel controls indicators dark className="shadow-lg rounded-3 overflow-hidden">
-                {/* Image 1: Cartographie / Leaflet */}
                 <CCarouselItem>
                     <CImage
                         className="d-block w-100"
@@ -19,7 +18,6 @@ export default function Home() {
                     </CCarouselCaption>
                 </CCarouselItem>
 
-                {/* Image 2: Routes abîmées / Signalement */}
                 <CCarouselItem>
                     <CImage
                         className="d-block w-100"
@@ -33,7 +31,6 @@ export default function Home() {
                     </CCarouselCaption>
                 </CCarouselItem>
 
-                {/* Image 3: Pub App Mobile */}
                 <CCarouselItem>
                     <CImage
                         className="d-block w-100"

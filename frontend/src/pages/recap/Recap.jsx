@@ -18,7 +18,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import { 
     cilLocationPin, 
-    cilResize, 
+    cilResizeBoth, 
     cilMoney, 
     cilChartPie,
     cilCheckCircle,
@@ -82,7 +82,7 @@ export default function Recap() {
 
     return (
         <div className="recap-page">
-            <h3 className="mb-4 fw-bold">📉 Récapitulatif Général</h3>
+            <h3 className="mb-4 fw-bold">Récapitulatif Général</h3>
 
             {/* Widgets de statistiques */}
             <CRow className="mb-4 g-4">
@@ -101,7 +101,7 @@ export default function Recap() {
                         style={{ backgroundColor: '#2d3436' }}
                         value={`${totalSurface} m²`}
                         title="Surface Totale"
-                        icon={<CIcon icon={cilResize} height={48} className="my-2 opacity-50 text-white" />}
+                        icon={<CIcon icon={cilResizeBoth} height={48} className="my-2 opacity-50 text-white" />}
                     />
                 </CCol>
                 <CCol sm={6} lg={3}>

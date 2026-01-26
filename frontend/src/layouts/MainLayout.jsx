@@ -18,7 +18,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import { 
     cilHome, 
-    cilWarning, 
+    cilMap,
     cilNotes, 
     cilSearch, 
     cilCloudDownload, 
@@ -69,8 +69,8 @@ export default function MainLayout() {
                                     href="/signalement"
                                     className={`px-3 fw-semibold d-flex align-items-center ${isActive('/signalement') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
                                 >
-                                    <CIcon icon={cilWarning} className="me-2" />
-                                    SIGNALEMENT
+                                    <CIcon icon={cilMap} className="me-2" />
+                                    Carte
                                 </CNavLink>
                             </CNavItem>
                             <CNavItem>

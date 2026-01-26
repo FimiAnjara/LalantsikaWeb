@@ -5,6 +5,20 @@ export default function Home() {
     return (
         <div>
             <CCarousel controls indicators dark className="shadow-lg rounded-3 overflow-hidden">
+                
+                <CCarouselItem>
+                    <CImage
+                        className="d-block w-100"
+                        src="/assets/img/slide2.png"
+                        alt="Routes endommagées"
+                        style={{ height: '500px', objectFit: 'cover' }}
+                    />
+                    <CCarouselCaption className="d-none d-md-block bg-dark bg-opacity-50 rounded p-3">
+                        <h5 className="text-white">Signalement Facile</h5>
+                        <p>Signalez les les routes dégradées ou les obstacles pour améliorer la sécurité de tous.</p>
+                    </CCarouselCaption>
+                </CCarouselItem>
+                
                 <CCarouselItem>
                     <CImage
                         className="d-block w-100"
@@ -15,19 +29,6 @@ export default function Home() {
                     <CCarouselCaption className="d-none d-md-block bg-dark bg-opacity-50 rounded p-3">
                         <h5 className="text-white">Cartographie Interactive</h5>
                         <p>Visualisez tous les signalements sur une carte Leaflet dynamique et localisez précisément les zones à risque.</p>
-                    </CCarouselCaption>
-                </CCarouselItem>
-
-                <CCarouselItem>
-                    <CImage
-                        className="d-block w-100"
-                        src="/assets/img/slide2.png"
-                        alt="Routes endommagées"
-                        style={{ height: '500px', objectFit: 'cover' }}
-                    />
-                    <CCarouselCaption className="d-none d-md-block bg-dark bg-opacity-50 rounded p-3">
-                        <h5 className="text-white">Signalement Facile</h5>
-                        <p>Signalez les nids-de-poule, les routes dégradées ou les obstacles pour améliorer la sécurité de tous.</p>
                     </CCarouselCaption>
                 </CCarouselItem>
 

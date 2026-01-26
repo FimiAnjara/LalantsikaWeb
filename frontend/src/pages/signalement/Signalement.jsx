@@ -1,8 +1,8 @@
-import React from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet'
+import React, { useState, useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { CBadge, CCard, CCardBody, CCardHeader } from '@coreui/react'
+import { CBadge, CCard, CCardBody, CCardHeader, CAlert, CRow, CCol } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
     cilMap, 
@@ -10,7 +10,8 @@ import {
     cilLocationPin, 
     cilResizeBoth, 
     cilMoney, 
-    cilBuilding 
+    cilBuilding,
+    cilWifiSignalOff
 } from '@coreui/icons'
 
 // Correction des icônes par défaut de Leaflet
@@ -64,6 +65,21 @@ const getStatusColor = (status) => {
 };
 
 export default function Signalement() {
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
     return (
         <CCard className="shadow-sm border-0">
             <CCardHeader className="bg-navy text-white d-flex justify-content-between align-items-center py-3">
@@ -73,53 +89,93 @@ export default function Signalement() {
                 </h5>
                 <CBadge color="light" className="text-dark">3 points détectés</CBadge>
             </CCardHeader>
-            <CCardBody className="p-0 overflow-hidden" style={{ borderRadius: '0 0 1rem 1rem' }}>
-                <MapContainer 
-                    center={[-18.8792, 47.5079]} 
-                    zoom={13} 
-                    style={{ height: '600px', width: '100%' }}
-                >
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    
-                    {signalements.map((s) => (
-                        <Marker key={s.id} position={s.position}>
-                            <Tooltip direction="top" offset={[0, -20]} opacity={1} permanent={false}>
-                                <div style={{ minWidth: '200px', padding: '5px' }}>
-                                    <h6 className="fw-bold mb-2 border-bottom pb-1">{s.problem}</h6>
-                                    <div className="d-flex flex-column gap-1 small text-dark">
-                                        <div className="d-flex align-items-center">
-                                            <CIcon icon={cilCalendar} className="me-2 text-secondary" />
-                                            <strong>Date:</strong> <span className="ms-1">{s.date}</span>
-                                        </div>
-                                        <div className="d-flex align-items-center">
-                                            <CIcon icon={cilLocationPin} className="me-2 text-secondary" />
-                                            <strong>Statut:</strong> <CBadge color={getStatusColor(s.status)} className="ms-1">{s.status}</CBadge>
-                                        </div>
-                                        <div className="d-flex align-items-center">
-                                            <CIcon icon={cilResizeBoth} className="me-2 text-secondary" />
-                                            <strong>Surface:</strong> <span className="ms-1">{s.surface} m²</span>
-                                        </div>
-                                        <div className="d-flex align-items-center">
-                                            <CIcon icon={cilMoney} className="me-2 text-secondary" />
-                                            <strong>Budget:</strong> <span className="ms-1">{s.budget}</span>
-                                        </div>
-                                        <div className="d-flex align-items-center">
-                                            <CIcon icon={cilBuilding} className="me-2 text-secondary" />
-                                            <strong>Entreprise:</strong> <span className="ms-1">{s.entreprise}</span>
-                                        </div>
+            <CCardBody className="p-0 overflow-hidden" style={{ borderRadius: '0 0 1rem 1rem', minHeight: '400px' }}>
+                {!isOnline ? (
+                    <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5 bg-light" style={{ minHeight: '600px' }}>
+                        <CIcon icon={cilWifiSignalOff} size="7xl" className="text-secondary mb-4 opacity-50" />
+                        <h2 className="text-secondary fw-bold">Hors-ligne</h2>
+                        <p className="text-muted text-center px-4" style={{ maxWidth: '500px' }}>
+                            La carte interactive nécessite une connexion internet pour charger les fonds de carte (OpenStreetMap). 
+                            Veuillez vérifier votre accès réseau pour visualiser les points de signalement géolocalisés.
+                        </p>
+                        <CAlert color="warning" className="mt-3 border-0 shadow-sm px-4">
+                            Tentative de reconnexion automatique...
+                        </CAlert>
+                    </div>
+                ) : (
+                    <MapContainer 
+                        center={[-18.8792, 47.5079]} 
+                        zoom={13} 
+                        style={{ height: '700px', width: '100%' }}
+                    >
+                        <TileLayer
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        
+                        {signalements.map((s) => (
+                            <Marker key={s.id} position={s.position}>
+                                <Tooltip direction="top" offset={[0, -20]} opacity={1}>
+                                    <div style={{ minWidth: '600px', padding: '20px' }}>
+                                        <h3 className="fw-bold mb-4 border-bottom pb-3 text-primary d-flex align-items-center">
+                                            <CIcon icon={cilLocationPin} className="me-2" size="xxl" />
+                                            {s.problem}
+                                        </h3>
+                                        
+                                        <CRow className="g-3">
+                                            {/* Première ligne d'infos */}
+                                            <CCol xs={6}>
+                                                <div className="d-flex align-items-center bg-white p-3 border rounded shadow-sm h-100">
+                                                    <CIcon icon={cilCalendar} className="me-3 text-secondary" size="xl" />
+                                                    <div>
+                                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.75rem' }}>Signalé le</div>
+                                                        <div className="fw-bold fs-5">{s.date}</div>
+                                                    </div>
+                                                </div>
+                                            </CCol>
+                                            <CCol xs={6}>
+                                                <div className="d-flex align-items-center bg-white p-3 border rounded shadow-sm h-100">
+                                                    <CIcon icon={cilResizeBoth} className="me-3 text-secondary" size="xl" />
+                                                    <div>
+                                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.75rem' }}>Surface</div>
+                                                        <div className="fw-bold fs-5">{s.surface} m²</div>
+                                                    </div>
+                                                </div>
+                                            </CCol>
+
+                                            {/* Deuxième ligne d'infos */}
+                                            <CCol xs={6}>
+                                                <div className="d-flex align-items-center bg-white p-3 border rounded shadow-sm h-100">
+                                                    <CIcon icon={cilMoney} className="me-3 text-secondary" size="xl" />
+                                                    <div>
+                                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.75rem' }}>Budget</div>
+                                                        <div className="fw-bold fs-5 text-success">{s.budget}</div>
+                                                    </div>
+                                                </div>
+                                            </CCol>
+                                            <CCol xs={6}>
+                                                <div className="d-flex align-items-center bg-white p-3 border rounded shadow-sm h-100">
+                                                    <CIcon icon={cilBuilding} className="me-3 text-secondary" size="xl" />
+                                                    <div>
+                                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.75rem' }}>Entreprise</div>
+                                                        <div className="fw-bold fs-5 text-truncate" style={{ maxWidth: '150px' }}>{s.entreprise}</div>
+                                                    </div>
+                                                </div>
+                                            </CCol>
+
+                                            {/* Statut en bas (pleine largeur pour garder de la clarté) */}
+                                            <CCol xs={12}>
+                                                <CBadge color={getStatusColor(s.status)} className="w-100 py-3 text-uppercase shadow-sm fs-5">
+                                                    Statut actuel : {s.status}
+                                                </CBadge>
+                                            </CCol>
+                                        </CRow>
                                     </div>
-                                </div>
-                            </Tooltip>
-                            <Popup>
-                                <strong>{s.problem}</strong><br />
-                                Cliquez pour plus de détails sur ce signalement.
-                            </Popup>
-                        </Marker>
-                    ))}
-                </MapContainer>
+                                </Tooltip>
+                            </Marker>
+                        ))}
+                    </MapContainer>
+                )}
             </CCardBody>
         </CCard>
     )

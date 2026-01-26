@@ -61,7 +61,7 @@ export default function MainLayout() {
                                     className={`px-3 fw-semibold d-flex align-items-center ${isActive('/') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
                                 >
                                     <CIcon icon={cilHome} className="me-2" />
-                                    ACCUEIL
+                                    Accueil
                                 </CNavLink>
                             </CNavItem>
                             <CNavItem>
@@ -79,7 +79,7 @@ export default function MainLayout() {
                                     className={`px-3 fw-semibold d-flex align-items-center ${isActive('/recap') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
                                 >
                                     <CIcon icon={cilNotes} className="me-2" />
-                                    RÉCAPITULATIF
+                                    Recapitulatif
                                 </CNavLink>
                             </CNavItem>
                         </CNavbarNav>

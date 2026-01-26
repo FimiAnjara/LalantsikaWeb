@@ -4,9 +4,19 @@
   box-sizing: border-box;
 }
 
+:root {
+  --navy: #0d2137;
+  --navy-light: #162d45;
+  --warning: #ffc107;
+  --primary: #0d6efd;
+  --success: #198754;
+  --danger: #dc3545;
+  --light-bg: #f5f5f5;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f5f5;
+  background-color: var(--light-bg);
 }
 
 .main-layout {
@@ -16,11 +26,26 @@ body {
 }
 
 .bg-navy {
-  background-color: #0d2137 !important;
+  background-color: var(--navy) !important;
+}
+
+.text-navy {
+  color: var(--navy) !important;
 }
 
 .border-navy {
-  border-color: #162d45 !important;
+  border-color: var(--navy-light) !important;
+}
+
+.btn-navy {
+  background-color: var(--navy);
+  color: white;
+  border: none;
+}
+
+.btn-navy:hover {
+  background-color: var(--navy-light);
+  color: var(--warning);
 }
 
 .content-wrapper {
@@ -37,7 +62,7 @@ body {
 }
 
 .nav-link:hover {
-  color: #ffc107 !important;
+  color: var(--warning) !important;
   transform: translateY(-1px);
 }
 

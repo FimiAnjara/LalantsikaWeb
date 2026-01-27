@@ -13,4 +13,4 @@ voici les todo qu'on devrait faire @Todo%20Cloud%20S5%20sheet%20-%20tableau.pdf
 
 
 Sedera Note :
-docker exec -it laravel_app composer require kreait/firebase-php --ignore-platform-req=ext-grpc
+docker exec -it laravel_app composer require google/cloud-firestore --ignore-platform-req=ext-grpc

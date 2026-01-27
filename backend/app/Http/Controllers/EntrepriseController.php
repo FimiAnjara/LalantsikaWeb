@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Entreprise;
-use App\Services\DatabaseSyncService;
+use App\Services\Sync\DatabaseSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 

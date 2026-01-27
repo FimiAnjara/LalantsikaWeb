@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Sync;
 
+use App\Services\Firebase\FirestoreService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
@@ -21,19 +22,12 @@ class DatabaseSyncService
 
     /**
      * Créer un enregistrement dans PostgreSQL + Firebase
-     * 
-     * @param Model $model Instance Eloquent à sauvegarder
-     * @param string $collection Nom de la collection Firebase
-     * @param array $data Données à insérer
-     * @return Model Modèle sauvegardé avec statut de synchronisation
      */
     public function create(Model $model, string $collection, array $data): Model
     {
-        // Étape 1 : Sauvegarder dans PostgreSQL (PRIORITAIRE)
         $data['synchronized'] = false;
         $record = $model::create($data);
 
-        // Étape 2 : Tenter la synchronisation Firebase
         $this->syncToFirebase($record, $collection);
 
         return $record->fresh();
@@ -44,11 +38,9 @@ class DatabaseSyncService
      */
     public function update(Model $record, string $collection, array $data): bool
     {
-        // Étape 1 : Mettre à jour PostgreSQL
         $data['synchronized'] = false;
         $record->update($data);
 
-        // Étape 2 : Tenter la synchronisation Firebase
         $this->syncToFirebase($record, $collection);
 
         return true;
@@ -61,7 +53,6 @@ class DatabaseSyncService
     {
         $id = $record->getKey();
 
-        // Étape 1 : Supprimer de Firebase (si disponible)
         if ($this->firestore->isAvailable()) {
             try {
                 $this->firestore->deleteFromCollection($collection, $id);
@@ -70,7 +61,6 @@ class DatabaseSyncService
             }
         }
 
-        // Étape 2 : Supprimer de PostgreSQL
         return $record->delete();
     }
 
@@ -85,14 +75,11 @@ class DatabaseSyncService
         }
 
         try {
-            // Préparer les données (exclure les champs sensibles)
             $data = $record->toArray();
-            unset($data['mdp'], $data['password']); // Sécurité
+            unset($data['mdp'], $data['password']);
 
-            // Sauvegarder dans Firebase
             $this->firestore->saveToCollection($collection, $record->getKey(), $data);
 
-            // Marquer comme synchronisé
             $record->update([
                 'synchronized' => true,
                 'last_sync_at' => now()

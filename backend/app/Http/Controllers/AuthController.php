@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Services\FirebaseService;
-use App\Services\FirestoreService;
-use App\Services\SyncService;
+use App\Services\Firebase\AuthService;
+use App\Services\Firebase\FirestoreService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -15,7 +14,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class AuthController extends Controller
 {
     /**
-     * Register a new user
+     * Register a new user (Utilisateur uniquement - pas Manager)
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -28,9 +27,8 @@ class AuthController extends Controller
             'nom' => 'required|string|max:50',
             'prenom' => 'required|string|max:50',
             'dtn' => 'required|date',
-            'email' => 'nullable|email|max:50',
+            'email' => 'required|email|max:50|unique:utilisateur,email',
             'id_sexe' => 'required|integer|exists:sexe,id_sexe',
-            'id_type_utilisateur' => 'required|integer|exists:type_utilisateur,id_type_utilisateur',
         ]);
 
         if ($validator->fails()) {
@@ -40,7 +38,8 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // 1. Enregistrer en local d'abord
+        // ÉTAPE 1 : Enregistrer dans PostgreSQL (BASE LOCALE PRIORITAIRE)
+        // Forcer le type utilisateur à "Utilisateur" (id = 2)
         $user = User::create([
             'identifiant' => $request->identifiant,
             'mdp' => Hash::make($request->mdp),
@@ -49,13 +48,68 @@ class AuthController extends Controller
             'dtn' => $request->dtn,
             'email' => $request->email,
             'id_sexe' => $request->id_sexe,
-            'id_type_utilisateur' => $request->id_type_utilisateur,
+            'id_type_utilisateur' => 2, // TOUJOURS Utilisateur
             'synchronized' => false,
         ]);
 
-        // 2. Tenter la synchronisation avec Firestore
-        $syncService = new SyncService(new FirestoreService());
-        $synced = $syncService->syncUser($user);
+        $firestoreService = new FirestoreService();
+        $firebaseAuthService = new AuthService();
+        $synced = false;
+        $firebaseUid = null;
+
+        // ÉTAPE 2 : Tester la connexion Firebase
+        \Log::info('🔍 Testing Firestore availability...');
+        $isFirestoreAvailable = $firestoreService->isAvailable();
+        \Log::info('Firestore available: ' . ($isFirestoreAvailable ? 'YES' : 'NO'));
+
+        if ($isFirestoreAvailable) {
+            try {
+                \Log::info('📝 Creating Firebase Auth user...');
+                // 2A. Créer l'utilisateur dans Firebase Authentication
+                $firebaseUser = $firebaseAuthService->createUser(
+                    $request->email,
+                    $request->mdp,
+                    [
+                        'displayName' => $request->prenom . ' ' . $request->nom
+                    ]
+                );
+                $firebaseUid = $firebaseUser->uid;
+                \Log::info("✅ Firebase Auth user created: {$firebaseUid}");
+
+                // 2B. Enregistrer dans Firestore
+                \Log::info('📝 Saving to Firestore...');
+                $userData = [
+                    'id_utilisateur' => $user->id_utilisateur,
+                    'identifiant' => $user->identifiant,
+                    'nom' => $user->nom,
+                    'prenom' => $user->prenom,
+                    'dtn' => $user->dtn ? $user->dtn->format('Y-m-d') : null,
+                    'email' => $user->email,
+                    'id_sexe' => $user->id_sexe,
+                    'id_type_utilisateur' => $user->id_type_utilisateur,
+                    'firebase_uid' => $firebaseUid,
+                    'last_sync_at' => now()->toIso8601String(),
+                ];
+
+                if ($firestoreService->saveToCollection('utilisateurs', $user->id_utilisateur, $userData)) {
+                    // Marquer comme synchronisé
+                    $user->update([
+                        'synchronized' => true,
+                        'last_sync_at' => now(),
+                        'firebase_uid' => $firebaseUid
+                    ]);
+                    $synced = true;
+                    \Log::info("✅ User {$user->id_utilisateur} synchronized with Firestore & Auth");
+                } else {
+                    \Log::error("❌ Failed to save to Firestore collection");
+                }
+            } catch (\Exception $e) {
+                \Log::error("❌ Firebase sync failed: " . $e->getMessage());
+                \Log::error("Stack trace: " . $e->getTraceAsString());
+            }
+        } else {
+            \Log::warning("⚠️ Firebase indisponible - User {$user->id_utilisateur} non synchronisé");
+        }
 
         $token = JWTAuth::fromUser($user);
 
@@ -65,15 +119,16 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
             'synchronized' => $synced,
+            'firebase_uid' => $firebaseUid,
             'sync_message' => $synced 
-                ? 'Data synchronized with Firestore' 
+                ? 'Data synchronized with Firestore & Firebase Auth' 
                 : 'Saved locally, will sync when connection is available'
         ], 201);
     }
 
     /**
-     * Login user and return JWT token
-     * RESTRICTION: Seuls les Managers peuvent se connecter sur Web
+     * Login Manager (Web uniquement)
+     * Logique : Firebase en priorité, sinon PostgreSQL local
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -92,6 +147,54 @@ class AuthController extends Controller
             ], 422);
         }
 
+        $firestoreService = new FirestoreService();
+        $firebaseAuthService = new AuthService();
+        
+        // ÉTAPE 1 : Vérifier si Firebase est disponible
+        if ($firestoreService->isAvailable()) {
+            try {
+                \Log::info("🔥 Firebase disponible - Tentative d'authentification Firebase");
+                
+                // Essayer de s'authentifier via Firebase (méthode indirecte car pas de signIn direct dans SDK Admin)
+                // On vérifie si l'utilisateur existe dans Firebase Auth
+                $firebaseUser = null;
+                try {
+                    $firebaseUser = $firebaseAuthService->getAuth()->getUserByEmail($request->email);
+                } catch (\Exception $e) {
+                    \Log::warning("User not found in Firebase Auth: " . $e->getMessage());
+                }
+                
+                if ($firebaseUser) {
+                    // Chercher l'utilisateur dans PostgreSQL par firebase_uid ou email
+                    $user = User::where('email', $request->email)->first();
+                    
+                    if ($user && Hash::check($request->mdp, $user->mdp)) {
+                        // Vérifier que c'est un Manager
+                        $typeUtilisateur = DB::table('type_utilisateur')
+                            ->where('id_type_utilisateur', $user->id_type_utilisateur)
+                            ->first();
+                        
+                        if (!$typeUtilisateur || $typeUtilisateur->libelle !== 'Manager') {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Access denied. Only Managers can login on Web.'
+                            ], 403);
+                        }
+                        
+                        $token = JWTAuth::fromUser($user);
+                        \Log::info("✅ Login réussi via Firebase - Manager: {$user->email}");
+                        
+                        return $this->respondWithToken($token);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Erreur Firebase Auth, fallback vers PostgreSQL local: " . $e->getMessage());
+            }
+        }
+        
+        // ÉTAPE 2 : Fallback PostgreSQL local (si Firebase indisponible ou échec)
+        \Log::info("💾 Authentification via PostgreSQL local");
+        
         $credentials = [
             'email' => $request->email,
             'password' => $request->mdp,
@@ -118,6 +221,8 @@ class AuthController extends Controller
             ], 403);
         }
 
+        \Log::info("✅ Login réussi via PostgreSQL - Manager: {$user->email}");
+        
         return $this->respondWithToken($token);
     }
 

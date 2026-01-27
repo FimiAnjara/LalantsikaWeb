@@ -2,8 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Services\SyncService;
-use App\Services\FirestoreService;
+use App\Services\Sync\DatabaseSyncService;
+use App\Services\Firebase\FirestoreService;
+use App\Models\User;
 
 Route::group(['prefix' => 'auth'], function () {
     Route::post('register', [AuthController::class, 'register']);
@@ -19,33 +20,47 @@ Route::group(['prefix' => 'auth'], function () {
 
 // Routes de synchronisation (protégées par auth)
 Route::middleware('auth:api')->group(function () {
-    // Vérifier la connexion Firestore
-    Route::get('sync/check', function () {
-        $syncService = new SyncService(new FirestoreService());
-        return response()->json($syncService->checkConnection());
+    // Vérifier l'état de synchronisation
+    Route::get('sync/status', function () {
+        $syncService = app(DatabaseSyncService::class);
+        return response()->json($syncService->getStatus());
     });
 
     // Synchroniser tous les utilisateurs non synchronisés
     Route::post('sync/users', function () {
-        $syncService = new SyncService(new FirestoreService());
-        $results = $syncService->syncUnsynchronizedUsers();
+        $syncService = app(DatabaseSyncService::class);
+        $results = $syncService->syncUnsynchronized(User::class, 'utilisateurs');
         return response()->json([
-            'success' => true,
+            'success' => $results['success'],
             'results' => $results
         ]);
     });
 
     // Forcer la synchronisation d'un utilisateur spécifique
     Route::post('sync/user/{id}', function ($id) {
-        $user = \App\Models\User::findOrFail($id);
-        $syncService = new SyncService(new FirestoreService());
-        $synced = $syncService->forceSyncUser($user);
+        $user = User::findOrFail($id);
+        $firestoreService = app(FirestoreService::class);
         
+        if (!$firestoreService->isAvailable()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Firebase indisponible'
+            ], 503);
+        }
+
+        // Synchroniser manuellement
+        $data = $user->toArray();
+        unset($data['mdp']);
+        
+        $synced = $firestoreService->saveToCollection('utilisateurs', $user->id_utilisateur, $data);
+        
+        if ($synced) {
+            $user->update(['synchronized' => true, 'last_sync_at' => now()]);
+        }
+
         return response()->json([
             'success' => $synced,
-            'message' => $synced 
-                ? 'User synchronized successfully' 
-                : 'Failed to synchronize user'
+            'message' => $synced ? 'User synchronized successfully' : 'Failed to synchronize user'
         ]);
     });
 });

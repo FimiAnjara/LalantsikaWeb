@@ -208,15 +208,6 @@
             </div>
             
             <div class="form-group">
-                <label for="id_type_utilisateur">Type d'utilisateur *</label>
-                <select id="id_type_utilisateur" name="id_type_utilisateur" required>
-                    <option value="">Sélectionner</option>
-                    <option value="1">Manager</option>
-                    <option value="2">Utilisateur</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
                 <label for="mdp">Mot de passe *</label>
                 <input type="password" id="mdp" name="mdp" value="password123" required minlength="6">
             </div>
@@ -277,7 +268,6 @@
                 email: document.getElementById('email').value,
                 dtn: document.getElementById('dtn').value,
                 id_sexe: parseInt(document.getElementById('id_sexe').value),
-                id_type_utilisateur: parseInt(document.getElementById('id_type_utilisateur').value),
                 mdp: document.getElementById('mdp').value,
                 mdp_confirmation: document.getElementById('mdp_confirmation').value
             };

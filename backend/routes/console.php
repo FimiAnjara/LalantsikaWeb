@@ -3,7 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-use App\Services\DatabaseSyncService;
+use App\Services\Sync\DatabaseSyncService;
 use App\Models\User;
 use App\Models\Entreprise;
 use App\Models\Signalement;

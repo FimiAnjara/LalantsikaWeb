@@ -1,13 +1,17 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Firebase;
 
 use Kreait\Firebase\Factory;
-use Kreait\Firebase\Database;
+use Kreait\Firebase\Firestore;
 
+/**
+ * Service Firestore pour la gestion de la base de données Firebase
+ * Fournit des méthodes CRUD pour toutes les collections
+ */
 class FirestoreService
 {
-    protected $database;
+    protected $firestore;
     protected $isAvailable = false;
 
     public function __construct()
@@ -20,13 +24,15 @@ class FirestoreService
             }
 
             $factory = (new Factory)
-                ->withServiceAccount($serviceAccountPath)
-                ->withDatabaseUri('https://lalantsika-project-default-rtdb.asia-southeast1.firebasedatabase.app');
+                ->withServiceAccount($serviceAccountPath);
             
-            $this->database = $factory->createDatabase();
+            $this->firestore = $factory->createFirestore();
             $this->isAvailable = true;
+            
+            \Log::info('✅ Firestore initialized successfully with gRPC');
         } catch (\Exception $e) {
-            \Log::warning('Firestore initialization failed: ' . $e->getMessage());
+            \Log::error('❌ Firestore initialization failed: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             $this->isAvailable = false;
         }
     }
@@ -37,15 +43,21 @@ class FirestoreService
     public function isAvailable(): bool
     {
         if (!$this->isAvailable) {
+            \Log::warning('❌ Firestore not initialized');
             return false;
         }
 
         try {
-            // Test de connexion simple - essayer d'accéder à la racine
-            $this->database->getReference('_connection_test')->getSnapshot();
+            $testDoc = $this->firestore->database()
+                ->collection('_connection_test')
+                ->document('test')
+                ->snapshot();
+            
+            \Log::info('✅ Firestore connection test SUCCESS');
             return true;
         } catch (\Exception $e) {
-            \Log::warning('Firestore connection check failed: ' . $e->getMessage());
+            \Log::error('❌ Firestore connection check failed: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return false;
         }
     }
@@ -58,17 +70,11 @@ class FirestoreService
         if (!$this->isAvailable) {
             throw new \Exception('Firestore is not available');
         }
-        return $this->database->getReference($name);
+        return $this->firestore->database()->collection($name);
     }
 
     /**
-     * ========================================
-     * MÉTHODES UNIVERSELLES (pour toutes collections)
-     * ========================================
-     */
-
-    /**
-     * Sauvegarder dans n'importe quelle collection Firebase
+     * Sauvegarder dans n'importe quelle collection Firestore
      */
     public function saveToCollection(string $collection, $id, array $data): bool
     {
@@ -77,8 +83,10 @@ class FirestoreService
                 return false;
             }
 
-            $reference = $this->database->getReference($collection . '/' . $id);
-            $reference->set($data);
+            $this->firestore->database()
+                ->collection($collection)
+                ->document((string)$id)
+                ->set($data);
             
             return true;
         } catch (\Exception $e) {
@@ -88,7 +96,7 @@ class FirestoreService
     }
 
     /**
-     * Récupérer depuis n'importe quelle collection Firebase
+     * Récupérer depuis n'importe quelle collection Firestore
      */
     public function getFromCollection(string $collection, $id)
     {
@@ -97,8 +105,12 @@ class FirestoreService
                 return null;
             }
 
-            $reference = $this->database->getReference($collection . '/' . $id);
-            return $reference->getValue();
+            $snapshot = $this->firestore->database()
+                ->collection($collection)
+                ->document((string)$id)
+                ->snapshot();
+            
+            return $snapshot->exists() ? $snapshot->data() : null;
         } catch (\Exception $e) {
             \Log::error("Failed to get from {$collection}: " . $e->getMessage());
             return null;
@@ -106,7 +118,7 @@ class FirestoreService
     }
 
     /**
-     * Mettre à jour dans n'importe quelle collection Firebase
+     * Mettre à jour dans n'importe quelle collection Firestore
      */
     public function updateInCollection(string $collection, $id, array $data): bool
     {
@@ -115,8 +127,10 @@ class FirestoreService
                 return false;
             }
 
-            $reference = $this->database->getReference($collection . '/' . $id);
-            $reference->update($data);
+            $this->firestore->database()
+                ->collection($collection)
+                ->document((string)$id)
+                ->update($data);
             
             return true;
         } catch (\Exception $e) {
@@ -126,7 +140,7 @@ class FirestoreService
     }
 
     /**
-     * Supprimer de n'importe quelle collection Firebase
+     * Supprimer de n'importe quelle collection Firestore
      */
     public function deleteFromCollection(string $collection, $id): bool
     {
@@ -135,39 +149,15 @@ class FirestoreService
                 return false;
             }
 
-            $reference = $this->database->getReference($collection . '/' . $id);
-            $reference->remove();
+            $this->firestore->database()
+                ->collection($collection)
+                ->document((string)$id)
+                ->delete();
             
             return true;
         } catch (\Exception $e) {
             \Log::error("Failed to delete from {$collection}: " . $e->getMessage());
             return false;
         }
-    }
-
-    /**
-     * ========================================
-     * MÉTHODES SPÉCIFIQUES (rétrocompatibilité)
-     * ========================================
-     */
-
-    public function saveUtilisateur(array $userData): bool
-    {
-        return $this->saveToCollection('utilisateurs', $userData['id_utilisateur'], $userData);
-    }
-
-    public function getUtilisateur(int $id)
-    {
-        return $this->getFromCollection('utilisateurs', $id);
-    }
-
-    public function updateUtilisateur(int $id, array $data): bool
-    {
-        return $this->updateInCollection('utilisateurs', $id, $data);
-    }
-
-    public function deleteUtilisateur(int $id): bool
-    {
-        return $this->deleteFromCollection('utilisateurs', $id);
     }
 }

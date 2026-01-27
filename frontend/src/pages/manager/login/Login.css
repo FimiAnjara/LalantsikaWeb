@@ -1,0 +1,63 @@
+.login-container {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 50%, #ffffff 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-container .card {
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-container .form-control,
+.login-container .input-group-text {
+    transition: all 0.3s ease;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    height: auto;
+}
+
+.login-container .form-control {
+    min-height: 50px;
+}
+
+.login-container .form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(15, 52, 96, 0.25);
+    border-color: #0f3460;
+}
+
+.login-container .input-group-text {
+    color: #0f3460;
+    background-color: #f0f0f0;
+}
+
+.login-container .btn-primary {
+    background-color: #0f3460;
+    border-color: #0f3460;
+    transition: all 0.3s ease;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    min-height: 50px;
+}
+
+.login-container .btn-primary:hover {
+    background-color: #040411;
+    border-color: #1a1a2e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 52, 96, 0.4);
+}
+
+.login-container .btn-primary:active {
+    background-color: #0f3460;
+    border-color: #0f3460;
+}
+
+.login-container a {
+    transition: color 0.3s ease;
+}
+
+.login-container a:hover {
+    color: #0f3460 !important;
+}

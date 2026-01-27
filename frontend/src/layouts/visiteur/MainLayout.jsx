@@ -16,15 +16,15 @@ import {
     CLink,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { 
-    cilHome, 
+import {
+    cilHome,
     cilMap,
-    cilNotes, 
-    cilSearch, 
-    cilCloudDownload, 
-    cilBullhorn, 
-    cilHeadphones, 
-    cilEnvelopeOpen 
+    cilNotes,
+    cilSearch,
+    cilCloudDownload,
+    cilBullhorn,
+    cilHeadphones,
+    cilEnvelopeOpen
 } from '@coreui/icons'
 import { cibFacebook } from '@coreui/icons'
 import '@coreui/coreui/dist/css/coreui.min.css'
@@ -84,14 +84,14 @@ export default function MainLayout() {
                             </CNavItem>
                         </CNavbarNav>
                         <CForm className="d-flex ms-auto align-items-center">
-                            <CFormInput 
-                                type="search" 
-                                className="me-2 rounded-pill bg-dark border-secondary text-white px-3" 
-                                placeholder="Rechercher..." 
-                                size="sm" 
+                            <CFormInput
+                                type="search"
+                                className="me-2 rounded-pill bg-dark border-secondary text-white px-3"
+                                placeholder="Rechercher..."
+                                size="sm"
                             />
-                            <CButton 
-                                type="submit" 
+                            <CButton
+                                type="submit"
                                 className="btn btn-warning rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center"
                                 size="sm"
                             >

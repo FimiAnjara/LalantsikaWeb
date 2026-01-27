@@ -1,0 +1,154 @@
+/* Generic Table Component */
+
+.generic-table-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.generic-table-card .card-body {
+    padding: 0 !important;
+}
+
+.generic-table {
+    margin-bottom: 0;
+}
+
+.generic-table thead {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.generic-table th {
+    color: #0f3460;
+    font-weight: 600;
+    padding: 1rem;
+    border: none;
+    font-size: 0.875rem;
+}
+
+.generic-table td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-color: #e0e0e0;
+}
+
+.generic-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.generic-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.table-header {
+    background: linear-gradient(135deg, #0f3460 0%, #0f3460  100%);
+    color: white;
+    border: none;
+    padding: 1.5rem;
+}
+
+.table-header h5 {
+    font-weight: 600;
+    margin: 0;
+}
+
+.table-header small {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.table-header .d-flex {
+    display: flex;
+}
+
+/* Table Count Badge */
+.table-count-badge {
+    background-color: white;
+    color: #0f3460;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+/* Pagination Container */
+.pagination-container {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination-control {
+    margin: 0;
+}
+
+.pagination-control .page-link {
+    border-color: #e0e0e0;
+    color: #0f3460;
+    border-radius: 6px;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+}
+
+.pagination-control .page-link:hover:not(:disabled) {
+    background-color: #0f3460;
+    border-color: #0f3460;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.pagination-control .page-item.active .page-link {
+    background-color: #0f3460;
+    border-color: #0f3460;
+}
+
+.pagination-control .page-item.disabled .page-link {
+    background-color: #f0f0f0;
+    border-color: #e0e0e0;
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .generic-table {
+        font-size: 0.85rem;
+    }
+
+    .generic-table th,
+    .generic-table td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .table-header {
+        padding: 1rem;
+    }
+
+    .table-header .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .table-count-badge {
+        width: 100%;
+        text-align: center;
+    }
+
+    .pagination-container {
+        padding: 1rem;
+    }
+
+    .pagination-control {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .pagination-control .page-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}

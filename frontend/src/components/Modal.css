@@ -1,0 +1,197 @@
+/* Custom Modal Component */
+
+.custom-modal .modal-content {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.custom-modal .modal-header {
+    border: none;
+    padding: 2rem;
+    color: white;
+    font-weight: 600;
+}
+
+.custom-modal .modal-header-success {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+}
+
+.custom-modal .modal-header-error {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+}
+
+.custom-modal .modal-header-warning {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+}
+
+.custom-modal .modal-header-info {
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+}
+
+/* Modal Icon */
+.modal-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.modal-icon-success {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.modal-icon-error {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.modal-icon-warning {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.modal-icon-info {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Modal Body */
+.modal-body-content {
+    padding: 2rem;
+    background-color: #ffffff;
+}
+
+.modal-message {
+    font-size: 1rem;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Modal Footer */
+.modal-footer-custom {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+/* Modal Buttons */
+.btn-modal-close {
+    background-color: #e0e0e0;
+    border: none;
+    color: #333;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-modal-close:hover {
+    background-color: #d0d0d0;
+    transform: translateY(-2px);
+}
+
+.btn-modal-confirm {
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-modal-success {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+}
+
+.btn-modal-success:hover {
+    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.btn-modal-error {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+}
+
+.btn-modal-error:hover {
+    background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+.btn-modal-warning {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+}
+
+.btn-modal-warning:hover {
+    background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+.btn-modal-info {
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+}
+
+.btn-modal-info:hover {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+/* Modal Animation */
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.custom-modal.show .modal-dialog {
+    animation: slideInDown 0.3s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+    .custom-modal .modal-content {
+        border-radius: 12px;
+    }
+
+    .custom-modal .modal-header {
+        padding: 1.5rem;
+    }
+
+    .custom-modal .modal-body-content {
+        padding: 1.5rem;
+    }
+
+    .custom-modal .modal-footer-custom {
+        padding: 1rem 1.5rem;
+        flex-direction: column;
+    }
+
+    .btn-modal-close,
+    .btn-modal-confirm {
+        width: 100%;
+    }
+
+    .modal-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .modal-message {
+        font-size: 0.95rem;
+    }
+}

@@ -8,7 +8,7 @@
 .liste-utilisateur .header-icon {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -56,7 +56,7 @@
 
 /* Add Button */
 .liste-utilisateur .btn-add {
-    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
     border: none;
     color: white;
     font-weight: 600;
@@ -82,7 +82,7 @@
 }
 
 .liste-utilisateur .table-card-header {
-    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
     color: white;
     font-weight: 600;
     font-size: 1rem;

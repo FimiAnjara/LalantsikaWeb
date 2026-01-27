@@ -13,6 +13,7 @@ import {
     cilPlus,
     cilList,
     cilArrowRight,
+    cilUser,
 } from '@coreui/icons'
 import '@coreui/coreui/dist/css/coreui.min.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -61,15 +62,7 @@ export default function ManagerLayout() {
                             Tableau de bord
                         </a>
                     </li>
-                    <li className="nav-item">
-                        <a
-                            href="/manager/export"
-                            className={`nav-link ${isActive('/manager/export') ? 'active' : ''}`}
-                        >
-                            <CIcon icon={cilCloudDownload} className="nav-icon" />
-                            Exporter Données
-                        </a>
-                    </li>
+
                     <li className="nav-item nav-group-parent">
                         <a
                             href="#"
@@ -97,7 +90,6 @@ export default function ManagerLayout() {
                                     href="/manager/utilisateurs/ajout" 
                                     className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}
                                 >
-                                    <CIcon icon={cilPlus} className="nav-icon" />
                                     Ajouter
                                 </a>
                             </li>
@@ -106,7 +98,6 @@ export default function ManagerLayout() {
                                     href="/manager/utilisateurs/liste" 
                                     className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}
                                 >
-                                    <CIcon icon={cilList} className="nav-icon" />
                                     Liste
                                 </a>
                             </li>
@@ -129,9 +120,17 @@ export default function ManagerLayout() {
             <div className="flex-grow-1 d-flex flex-column">
                 {/* Header */}
                 <div className="manager-header" style={{ width: '100%' }}>
-                    <div className="d-flex justify-content-between align-items-center">
-                        <h5 className="mb-0 fw-bold">LALANTSIKA</h5>
-                        <small className="text-muted">Gestion des signalements</small>
+                    <div className="d-flex justify-content-between align-items-center w-100">
+                        <small className="text-muted"></small>
+                        <div className="d-flex align-items-center gap-2">
+                            <div className="user-avatar">
+                                <CIcon icon={cilUser} />
+                            </div>
+                            <div className="user-info">
+                                <div className="user-name">Utilisateur</div>
+                                <small className="text-muted">Connecté</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -1,0 +1,70 @@
+{
+  "hash": "adce48c0",
+  "configHash": "2d0f1248",
+  "lockfileHash": "e517998c",
+  "browserHash": "b3a2c8d9",
+  "optimized": {
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "df3a3509",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "ddec32ba",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.js",
+      "file": "react-router-dom.js",
+      "fileHash": "555b6b2d",
+      "needsInterop": false
+    },
+    "@coreui/react": {
+      "src": "../../node_modules/@coreui/react/dist/esm/index.js",
+      "file": "@coreui_react.js",
+      "fileHash": "aaf097df",
+      "needsInterop": false
+    },
+    "@coreui/icons-react": {
+      "src": "../../node_modules/@coreui/icons-react/dist/index.esm.js",
+      "file": "@coreui_icons-react.js",
+      "fileHash": "60d7a945",
+      "needsInterop": false
+    },
+    "@coreui/icons": {
+      "src": "../../node_modules/@coreui/icons/dist/esm/index.js",
+      "file": "@coreui_icons.js",
+      "fileHash": "beb6fa24",
+      "needsInterop": false
+    },
+    "react-leaflet": {
+      "src": "../../node_modules/react-leaflet/lib/index.js",
+      "file": "react-leaflet.js",
+      "fileHash": "b583f1d0",
+      "needsInterop": false
+    },
+    "leaflet": {
+      "src": "../../node_modules/leaflet/dist/leaflet-src.js",
+      "file": "leaflet.js",
+      "fileHash": "2e84f69a",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "chunk-TNTPHDQH": {
+      "file": "chunk-TNTPHDQH.js"
+    },
+    "chunk-32E4H3EV": {
+      "file": "chunk-32E4H3EV.js"
+    },
+    "chunk-GKVACACG": {
+      "file": "chunk-GKVACACG.js"
+    },
+    "chunk-G3PMV62Z": {
+      "file": "chunk-G3PMV62Z.js"
+    }
+  }
+}

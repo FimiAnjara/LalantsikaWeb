@@ -8,12 +8,18 @@ import ManagerLayout from './layouts/manager/MainManager'
 import ManagerHome from './pages/manager/home/Home'
 import AjoutUtilisateur from './pages/manager/utilisateurs/ajout/Home'
 import ListeUtilisateur from './pages/manager/utilisateurs/liste/Home'
+import ManagerLogin from './pages/manager/login/Login'
+
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Manager Login - No Layout */}
+        <Route path="/manager/login" element={<ManagerLogin />} />
+
         <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
           <Route path="/visiteur/home" element={<Home />} />
           <Route path="/visiteur/signalement" element={<Signalement />} />
           <Route path="/visiteur/recap" element={<Recap />} />

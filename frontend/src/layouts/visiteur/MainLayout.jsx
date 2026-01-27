@@ -40,7 +40,7 @@ export default function MainLayout() {
         <div className="main-layout bg-light">
             <CNavbar expand="lg" className="bg-navy navbar-dark sticky-top shadow-sm border-bottom border-navy">
                 <CContainer fluid className="px-4 py-2">
-                    <CNavbarBrand href="/" className="d-flex align-items-center">
+                    <CNavbarBrand href="/visiteur/home" className="d-flex align-items-center">
                         <img
                             src="/assets/logo/logo.png"
                             alt="LALANTSIKA"
@@ -57,8 +57,8 @@ export default function MainLayout() {
                         <CNavbarNav className="ms-3">
                             <CNavItem>
                                 <CNavLink
-                                    href="/"
-                                    className={`px-3 fw-semibold d-flex align-items-center ${isActive('/') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
+                                    href="/visiteur/home"
+                                    className={`px-3 fw-semibold d-flex align-items-center ${isActive('/visiteur/home') || isActive('/') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
                                 >
                                     <CIcon icon={cilHome} className="me-2" />
                                     Accueil
@@ -66,8 +66,8 @@ export default function MainLayout() {
                             </CNavItem>
                             <CNavItem>
                                 <CNavLink
-                                    href="/signalement"
-                                    className={`px-3 fw-semibold d-flex align-items-center ${isActive('/signalement') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
+                                    href="/visiteur/signalement"
+                                    className={`px-3 fw-semibold d-flex align-items-center ${isActive('/visiteur/signalement') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
                                 >
                                     <CIcon icon={cilMap} className="me-2" />
                                     Carte
@@ -75,8 +75,8 @@ export default function MainLayout() {
                             </CNavItem>
                             <CNavItem>
                                 <CNavLink
-                                    href="/recap"
-                                    className={`px-3 fw-semibold d-flex align-items-center ${isActive('/recap') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
+                                    href="/visiteur/recap"
+                                    className={`px-3 fw-semibold d-flex align-items-center ${isActive('/visiteur/recap') ? 'active text-warning border-bottom border-warning border-2' : 'text-light'}`}
                                 >
                                     <CIcon icon={cilNotes} className="me-2" />
                                     Recapitulatif

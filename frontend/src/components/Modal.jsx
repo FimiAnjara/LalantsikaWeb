@@ -1,6 +1,6 @@
 import { CModal, CModalHeader, CModalBody, CModalFooter, CButton } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilCheckAlt, cilX, cilWarning, cilInfo } from '@coreui/icons'
+import { cilCheckAlt, cilX, cilWarning, cilInfo, cilTrash } from '@coreui/icons'
 import './Modal.css'
 
 export default function Modal({
@@ -8,18 +8,19 @@ export default function Modal({
     type = 'success', // 'success', 'error', 'warning', 'info'
     title = '',
     message = '',
-    onClose = () => {},
+    onClose = () => { },
     onConfirm = null,
     confirmText = 'Confirmer',
     closeText = 'Fermer',
-    size = 'md',
+    size = undefined,
 }) {
     const getIconAndColor = () => {
         switch (type) {
             case 'success':
                 return { icon: cilCheckAlt, color: 'success' }
             case 'error':
-                return { icon: cilX, color: 'danger' }
+            case 'danger':
+                return { icon: cilTrash, color: 'danger' }
             case 'warning':
                 return { icon: cilWarning, color: 'warning' }
             case 'info':

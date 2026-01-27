@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
     CInputGroup,
     CFormInput,
@@ -7,6 +8,9 @@ import {
     CFormSelect,
     CTableRow,
     CTableDataCell,
+    CBadge,
+    CPagination,
+    CPaginationItem,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSearch } from '@coreui/icons'
@@ -17,9 +21,12 @@ import '../../../../styles/ListStyles.css'
 import './Liste.css'
 
 export default function SignalementListe() {
+    const navigate = useNavigate()
     const [searchTerm, setSearchTerm] = useState('')
     const [filterStatut, setFilterStatut] = useState('')
     const [filterUtilisateur, setFilterUtilisateur] = useState('')
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
     const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null })
     const [signalements, setSignalements] = useState([
@@ -83,12 +90,23 @@ export default function SignalementListe() {
         return matchSearch && matchStatut && matchUtilisateur
     })
 
+    const totalPages = Math.ceil(filteredSignalements.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paginatedSignalements = filteredSignalements.slice(startIndex, endIndex)
+
+    const handlePageChange = (page) => {
+        if (page > 0 && page <= totalPages) {
+            setCurrentPage(page)
+        }
+    }
+
     const handleView = (id) => {
-        console.log('Voir signalement:', id)
+        navigate(`/manager/signalements/fiche/${id}`)
     }
 
     const handleEdit = (id) => {
-        console.log('Modifier signalement:', id)
+        navigate(`/manager/signalements/modifier/${id}`)
     }
 
     const handleDelete = (id) => {
@@ -110,11 +128,11 @@ export default function SignalementListe() {
 
     const getStatutBadge = (statut) => {
         const badgeClass = {
-            'En attente': 'badge-warning',
-            'En cours': 'badge-info',
-            'Résolu': 'badge-success',
+            'En attente': 'warning',
+            'En cours': 'info',
+            'Résolu': 'success',
         }
-        return badgeClass[statut] || 'badge-secondary'
+        return badgeClass[statut] || 'secondary'
     }
 
     return (
@@ -191,7 +209,7 @@ export default function SignalementListe() {
                     { key: 'statut', label: 'Statut' },
                     { key: 'actions', label: 'Actions' },
                 ]}
-                data={filteredSignalements}
+                data={paginatedSignalements}
                 rowKey="id_signalement"
                 renderRow={(sig) => (
                     <CTableRow key={sig.id_signalement}>
@@ -208,9 +226,9 @@ export default function SignalementListe() {
                             <strong className="budget-ariary">Ar {sig.budget.toLocaleString('en-US')}</strong>
                         </CTableDataCell>
                         <CTableDataCell>
-                            <span className={`badge-custom ${getStatutBadge(sig.statut)}`}>
+                            <CBadge color={getStatutBadge(sig.statut)} className="p-2">
                                 {sig.statut}
-                            </span>
+                            </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>
                             <ActionButtons
@@ -225,6 +243,37 @@ export default function SignalementListe() {
                 emptyMessage="Aucun signalement trouvé"
             />
 
+            {/* Pagination */}
+            {filteredSignalements.length > 0 && (
+                <div className="d-flex justify-content-center mt-4">
+                    <CPagination aria-label="Pagination des signalements">
+                        <CPaginationItem 
+                            aria-label="Précédent" 
+                            disabled={currentPage === 1}
+                            onClick={() => handlePageChange(currentPage - 1)}
+                        >
+                            <span aria-hidden="true">&laquo;</span>
+                        </CPaginationItem>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <CPaginationItem
+                                key={page}
+                                active={page === currentPage}
+                                onClick={() => handlePageChange(page)}
+                            >
+                                {page}
+                            </CPaginationItem>
+                        ))}
+                        <CPaginationItem 
+                            aria-label="Suivant"
+                            disabled={currentPage === totalPages}
+                            onClick={() => handlePageChange(currentPage + 1)}
+                        >
+                            <span aria-hidden="true">&raquo;</span>
+                        </CPaginationItem>
+                    </CPagination>
+                </div>
+            )}
+
             {/* Modal for success messages */}
             <Modal 
                 visible={modal.visible}
@@ -237,9 +286,9 @@ export default function SignalementListe() {
             {/* Modal for delete confirmation */}
             <Modal
                 visible={deleteModal.visible}
-                type="warning"
-                title="Confirmer la suppression"
-                message="Êtes-vous sûr de vouloir supprimer ce signalement ? Cette action est irréversible."
+                type="danger"
+                title="Supprimer le signalement"
+                message="Cette action est irréversible. Voulez-vous vraiment supprimer ce signalement ?"
                 onClose={() => setDeleteModal({ visible: false, id: null })}
                 onConfirm={confirmDelete}
                 confirmText="Supprimer"

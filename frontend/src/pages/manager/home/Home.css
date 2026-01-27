@@ -1,0 +1,156 @@
+/* Dashboard Page */
+
+.dashboard-page .page-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.dashboard-page .header-icon {
+    width: 50px;
+    height: 50px;
+    background-color: #0f3460;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.dashboard-page h2 {
+    color: #1a1a2e;
+}
+
+/* Stat Cards */
+.stat-card {
+    border-radius: 16px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-primary-light {
+    background-color: rgba(15, 52, 96, 0.1);
+}
+
+.bg-warning-light {
+    background-color: rgba(255, 152, 0, 0.1);
+}
+
+.bg-success-light {
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.bg-info-light {
+    background-color: rgba(33, 150, 243, 0.1);
+}
+
+.text-primary {
+    color: #0f3460 !important;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Cards */
+.dashboard-page .card {
+    border-radius: 16px;
+}
+
+.dashboard-page .card-header {
+    border-bottom: none;
+}
+
+.dashboard-page .card-header h5 {
+    color: #1a1a2e;
+}
+
+/* Table */
+.dashboard-page .table {
+    margin-bottom: 0;
+}
+
+.dashboard-page .table thead th {
+    border-bottom: none;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #6c757d;
+    padding: 1rem;
+}
+
+.dashboard-page .table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-color: #f0f0f0;
+}
+
+.dashboard-page .table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.dashboard-page .table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Progress bars */
+.dashboard-page .progress {
+    height: 10px;
+    border-radius: 5px;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+/* Navy Background Card */
+.bg-navy {
+    background-color: #0f3460;
+}
+
+.budget-icon {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+    }
+}

@@ -8,7 +8,7 @@
 .list-page .header-icon {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    background-color: #0f3460;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -26,7 +26,7 @@
     border: none;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+    background-color: #ffffff;
 }
 
 .list-page .filters-card .form-label {

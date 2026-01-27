@@ -8,9 +8,11 @@ import {
     CButton,
     CCol,
     CRow,
+    CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilSave, cilSettings } from '@coreui/icons'
+import { cilSave, cilSettings, cilSync } from '@coreui/icons'
+import Modal from '../../../components/Modal'
 import './Parametres.css'
 
 export default function Parametres() {
@@ -20,6 +22,8 @@ export default function Parametres() {
     })
 
     const [saved, setSaved] = useState(false)
+    const [syncing, setSyncing] = useState(false)
+    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -33,6 +37,19 @@ export default function Parametres() {
         console.log('Paramètres sauvegardés:', settings)
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
+    }
+
+    const handleSync = () => {
+        setSyncing(true)
+        setTimeout(() => {
+            setSyncing(false)
+            setModal({
+                visible: true,
+                type: 'success',
+                title: 'Synchronisation réussie',
+                message: 'Les données ont été synchronisées avec succès avec le serveur distant.'
+            })
+        }, 2000)
     }
 
     return (
@@ -112,6 +129,57 @@ export default function Parametres() {
                     </CForm>
                 </CCardBody>
             </CCard>
+
+            {/* Synchronisation Card */}
+            <CCard className="settings-card mt-4">
+                <CCardHeader className="settings-card-header">
+                    <CIcon icon={cilSync} className="me-2" />
+                    Synchronisation des données
+                </CCardHeader>
+                <CCardBody className="p-4">
+                    <div className="mb-3">
+                        <h6 className="fw-bold mb-2">Synchroniser avec le serveur</h6>
+                        <p className="text-muted small mb-0">
+                            Synchronisez les données locales avec le serveur distant. Cette opération peut prendre quelques instants.
+                        </p>
+                    </div>
+                    
+                    <div className="info-section mb-4">
+                        <h5>Informations</h5>
+                        <ul className="mb-0">
+                            <li>Dernière synchronisation : <strong>27/01/2026 à 10:30</strong></li>
+                            <li>Statut du serveur : <strong className="text-success">En ligne</strong></li>
+                            <li>Données en attente : <strong>0 éléments</strong></li>
+                        </ul>
+                    </div>
+
+                    <CButton
+                        onClick={handleSync}
+                        className="btn-sync"
+                        disabled={syncing}
+                    >
+                        {syncing ? (
+                            <>
+                                <CSpinner size="sm" className="me-2" />
+                                Synchronisation en cours...
+                            </>
+                        ) : (
+                            <>
+                                <CIcon icon={cilSync} className="me-2" />
+                                Synchroniser maintenant
+                            </>
+                        )}
+                    </CButton>
+                </CCardBody>
+            </CCard>
+
+            <Modal
+                visible={modal.visible}
+                type={modal.type}
+                title={modal.title}
+                message={modal.message}
+                onClose={() => setModal({ ...modal, visible: false })}
+            />
         </div>
     )
 }

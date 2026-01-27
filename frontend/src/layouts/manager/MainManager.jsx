@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, Link } from 'react-router-dom'
 import {
     CButton,
     CContainer,
+    CBreadcrumb,
+    CBreadcrumbItem
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -32,12 +34,52 @@ export default function ManagerLayout() {
     useEffect(() => {
         if (location.pathname.startsWith('/manager/utilisateurs')) {
             setExpandedMenu('utilisateur')
+        } else if (location.pathname.startsWith('/manager/signalements')) {
+            setExpandedMenu('signalement')
         }
     }, [location.pathname])
 
     const toggleMenu = (menu) => {
         setExpandedMenu(expandedMenu === menu ? null : menu)
     }
+
+    const getBreadcrumbs = () => {
+        const pathnames = location.pathname.split('/').filter((x) => x)
+        const breadcrumbs = [
+            { name: 'Accueil', path: '/manager/home' }
+        ]
+
+        let currentPath = '/manager'
+
+        // Skip 'manager' from pathnames but use it as base
+        const managerSubPath = pathnames.slice(1)
+
+        managerSubPath.forEach((value, index) => {
+            currentPath += `/${value}`
+            let name = value.charAt(0).toUpperCase() + value.slice(1)
+
+            // Map specific names for better display
+            if (value === 'home') return // Skip home as it's our base 'Home'
+            if (value === 'utilisateurs') name = 'Utilisateurs'
+            if (value === 'signalements') name = 'Signalements'
+            if (value === 'ajout') name = 'Ajouter'
+            if (value === 'liste') name = 'Liste'
+            if (value === 'modifier') name = 'Modifier'
+            if (value === 'fiche') name = 'Fiche'
+            if (value === 'parametres') name = 'Paramètres'
+
+            // Check if it's an ID (simple check if it contains numbers)
+            if (/\d/.test(value)) {
+                name = `Détails #${value}`
+            }
+
+            breadcrumbs.push({ name, path: currentPath })
+        })
+
+        return breadcrumbs
+    }
+
+    const breadcrumbs = getBreadcrumbs()
 
     return (
         <div className="d-flex vh-100">
@@ -46,10 +88,10 @@ export default function ManagerLayout() {
                 <div className="sidebar-header">
                     <div className="sidebar-brand d-flex align-items-center justify-content-center">
                         <img
-                            src="/assets/logo/logo.png"
+                            src="/assets/logo/login/logo.png"
                             alt="LALANTSIKA"
                             height="60"
-                            width="120"
+                            width="60"
                         />
                     </div>
                 </div>
@@ -64,7 +106,6 @@ export default function ManagerLayout() {
                             Tableau de bord
                         </a>
                     </li>
-
                     <li className="nav-item nav-group-parent">
                         <a
                             href="#"
@@ -174,8 +215,7 @@ export default function ManagerLayout() {
             <div className="flex-grow-1 d-flex flex-column">
                 {/* Header */}
                 <div className="manager-header" style={{ width: '100%' }}>
-                    <div className="d-flex justify-content-between align-items-center w-100">
-                        <small className="text-muted"></small>
+                    <div className="d-flex justify-content-end align-items-center w-100">
                         <div className="d-flex align-items-center gap-2">
                             <div className="user-avatar">
                                 <CIcon icon={cilUser} />
@@ -190,6 +230,18 @@ export default function ManagerLayout() {
                 {/* Content Area */}
                 <main className="flex-grow-1 overflow-auto" style={{ backgroundColor: '#f5f5f5' }}>
                     <CContainer fluid className="p-4">
+                        <CBreadcrumb style={{ '--cui-breadcrumb-divider': '">"' }} className="ms-2 mb-3">
+                            {breadcrumbs.map((breadcrumb, index) => (
+                                <CBreadcrumbItem
+                                    key={index}
+                                    component={Link}
+                                    to={breadcrumb.path}
+                                    {...(index === breadcrumbs.length - 1 ? { active: true } : {})}
+                                >
+                                    {breadcrumb.name}
+                                </CBreadcrumbItem>
+                            ))}
+                        </CBreadcrumb>
                         <div className="bg-white rounded-4 shadow-sm p-4">
                             <Outlet />
                         </div>

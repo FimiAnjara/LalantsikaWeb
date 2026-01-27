@@ -9,6 +9,9 @@ import {
     CTableDataCell,
     CButton,
     CInputGroup,
+    CBadge,
+    CPagination,
+    CPaginationItem,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilList, cilSearch, cilPeople, cilCheckAlt } from '@coreui/icons'
@@ -25,6 +28,9 @@ export default function ListeUtilisateur() {
     const [filterStatus, setFilterStatus] = useState('')
     const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null })
+    const [unblockModal, setUnblockModal] = useState({ visible: false, id: null })
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
     const [utilisateurs, setUtilisateurs] = useState([
         {
             id_utilisateur: 1,
@@ -88,6 +94,17 @@ export default function ListeUtilisateur() {
         return matchSearch && matchType && matchStatus
     })
 
+    const totalPages = Math.ceil(filteredUtilisateurs.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paginatedUtilisateurs = filteredUtilisateurs.slice(startIndex, endIndex)
+
+    const handlePageChange = (page) => {
+        if (page > 0 && page <= totalPages) {
+            setCurrentPage(page)
+        }
+    }
+
     const handleDelete = (id) => {
         setDeleteModal({ visible: true, id })
     }
@@ -106,15 +123,22 @@ export default function ListeUtilisateur() {
     }
 
     const handleUnblock = (id) => {
-        setUtilisateurs(utilisateurs.map((user) =>
-            user.id_utilisateur === id ? { ...user, statut: 'actif' } : user
-        ))
-        setModal({
-            visible: true,
-            type: 'success',
-            title: 'Succès',
-            message: 'Utilisateur débloqué avec succès'
-        })
+        setUnblockModal({ visible: true, id })
+    }
+
+    const confirmUnblock = () => {
+        if (unblockModal.id) {
+            setUtilisateurs(utilisateurs.map((user) =>
+                user.id_utilisateur === unblockModal.id ? { ...user, statut: 'actif' } : user
+            ))
+            setUnblockModal({ visible: false, id: null })
+            setModal({
+                visible: true,
+                type: 'success',
+                title: 'Succès',
+                message: 'Utilisateur débloqué avec succès'
+            })
+        }
     }
 
     return (
@@ -184,7 +208,7 @@ export default function ListeUtilisateur() {
                     { key: 'statut', label: 'Statut' },
                     { key: 'actions', label: 'Actions' },
                 ]}
-                data={filteredUtilisateurs}
+                data={paginatedUtilisateurs}
                 rowKey="id_utilisateur"
                 renderRow={(user) => (
                     <CTableRow key={user.id_utilisateur}>
@@ -203,14 +227,14 @@ export default function ListeUtilisateur() {
                         </CTableDataCell>
                         <CTableDataCell>{user.email}</CTableDataCell>
                         <CTableDataCell>
-                            <span className={`badge-custom ${getTypeColor(user.type_utilisateur)}`}>
+                            <CBadge color={getTypeColor(user.type_utilisateur)} className="p-2">
                                 {user.type_utilisateur}
-                            </span>
+                            </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>
-                            <span className={`badge-custom ${getStatutColor(user.statut)}`}>
+                            <CBadge color={getStatutColor(user.statut)} className="p-2">
                                 {user.statut === 'actif' ? 'Actif' : 'Bloqué'}
-                            </span>
+                            </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>
                             {user.statut === 'bloque' ? (
@@ -227,7 +251,7 @@ export default function ListeUtilisateur() {
                             ) : (
                                 <ActionButtons
                                     id={user.id_utilisateur}
-                                    onView={() => console.log('Voir:', user.id_utilisateur)}
+                                    onView={() => navigate(`/manager/utilisateurs/fiche/${user.id_utilisateur}`)}
                                     onEdit={() => navigate(`/manager/utilisateurs/modifier/${user.id_utilisateur}`)}
                                     onDelete={handleDelete}
                                 />
@@ -237,6 +261,37 @@ export default function ListeUtilisateur() {
                 )}
                 emptyMessage="Aucun utilisateur trouvé"
             />
+
+            {/* Pagination */}
+            {filteredUtilisateurs.length > 0 && (
+                <div className="d-flex justify-content-center mt-4">
+                    <CPagination aria-label="Pagination des utilisateurs">
+                        <CPaginationItem 
+                            aria-label="Précédent" 
+                            disabled={currentPage === 1}
+                            onClick={() => handlePageChange(currentPage - 1)}
+                        >
+                            <span aria-hidden="true">&laquo;</span>
+                        </CPaginationItem>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <CPaginationItem
+                                key={page}
+                                active={page === currentPage}
+                                onClick={() => handlePageChange(page)}
+                            >
+                                {page}
+                            </CPaginationItem>
+                        ))}
+                        <CPaginationItem 
+                            aria-label="Suivant"
+                            disabled={currentPage === totalPages}
+                            onClick={() => handlePageChange(currentPage + 1)}
+                        >
+                            <span aria-hidden="true">&raquo;</span>
+                        </CPaginationItem>
+                    </CPagination>
+                </div>
+            )}
 
             {/* Modal for success/unblock messages */}
             <Modal 
@@ -250,12 +305,24 @@ export default function ListeUtilisateur() {
             {/* Modal for delete confirmation */}
             <Modal
                 visible={deleteModal.visible}
-                type="warning"
-                title="Confirmer la suppression"
-                message="Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible."
+                type="danger"
+                title="Supprimer l'utilisateur"
+                message="Cette action est irréversible. Voulez-vous vraiment supprimer cet utilisateur ?"
                 onClose={() => setDeleteModal({ visible: false, id: null })}
                 onConfirm={confirmDelete}
                 confirmText="Supprimer"
+                closeText="Annuler"
+            />
+
+            {/* Modal for unblock confirmation */}
+            <Modal
+                visible={unblockModal.visible}
+                type="info"
+                title="Confirmer le déblocage"
+                message="Voulez-vous vraiment débloquer cet utilisateur ?"
+                onClose={() => setUnblockModal({ visible: false, id: null })}
+                onConfirm={confirmUnblock}
+                confirmText="Débloquer"
                 closeText="Annuler"
             />
         </div>

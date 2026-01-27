@@ -8,7 +8,7 @@
 .liste-utilisateur .header-icon {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    background-color: #0f3460;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -26,7 +26,7 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    background-color: #0f3460;
     color: white;
     display: flex;
     align-items: center;
@@ -37,7 +37,7 @@
 
 /* Unlock Button */
 .liste-utilisateur .btn-unlock {
-    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    background-color: #4caf50;
     color: white;
     border: none;
     padding: 0.5rem 0.875rem;
@@ -52,7 +52,7 @@
 }
 
 .liste-utilisateur .btn-unlock:hover {
-    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+    background-color: #45a049;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
     color: white;

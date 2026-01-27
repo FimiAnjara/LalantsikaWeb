@@ -1,0 +1,120 @@
+/* Page Fiche Utilisateur */
+
+.fiche-utilisateur {
+    padding-bottom: 3rem;
+}
+
+.fiche-utilisateur .btn-back {
+    background: none;
+    border: none;
+    color: #0f3460;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fiche-utilisateur .btn-back:hover {
+    background-color: rgba(15, 52, 96, 0.1);
+    transform: translateX(-3px);
+}
+
+.fiche-utilisateur .btn-theme {
+    background-color: #0f3460 !important;
+    border-color: #0f3460 !important;
+}
+
+.fiche-utilisateur .btn-theme:hover {
+    background-color: #1a1a2e !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 52, 96, 0.3);
+}
+
+/* Profile Card */
+.profile-card {
+    border-radius: 16px !important;
+}
+
+.profile-avatar {
+    width: 100px !important;
+    height: 100px !important;
+    font-size: 2.5rem !important;
+    background-color: #0f3460 !important;
+    color: white !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 20px rgba(15, 52, 96, 0.2);
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid white;
+}
+
+.status-indicator.actif {
+    background-color: #2eb85c;
+}
+
+.status-indicator.bloque {
+    background-color: #e55353;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.info-item cicon {
+    width: 18px;
+}
+
+/* Details Card */
+.fiche-utilisateur .card {
+    border-radius: 16px !important;
+}
+
+.fiche-utilisateur h5 {
+    color: #0f3460;
+}
+
+.fiche-utilisateur hr {
+    opacity: 0.1;
+}
+
+/* Accessibility and Hover */
+.header-actions .btn {
+    font-weight: 600;
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.header-actions .btn:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 1.5rem;
+    }
+
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .header-actions .btn {
+        width: 100%;
+    }
+}

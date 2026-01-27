@@ -8,7 +8,7 @@
 .ajout-utilisateur .header-icon {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #0f3460 0%, #0f3460  100%);
+    background-color: #0f3460;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -29,7 +29,7 @@
 }
 
 .ajout-utilisateur .form-card-header {
-    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
+    background-color: #0f3460;
     color: white;
     font-weight: 600;
     font-size: 1rem;
@@ -85,7 +85,7 @@
 
 /* Buttons */
 .ajout-utilisateur .btn-submit {
-    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
+    background-color: #0f3460;
     border: none;
     color: white;
     font-weight: 600;

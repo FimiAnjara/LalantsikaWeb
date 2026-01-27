@@ -15,19 +15,20 @@
 }
 
 .custom-modal .modal-header-success {
-    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    background-color: #4caf50;
 }
 
-.custom-modal .modal-header-error {
-    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+.custom-modal .modal-header-error,
+.custom-modal .modal-header-danger {
+    background-color: #e7222e; /* Intense Red for danger/delete */
 }
 
 .custom-modal .modal-header-warning {
-    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    background-color: #ff9800;
 }
 
 .custom-modal .modal-header-info {
-    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    background-color: #0f3460;
 }
 
 /* Modal Icon */
@@ -46,7 +47,8 @@
     background-color: rgba(255, 255, 255, 0.2);
 }
 
-.modal-icon-error {
+.modal-icon-error,
+.modal-icon-danger {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -107,43 +109,45 @@
 }
 
 .btn-modal-success {
-    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    background-color: #4caf50;
 }
 
 .btn-modal-success:hover {
-    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+    background-color: #45a049;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
-.btn-modal-error {
-    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+.btn-modal-error,
+.btn-modal-danger {
+    background-color: #e7222e;
 }
 
-.btn-modal-error:hover {
-    background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+.btn-modal-error:hover,
+.btn-modal-danger:hover {
+    background-color: #c61a24;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+    box-shadow: 0 4px 12px rgba(231, 34, 46, 0.4);
 }
 
 .btn-modal-warning {
-    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    background-color: #ff9800;
 }
 
 .btn-modal-warning:hover {
-    background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+    background-color: #f57c00;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
 }
 
 .btn-modal-info {
-    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    background-color: #0f3460;
 }
 
 .btn-modal-info:hover {
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    background-color: #1a1a2e;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+    box-shadow: 0 4px 12px rgba(15, 52, 96, 0.3);
 }
 
 /* Modal Animation */

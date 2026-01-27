@@ -31,8 +31,5 @@ class Signalement extends Model
         return $this->belongsTo(User::class, 'id_utilisateur', 'id_utilisateur');
     }
 
-    public function point()
-    {
-        return $this->belongsTo(Point::class, 'id_point', 'id_point');
-    }
+  
 }

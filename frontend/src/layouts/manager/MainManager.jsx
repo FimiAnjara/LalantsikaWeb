@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import {
     CButton,
@@ -6,7 +6,6 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
-    cilHome,
     cilChartPie,
     cilAccountLogout,
     cilCloudDownload,
@@ -17,12 +16,21 @@ import {
 } from '@coreui/icons'
 import '@coreui/coreui/dist/css/coreui.min.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import './MainManager.css'
 
 export default function ManagerLayout() {
     const location = useLocation()
     const [expandedMenu, setExpandedMenu] = useState(null)
 
     const isActive = (path) => location.pathname === path
+    
+    const isMenuActive = (menuPrefix) => location.pathname.startsWith(menuPrefix)
+
+    useEffect(() => {
+        if (location.pathname.startsWith('/manager/utilisateurs')) {
+            setExpandedMenu('utilisateur')
+        }
+    }, [location.pathname])
 
     const toggleMenu = (menu) => {
         setExpandedMenu(expandedMenu === menu ? null : menu)
@@ -31,102 +39,88 @@ export default function ManagerLayout() {
     return (
         <div className="d-flex vh-100">
             {/* Sidebar */}
-            <div className="sidebar sidebar-dark border-end" style={{ width: '250px', overflowY: 'auto' }}>
-                <div className="sidebar-header border-bottom">
-                    <div className="sidebar-brand d-flex align-items-center">
+            <div className="manager-sidebar d-flex flex-column">
+                <div className="sidebar-header">
+                    <div className="sidebar-brand d-flex align-items-center justify-content-center">
                         <img
                             src="/assets/logo/logo.png"
                             alt="LALANTSIKA"
-                            height="30"
+                            height="60"
+                            width="120"
                         />
                     </div>
                 </div>
-                <ul className="sidebar-nav">
+                <ul className="sidebar-nav flex-grow-1">
                     <li className="nav-title">General</li>
                     <li className="nav-item">
                         <a
                             href="/manager/home"
                             className={`nav-link ${isActive('/manager/home') ? 'active' : ''}`}
                         >
-                            <CIcon icon={cilChartPie} className="nav-icon me-2" />
+                            <CIcon icon={cilChartPie} className="nav-icon" />
                             Tableau de bord
                         </a>
                     </li>
                     <li className="nav-item">
                         <a
-                            href="/manager/home"
-                            className="nav-link"
+                            href="/manager/export"
+                            className={`nav-link ${isActive('/manager/export') ? 'active' : ''}`}
                         >
-                            <CIcon icon={cilCloudDownload} className="nav-icon me-2" />
+                            <CIcon icon={cilCloudDownload} className="nav-icon" />
                             Exporter Données
                         </a>
                     </li>
-                    <li className="nav-item nav-group">
+                    <li className="nav-item nav-group-parent">
                         <a
                             href="#"
                             onClick={(e) => {
                                 e.preventDefault()
                                 toggleMenu('utilisateur')
                             }}
-                            className={`nav-link ${expandedMenu === 'utilisateur' ? 'show' : ''}`}
+                            className={`nav-link ${isMenuActive('/manager/utilisateurs') ? 'parent-active' : ''}`}
                         >
-                            <CIcon icon={cilPeople} className="nav-icon me-2" />
+                            <CIcon icon={cilPeople} className="nav-icon" />
                             Utilisateur
                             <CIcon
                                 icon={cilArrowRight}
-                                className="ms-auto"
-                                style={{
-                                    transform: expandedMenu === 'utilisateur' ? 'rotate(90deg)' : 'rotate(0deg)',
-                                    transition: 'transform 0.3s'
-                                }}
+                                className={`ms-auto arrow-icon ${expandedMenu === 'utilisateur' ? 'expanded' : ''}`}
                             />
                         </a>
-                        {expandedMenu === 'utilisateur' ? (
-                            <ul className="nav-group-items" style={{ display: 'block' }}>
-                                <li className="nav-item">
-                                    <a href="/manager/utilisateurs/ajout" className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}>
-                                        <span className="nav-icon"><span className="nav-icon-bullet"></span></span>
-                                        <CIcon icon={cilPlus} className="me-2" />
-                                        Ajouter
-                                    </a>
-                                </li>
-                                <li className="nav-item">
-                                    <a href="/manager/utilisateurs/liste" className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}>
-                                        <span className="nav-icon"><span className="nav-icon-bullet"></span></span>
-                                        <CIcon icon={cilList} className="me-2" />
-                                        Liste
-                                    </a>
-                                </li>
-                            </ul>
-                        ) : (
-                            <ul className="nav-group-items" style={{ display: 'none' }}>
-                                <li className="nav-item">
-                                    <a href="/manager/utilisateurs/ajout" className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}>
-                                        <span className="nav-icon"><span className="nav-icon-bullet"></span></span>
-                                        <CIcon icon={cilPlus} className="me-2" />
-                                        Ajouter
-                                    </a>
-                                </li>
-                                <li className="nav-item">
-                                    <a href="/manager/utilisateurs/liste" className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}>
-                                        <span className="nav-icon"><span className="nav-icon-bullet"></span></span>
-                                        <CIcon icon={cilList} className="me-2" />
-                                        Liste
-                                    </a>
-                                </li>
-                            </ul>
-                        )}
+                        <ul 
+                            className="nav-group-items" 
+                            style={{ 
+                                display: expandedMenu === 'utilisateur' ? 'block' : 'none'
+                            }}
+                        >
+                            <li className="nav-item">
+                                <a 
+                                    href="/manager/utilisateurs/ajout" 
+                                    className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}
+                                >
+                                    <CIcon icon={cilPlus} className="nav-icon" />
+                                    Ajouter
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a 
+                                    href="/manager/utilisateurs/liste" 
+                                    className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}
+                                >
+                                    <CIcon icon={cilList} className="nav-icon" />
+                                    Liste
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
-                <div className="sidebar-footer border-top d-flex gap-2 p-2">
+                <div className="sidebar-footer">
                     <CButton
                         color="danger"
                         size="sm"
-                        className="w-100 d-flex align-items-center justify-content-center"
-                        title="Déconnexion"
+                        className="w-100 d-flex align-items-center justify-content-center btn-logout"
                     >
                         <CIcon icon={cilAccountLogout} className="me-2" />
-                        Logout
+                        Déconnexion
                     </CButton>
                 </div>
             </div>
@@ -134,10 +128,10 @@ export default function ManagerLayout() {
             {/* Main Content */}
             <div className="flex-grow-1 d-flex flex-column">
                 {/* Header */}
-                <div className="bg-dark text-white p-3 border-bottom shadow-sm">
+                <div className="manager-header" style={{ width: '100%' }}>
                     <div className="d-flex justify-content-between align-items-center">
-                        <h3 className="mb-0"></h3>
-                        <small className="text-white-50">Gestion des signalements</small>
+                        <h5 className="mb-0 fw-bold">LALANTSIKA</h5>
+                        <small className="text-muted">Gestion des signalements</small>
                     </div>
                 </div>
 

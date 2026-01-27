@@ -63,128 +63,136 @@ export default function ManagerLogin() {
 
     return (
         <div className="login-container">
-            <CContainer className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
-                <CRow className="w-100">
-                    <CCol lg="5" md="8" sm="10" xs="12" className="mx-auto">
-                        <CCard className="shadow-lg border-0 rounded-4 overflow-hidden">
-                            {/* Header */}
-                            <div className="bg-dark text-white p-4 text-center">
+            <CContainer fluid className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+                <CRow className="w-100" style={{ maxWidth: '1000px' }}>
+                    <CCol lg="6" md="12" className="p-0">
+                        <div className="login-form-section">
+                            <div className="mb-4 text-center">
                                 <img
                                     src="/assets/logo/logo.png"
                                     alt="LALANTSIKA"
                                     height="50"
                                     className="mb-3 rounded"
                                 />
-                                <h3 className="mb-0">LALANTSIKA Manager</h3>
-                                <small className="text-white-50">Connexion à votre compte</small>
+                                <h2 className="mb-2 text-dark fw-bold">LALANTSIKA Manager</h2>
+                                <small className="text-secondary">Connexion à votre compte</small>
                             </div>
 
-                            {/* Form Body */}
-                            <CCardBody className="p-4">
-                                <CForm onSubmit={handleSubmit}>
-                                    {/* Identifiant */}
-                                    <div className="mb-4">
-                                        <label htmlFor="identifiant" className="form-label fw-semibold text-dark">
-                                            Identifiant
-                                        </label>
-                                        <CInputGroup className="rounded-3 overflow-hidden has-validation">
-                                            <CInputGroupText className="bg-light border-0">
-                                                <CIcon icon={cilUser} />
-                                            </CInputGroupText>
-                                            <CFormInput
-                                                type="text"
-                                                id="identifiant"
-                                                name="identifiant"
-                                                value={formData.identifiant}
-                                                onChange={handleChange}
-                                                placeholder="Entrez votre identifiant"
-                                                className="rounded-3 border-0"
-                                                style={{
-                                                    padding: '0.75rem 1rem',
-                                                    fontSize: '1rem',
-                                                    minHeight: '50px',
-                                                    borderColor: errors.identifiant ? '#dc3545' : '',
-                                                }}
-                                            />
-                                        </CInputGroup>
-                                        {errors.identifiant && (
-                                            <div className="form-text text-danger mt-2">
-                                                {errors.identifiant}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Mot de passe */}
-                                    <div className="mb-4">
-                                        <label htmlFor="mdp" className="form-label fw-semibold text-dark">
-                                            Mot de passe
-                                        </label>
-                                        <CInputGroup className="rounded-3 overflow-hidden has-validation">
-                                            <CInputGroupText className="bg-light border-0">
-                                                <CIcon icon={cilLockLocked} />
-                                            </CInputGroupText>
-                                            <CFormInput
-                                                type="password"
-                                                id="mdp"
-                                                name="mdp"
-                                                value={formData.mdp}
-                                                onChange={handleChange}
-                                                placeholder="Entrez votre mot de passe"
-                                                className="rounded-3 border-0"
-                                                style={{
-                                                    padding: '0.75rem 1rem',
-                                                    fontSize: '1rem',
-                                                    minHeight: '50px',
-                                                    borderColor: errors.mdp ? '#dc3545' : '',
-                                                }}
-                                            />
-                                        </CInputGroup>
-                                        {errors.mdp && (
-                                            <div className="form-text text-danger mt-2">
-                                                {errors.mdp}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Remember Me */}
-                                    <div className="mb-4">
-                                        <CFormCheck
-                                            type="checkbox"
-                                            id="rememberMe"
-                                            name="rememberMe"
-                                            checked={formData.rememberMe}
+                            <CForm onSubmit={handleSubmit}>
+                                {/* Identifiant */}
+                                <div className="mb-4">
+                                    <label htmlFor="identifiant" className="form-label fw-semibold text-dark">
+                                        Identifiant
+                                    </label>
+                                    <CInputGroup className="rounded-3 overflow-hidden has-validation">
+                                        <CInputGroupText className="bg-light border-0">
+                                            <CIcon icon={cilUser} />
+                                        </CInputGroupText>
+                                        <CFormInput
+                                            type="text"
+                                            id="identifiant"
+                                            name="identifiant"
+                                            value={formData.identifiant}
                                             onChange={handleChange}
-                                            label="Se souvenir de moi"
-                                            className="fw-semibold text-dark"
+                                            placeholder="Entrez votre identifiant"
+                                            className="rounded-3 border-0"
+                                            style={{
+                                                padding: '0.75rem 1rem',
+                                                fontSize: '1rem',
+                                                minHeight: '50px',
+                                                borderColor: errors.identifiant ? '#dc3545' : '',
+                                            }}
                                         />
-                                    </div>
-
-                                    {/* Submit Button */}
-                                    <CButton
-                                        type="submit"
-                                        color="primary"
-                                        className="w-100 rounded-3 fw-bold d-flex align-items-center justify-content-center"
-                                        style={{
-                                            padding: '0.75rem 1.5rem',
-                                            fontSize: '1rem',
-                                            minHeight: '50px',
-                                        }}
-                                        data-coreui-timeout="2000"
-                                        data-coreui-toggle="loading-button"
-                                    >
-                                        <CIcon icon={cilLockLocked} className="me-2" />
-                                        Se connecter
-                                    </CButton>
-                                </CForm>
-
-                                {/* Footer */}
-                                <div className="text-center mt-4">
-                                    <small className="text-secondary">
-                                        Besoin d'aide? <a href="#" className="text-primary fw-bold text-decoration-none">Contactez le support</a>
-                                    </small>
+                                    </CInputGroup>
+                                    {errors.identifiant && (
+                                        <div className="form-text text-danger mt-2">
+                                            {errors.identifiant}
+                                        </div>
+                                    )}
                                 </div>
-                            </CCardBody>
-                        </CCard>
+
+                                {/* Mot de passe */}
+                                <div className="mb-4">
+                                    <label htmlFor="mdp" className="form-label fw-semibold text-dark">
+                                        Mot de passe
+                                    </label>
+                                    <CInputGroup className="rounded-3 overflow-hidden has-validation">
+                                        <CInputGroupText className="bg-light border-0">
+                                            <CIcon icon={cilLockLocked} />
+                                        </CInputGroupText>
+                                        <CFormInput
+                                            type="password"
+                                            id="mdp"
+                                            name="mdp"
+                                            value={formData.mdp}
+                                            onChange={handleChange}
+                                            placeholder="Entrez votre mot de passe"
+                                            className="rounded-3 border-0"
+                                            style={{
+                                                padding: '0.75rem 1rem',
+                                                fontSize: '1rem',
+                                                minHeight: '50px',
+                                                borderColor: errors.mdp ? '#dc3545' : '',
+                                            }}
+                                        />
+                                    </CInputGroup>
+                                    {errors.mdp && (
+                                        <div className="form-text text-danger mt-2">
+                                            {errors.mdp}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Remember Me */}
+                                <div className="mb-4">
+                                    <CFormCheck
+                                        type="checkbox"
+                                        id="rememberMe"
+                                        name="rememberMe"
+                                        checked={formData.rememberMe}
+                                        onChange={handleChange}
+                                        label="Se souvenir de moi"
+                                        className="fw-semibold text-dark"
+                                    />
+                                </div>
+
+                                {/* Submit Button */}
+                                <CButton
+                                    type="submit"
+                                    color="primary"
+                                    className="w-100 rounded-3 fw-bold d-flex align-items-center justify-content-center"
+                                    style={{
+                                        padding: '0.75rem 1.5rem',
+                                        fontSize: '1rem',
+                                        minHeight: '50px',
+                                    }}
+                                    data-coreui-timeout="2000"
+                                    data-coreui-toggle="loading-button"
+                                >
+                                    <CIcon icon={cilLockLocked} className="me-2" />
+                                    Se connecter
+                                </CButton>
+                            </CForm>
+
+                            {/* Footer */}
+                            <div className="text-center mt-4">
+                                <small className="text-secondary">
+                                    Besoin d'aide? <a href="#" className="text-primary fw-bold text-decoration-none">Contactez le support</a>
+                                </small>
+                            </div>
+                        </div>
+                    </CCol>
+
+                    <CCol lg="6" md="0" className="p-0">
+                        <div className="login-image-section">
+                            <div style={{ textAlign: 'center', color: 'white' }}>
+                                {/* <img
+                                    src="/assets/img/slide1.png"
+                                    alt="LALANTSIKA"
+                                    style={{ width: '100%', height: 'auto', maxWidth: '400px' }}
+                                /> */}
+                            </div>
+                        </div>
                     </CCol>
                 </CRow>
             </CContainer>

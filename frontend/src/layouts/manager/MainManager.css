@@ -1,0 +1,194 @@
+/* Manager Layout - White Sidebar with Blue Accents */
+.manager-sidebar {
+    background-color: #ffffff !important;
+    width: 250px;
+    overflow-y: auto;
+    border-right: 1px solid #e0e0e0;
+}
+
+.manager-sidebar .sidebar-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 1rem;
+}
+
+.manager-sidebar .sidebar-brand {
+    color: #0f3460;
+    font-weight: bold;
+    width: 100%;
+    justify-content: center;
+}
+
+.manager-sidebar .sidebar-nav {
+    padding: 0;
+    list-style: none;
+}
+
+.manager-sidebar .nav-title {
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 1rem 1rem 0.5rem 1rem;
+    letter-spacing: 0.5px;
+}
+
+.manager-sidebar .nav-item {
+    margin: 2px 8px;
+}
+
+.manager-sidebar .nav-link {
+    color: #333333 !important;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.manager-sidebar .nav-link:hover {
+    background-color: #e8f4fd !important;
+    color: #0f3460 !important;
+}
+
+.manager-sidebar .nav-link.active {
+    background-color: #0f3460 !important;
+    color: #ffffff !important;
+}
+
+.manager-sidebar .nav-link.active .nav-icon {
+    color: #ffffff !important;
+}
+
+.manager-sidebar .nav-icon {
+    color: #6c757d;
+    margin-right: 0.5rem;
+    transition: color 0.2s ease;
+}
+
+.manager-sidebar .nav-link:hover .nav-icon {
+    color: #0f3460 !important;
+}
+
+/* Parent menu with active child */
+.manager-sidebar .nav-link.parent-active {
+    background-color: #e8f4fd !important;
+    color: #0f3460 !important;
+    font-weight: 600;
+}
+
+.manager-sidebar .nav-link.parent-active .nav-icon {
+    color: #0f3460 !important;
+}
+
+/* Submenu Styles - Version améliorée */
+.manager-sidebar .nav-group-items {
+    list-style: none;
+    padding: 0.5rem 0;
+    margin: 0.25rem 0 0 0;
+    padding-left: 1rem;
+    margin-left: 1.25rem;
+    border-left: 2px solid #e0e0e0;
+}
+
+.manager-sidebar .nav-group-items .nav-item {
+    margin: 4px 0;
+}
+
+.manager-sidebar .nav-group-items .nav-link {
+    padding: 0.65rem 1rem;
+    font-size: 0.875rem;
+    color: #555555;
+    background-color: transparent;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.15s ease-in-out;
+    text-decoration: none;
+    position: relative;
+}
+
+/* Icônes du sous-menu */
+.manager-sidebar .nav-group-items .nav-link .nav-icon {
+    color: #888888;
+    flex-shrink: 0;
+    transition: color 0.15s ease-in-out;
+    pointer-events: none;
+}
+
+/* État hover du sous-menu - amélioré sans bugs */
+.manager-sidebar .nav-group-items .nav-link:hover {
+    background-color: #f0f8ff !important;
+    color: #0f3460 !important;
+    transform: translateX(2px);
+}
+
+.manager-sidebar .nav-group-items .nav-link:hover .nav-icon {
+    color: #0f3460 !important;
+}
+
+/* État actif du sous-menu */
+.manager-sidebar .nav-group-items .nav-link.active {
+    background-color: #0f3460 !important;
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+.manager-sidebar .nav-group-items .nav-link.active .nav-icon {
+    color: #ffffff !important;
+}
+
+/* Header Styles */
+.manager-header {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 1rem;
+    min-height: 92px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.manager-header > div {
+    width: 100%;
+}
+
+.manager-header h5 {
+    color: #0f3460;
+    margin: 0;
+}
+
+.manager-header small {
+    color: #6c757d;
+}
+
+/* Sidebar Footer */
+.manager-sidebar .sidebar-footer {
+    background-color: #ffffff;
+    border-top: 1px solid #e0e0e0 !important;
+    padding: 0.75rem;
+}
+
+/* Logout Button */
+.manager-sidebar .btn-logout {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.manager-sidebar .btn-logout:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+/* Arrow Icon Animation */
+.arrow-icon {
+    transition: transform 0.3s ease;
+}
+
+.arrow-icon.expanded {
+    transform: rotate(90deg);
+}

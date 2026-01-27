@@ -1,9 +1,29 @@
 .login-container {
-    background: linear-gradient(135deg, #ffffff 0%, #ffffff 50%, #ffffff 100%);
+    background-color: #d2d2d2;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.login-form-section {
+    background-color: #ffffff;
+    padding: 3rem;
+}
+
+.login-image-section {
+    background-color: #0f3460;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.login-image-section img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    padding: 2rem;
 }
 
 .login-container .card {
@@ -60,4 +80,22 @@
 
 .login-container a:hover {
     color: #0f3460 !important;
+}
+
+@media (max-width: 991.98px) {
+    .login-image-section {
+        width: 100%;
+        display: none;
+    }
+    
+    .login-form-section {
+        width: 100%;
+        padding: 2rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .login-form-section {
+        padding: 1.5rem;
+    }
 }

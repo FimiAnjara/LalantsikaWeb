@@ -1,0 +1,171 @@
+/* Signalements Carte Page */
+
+.signalement-carte .page-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.signalement-carte .header-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.signalement-carte h2 {
+    color: #1a1a2e;
+    font-weight: 700;
+}
+
+/* Card Styling */
+.signalement-carte .card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.signalement-carte .carte-header {
+    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    color: white;
+    border: none;
+    padding: 1.5rem;
+}
+
+.signalement-carte .carte-header h5 {
+    font-weight: 600;
+    margin: 0;
+}
+
+.signalement-carte .card-body {
+    padding: 2rem;
+}
+
+/* Map Placeholder */
+.signalement-carte .map-placeholder {
+    width: 100%;
+    height: 500px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8f1f8 100%);
+    border-radius: 12px;
+    border: 2px dashed #0f3460;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.signalement-carte .placeholder-content {
+    text-align: center;
+    color: #0f3460;
+}
+
+.signalement-carte .placeholder-content h4 {
+    color: #0f3460;
+    font-weight: 600;
+    margin: 1rem 0 0.5rem;
+}
+
+.signalement-carte .placeholder-content p {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Alert Styling */
+.signalement-carte .alert {
+    border-radius: 10px;
+    border: none;
+    background-color: #e3f2fd;
+    color: #0f3460;
+}
+
+.signalement-carte .alert strong {
+    color: #0f3460;
+}
+
+.signalement-carte .alert ul {
+    padding-left: 1.5rem;
+}
+
+.signalement-carte .alert li {
+    margin-bottom: 0.5rem;
+}
+
+/* Map Features */
+.signalement-carte .map-features h5 {
+    color: #0f3460;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+.signalement-carte .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.signalement-carte .feature-card {
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.signalement-carte .feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(15, 52, 96, 0.15);
+    border-color: #0f3460;
+}
+
+.signalement-carte .feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.signalement-carte .feature-icon.en-attente {
+    color: #ff9800;
+}
+
+.signalement-carte .feature-icon.en-cours {
+    color: #2196f3;
+}
+
+.signalement-carte .feature-icon.resolu {
+    color: #4caf50;
+}
+
+.signalement-carte .feature-card h6 {
+    color: #0f3460;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.signalement-carte .feature-card p {
+    color: #666;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .signalement-carte .map-placeholder {
+        height: 300px;
+    }
+
+    .signalement-carte .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .signalement-carte .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .signalement-carte .card-body {
+        padding: 1.5rem;
+    }
+}

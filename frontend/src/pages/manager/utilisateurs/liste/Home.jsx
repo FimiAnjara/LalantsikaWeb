@@ -11,16 +11,21 @@ import {
     CTableHeaderCell,
     CButton,
     CFormInput,
+    CFormSelect,
     CRow,
     CCol,
-    CContainer,
     CBadge,
+    CInputGroup,
+    CInputGroupText,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilList, cilPencil, cilTrash, cilPlus, cilSearch } from '@coreui/icons'
+import { cilList, cilPencil, cilTrash, cilPlus, cilSearch, cilPeople, cilCheckAlt } from '@coreui/icons'
+import './Liste.css'
 
 export default function ListeUtilisateur() {
     const [searchTerm, setSearchTerm] = useState('')
+    const [filterType, setFilterType] = useState('')
+    const [filterStatus, setFilterStatus] = useState('')
     const [utilisateurs, setUtilisateurs] = useState([
         {
             id_utilisateur: 1,
@@ -29,7 +34,8 @@ export default function ListeUtilisateur() {
             prenom: 'John',
             email: 'john@example.com',
             sexe: 'Masculin',
-            type_utilisateur: 'Administrateur',
+            type_utilisateur: 'Utilisateur',
+            statut: 'actif',
         },
         {
             id_utilisateur: 2,
@@ -39,6 +45,7 @@ export default function ListeUtilisateur() {
             email: 'jane@example.com',
             sexe: 'Féminin',
             type_utilisateur: 'Manager',
+            statut: 'actif',
         },
         {
             id_utilisateur: 3,
@@ -48,6 +55,7 @@ export default function ListeUtilisateur() {
             email: 'bob@example.com',
             sexe: 'Masculin',
             type_utilisateur: 'Utilisateur',
+            statut: 'bloque',
         },
     ])
 
@@ -64,16 +72,22 @@ export default function ListeUtilisateur() {
         }
     }
 
-    const getSexeColor = (sexe) => {
-        return sexe === 'Masculin' ? 'primary' : 'success'
+    const getStatutColor = (statut) => {
+        return statut === 'actif' ? 'success' : 'danger'
     }
 
-    const filteredUtilisateurs = utilisateurs.filter((user) =>
-        user.identifiant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredUtilisateurs = utilisateurs.filter((user) => {
+        const matchSearch =
+            user.identifiant.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase())
+
+        const matchType = filterType === '' || user.type_utilisateur === filterType
+        const matchStatus = filterStatus === '' || user.statut === filterStatus
+
+        return matchSearch && matchType && matchStatus
+    })
 
     const handleDelete = (id) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur?')) {
@@ -81,107 +95,165 @@ export default function ListeUtilisateur() {
         }
     }
 
+    const handleUnblock = (id) => {
+        setUtilisateurs(utilisateurs.map((user) =>
+            user.id_utilisateur === id ? { ...user, statut: 'actif' } : user
+        ))
+    }
+
     return (
         <div className="liste-utilisateur">
-            <h2 className="mb-4 text-dark fw-bold">
-                <CIcon icon={cilList} className="me-2" />
-                Liste des utilisateurs
-            </h2>
+            <div className="page-header mb-4">
+                <div className="d-flex align-items-center gap-3">
+                    <div className="header-icon">
+                        <CIcon icon={cilPeople} size="xl" />
+                    </div>
+                    <div>
+                        <h2 className="mb-0 fw-bold">Liste des utilisateurs</h2>
+                        <p className="text-muted mb-0">Gérer les comptes utilisateurs</p>
+                    </div>
+                </div>
+            </div>
 
-            {/* Barre de recherche */}
-            <CRow className="mb-4 g-2 align-items-end">
-                <CCol md="6">
-                    <label className="form-label fw-semibold text-dark">Rechercher</label>
-                    <div className="input-group rounded-3 overflow-hidden">
-                        <span className="input-group-text bg-light border-0">
+            {/* Filtres */}
+            <CRow className="mb-4 g-3 align-items-end">
+                <CCol lg="4" md="6">
+                    <CInputGroup className="search-input-group">
+                        <CInputGroupText>
                             <CIcon icon={cilSearch} />
-                        </span>
+                        </CInputGroupText>
                         <CFormInput
                             type="text"
-                            placeholder="Rechercher par identifiant, nom, email..."
+                            placeholder="Rechercher..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="rounded-3 border-0"
                         />
-                    </div>
+                    </CInputGroup>
                 </CCol>
-                <CCol md="6" className="text-md-end">
+                <CCol lg="3" md="6">
+                    <CFormSelect
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="">Tous les types</option>
+                        <option value="Administrateur">Administrateur</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Utilisateur">Utilisateur</option>
+                    </CFormSelect>
+                </CCol>
+                <CCol lg="3" md="6">
+                    <CFormSelect
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="">Tous les statuts</option>
+                        <option value="actif">Actif</option>
+                        <option value="bloque">Bloqué</option>
+                    </CFormSelect>
+                </CCol>
+                <CCol lg="2" md="6" className="text-md-end">
                     <CButton
-                        color="success"
                         href="/manager/utilisateurs/ajout"
-                        className="rounded-3 px-4 fw-bold d-flex align-items-center ms-auto"
+                        className="btn-add w-100"
                     >
                         <CIcon icon={cilPlus} className="me-2" />
-                        Ajouter un utilisateur
+                        Ajouter
                     </CButton>
                 </CCol>
             </CRow>
 
             {/* Tableau des utilisateurs */}
-            <CCard className="shadow-sm border-0 rounded-4">
-                <CCardHeader className="bg-light border-bottom border-secondary py-3">
-                    <h5 className="mb-0 text-dark fw-bold">
-                        Total: {filteredUtilisateurs.length} utilisateur(s)
-                    </h5>
+            <CCard className="table-card">
+                <CCardHeader className="table-card-header">
+                    <div className="d-flex justify-content-between align-items-center">
+                        <span>
+                            <CIcon icon={cilList} className="me-2" />
+                            Utilisateurs
+                        </span>
+                        <CBadge color="primary" className="count-badge">
+                            {filteredUtilisateurs.length} résultat(s)
+                        </CBadge>
+                    </div>
                 </CCardHeader>
                 <CCardBody className="p-0">
                     {filteredUtilisateurs.length > 0 ? (
-                        <CTable responsive hover className="mb-0">
-                            <CTableHead>
-                                <CTableRow className="bg-light">
-                                    <CTableHeaderCell className="fw-bold text-dark">Identifiant</CTableHeaderCell>
-                                    <CTableHeaderCell className="fw-bold text-dark">Nom</CTableHeaderCell>
-                                    <CTableHeaderCell className="fw-bold text-dark">Prénom</CTableHeaderCell>
-                                    <CTableHeaderCell className="fw-bold text-dark">Email</CTableHeaderCell>
-                                    <CTableHeaderCell className="fw-bold text-dark">Sexe</CTableHeaderCell>
-                                    <CTableHeaderCell className="fw-bold text-dark">Type</CTableHeaderCell>
-                                    <CTableHeaderCell className="fw-bold text-dark text-center">Actions</CTableHeaderCell>
-                                </CTableRow>
-                            </CTableHead>
-                            <CTableBody>
-                                {filteredUtilisateurs.map((user) => (
-                                    <CTableRow key={user.id_utilisateur}>
-                                        <CTableDataCell className="fw-semibold text-dark">{user.identifiant}</CTableDataCell>
-                                        <CTableDataCell>{user.nom}</CTableDataCell>
-                                        <CTableDataCell>{user.prenom}</CTableDataCell>
-                                        <CTableDataCell className="text-secondary">{user.email}</CTableDataCell>
-                                        <CTableDataCell>
-                                            <CBadge color={getSexeColor(user.sexe)} className="rounded-pill px-3 py-2">
-                                                {user.sexe}
-                                            </CBadge>
-                                        </CTableDataCell>
-                                        <CTableDataCell>
-                                            <CBadge color={getTypeColor(user.type_utilisateur)} className="rounded-pill px-3 py-2">
-                                                {user.type_utilisateur}
-                                            </CBadge>
-                                        </CTableDataCell>
-                                        <CTableDataCell className="text-center">
-                                            <CButton
-                                                color="primary"
-                                                size="sm"
-                                                variant="outline"
-                                                className="rounded-2 me-2 d-inline-flex align-items-center"
-                                                title="Modifier"
-                                            >
-                                                <CIcon icon={cilPencil} />
-                                            </CButton>
-                                            <CButton
-                                                color="danger"
-                                                size="sm"
-                                                variant="outline"
-                                                className="rounded-2 d-inline-flex align-items-center"
-                                                onClick={() => handleDelete(user.id_utilisateur)}
-                                                title="Supprimer"
-                                            >
-                                                <CIcon icon={cilTrash} />
-                                            </CButton>
-                                        </CTableDataCell>
+                        <div className="table-responsive">
+                            <CTable hover className="mb-0 custom-table">
+                                <CTableHead>
+                                    <CTableRow>
+                                        <CTableHeaderCell>Identifiant</CTableHeaderCell>
+                                        <CTableHeaderCell>Nom complet</CTableHeaderCell>
+                                        <CTableHeaderCell>Email</CTableHeaderCell>
+                                        <CTableHeaderCell className="text-center">Type</CTableHeaderCell>
+                                        <CTableHeaderCell className="text-center">Statut</CTableHeaderCell>
+                                        <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
                                     </CTableRow>
-                                ))}
-                            </CTableBody>
-                        </CTable>
+                                </CTableHead>
+                                <CTableBody>
+                                    {filteredUtilisateurs.map((user) => (
+                                        <CTableRow key={user.id_utilisateur}>
+                                            <CTableDataCell>
+                                                <span className="fw-semibold text-dark">{user.identifiant}</span>
+                                            </CTableDataCell>
+                                            <CTableDataCell>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <div className="avatar-circle">
+                                                        {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="fw-medium">{user.prenom} {user.nom}</div>
+                                                    </div>
+                                                </div>
+                                            </CTableDataCell>
+                                            <CTableDataCell>
+                                                <span className="text-muted">{user.email}</span>
+                                            </CTableDataCell>
+                                            <CTableDataCell className="text-center">
+                                                <CBadge color={getTypeColor(user.type_utilisateur)} className="badge-pill">
+                                                    {user.type_utilisateur}
+                                                </CBadge>
+                                            </CTableDataCell>
+                                            <CTableDataCell className="text-center">
+                                                <CBadge color={getStatutColor(user.statut)} className="badge-pill">
+                                                    {user.statut === 'actif' ? 'Actif' : 'Bloqué'}
+                                                </CBadge>
+                                            </CTableDataCell>
+                                            <CTableDataCell className="text-center">
+                                                <div className="action-buttons">
+                                                    {user.statut === 'bloque' && (
+                                                        <CButton
+                                                            className="btn-action btn-unlock"
+                                                            onClick={() => handleUnblock(user.id_utilisateur)}
+                                                            title="Débloquer"
+                                                        >
+                                                            <CIcon icon={cilCheckAlt} />
+                                                        </CButton>
+                                                    )}
+                                                    <CButton
+                                                        className="btn-action btn-edit"
+                                                        title="Modifier"
+                                                    >
+                                                        <CIcon icon={cilPencil} />
+                                                    </CButton>
+                                                    <CButton
+                                                        className="btn-action btn-delete"
+                                                        onClick={() => handleDelete(user.id_utilisateur)}
+                                                        title="Supprimer"
+                                                    >
+                                                        <CIcon icon={cilTrash} />
+                                                    </CButton>
+                                                </div>
+                                            </CTableDataCell>
+                                        </CTableRow>
+                                    ))}
+                                </CTableBody>
+                            </CTable>
+                        </div>
                     ) : (
-                        <div className="p-4 text-center text-secondary">
+                        <div className="empty-state">
+                            <CIcon icon={cilPeople} size="3xl" className="text-muted mb-3" />
                             <p className="mb-0">Aucun utilisateur trouvé</p>
                         </div>
                     )}

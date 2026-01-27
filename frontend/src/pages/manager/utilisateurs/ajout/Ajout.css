@@ -1,0 +1,116 @@
+/* Page Ajout Utilisateur */
+
+.ajout-utilisateur .page-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.ajout-utilisateur .header-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #0f3460 0%, #0f3460  100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.ajout-utilisateur h2 {
+    color: #1a1a2e;
+}
+
+/* Form Card */
+.ajout-utilisateur .form-card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.ajout-utilisateur .form-card-header {
+    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 1rem 1.5rem;
+    border: none;
+    display: flex;
+    align-items: center;
+}
+
+/* Form Labels */
+.ajout-utilisateur .form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Input Groups */
+.ajout-utilisateur .input-group-custom {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.ajout-utilisateur .input-group-custom:focus-within {
+    border-color: #0f3460;
+    box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
+}
+
+.ajout-utilisateur .input-group-custom .input-group-text {
+    background-color: #f8f9fa;
+    border: none;
+    color: #6c757d;
+    padding: 0.75rem 1rem;
+}
+
+.ajout-utilisateur .input-group-custom:focus-within .input-group-text {
+    color: #0f3460;
+}
+
+.ajout-utilisateur .input-group-custom .form-control,
+.ajout-utilisateur .input-group-custom .form-select {
+    border: none;
+    padding: 0.75rem 1rem;
+    font-size: 0.9375rem;
+}
+
+.ajout-utilisateur .input-group-custom .form-control:focus,
+.ajout-utilisateur .input-group-custom .form-select:focus {
+    box-shadow: none;
+}
+
+/* Buttons */
+.ajout-utilisateur .btn-submit {
+    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.ajout-utilisateur .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(15, 52, 96, 0.3);
+}
+
+.ajout-utilisateur .btn-reset {
+    background-color: #f0f0f0;
+    border: none;
+    color: #666;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.ajout-utilisateur .btn-reset:hover {
+    background-color: #e0e0e0;
+}

@@ -8,6 +8,9 @@ import ManagerLayout from './layouts/manager/MainManager'
 import ManagerHome from './pages/manager/home/Home'
 import AjoutUtilisateur from './pages/manager/utilisateurs/ajout/Home'
 import ListeUtilisateur from './pages/manager/utilisateurs/liste/Home'
+import Parametres from './pages/manager/parametres/Home'
+import SignalementListe from './pages/manager/signalements/liste/Home'
+import SignalementCarte from './pages/manager/signalements/carte/Home'
 import ManagerLogin from './pages/manager/login/Login'
 
 
@@ -30,6 +33,9 @@ function App() {
           <Route path="/manager/home" element={<ManagerHome />} />
           <Route path="/manager/utilisateurs/ajout" element={<AjoutUtilisateur />} />
           <Route path="/manager/utilisateurs/liste" element={<ListeUtilisateur />} />
+          <Route path="/manager/parametres" element={<Parametres />} />
+          <Route path="/manager/signalements/liste" element={<SignalementListe />} />
+          <Route path="/manager/signalements/carte" element={<SignalementCarte />} />
         </Route>
 
       </Routes>

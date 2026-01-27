@@ -33,14 +33,12 @@ export default function ManagerLayout() {
             {/* Sidebar */}
             <div className="sidebar sidebar-dark border-end" style={{ width: '250px', overflowY: 'auto' }}>
                 <div className="sidebar-header border-bottom">
-                    <div className="sidebar-brand d-flex align-items-center gap-2">
+                    <div className="sidebar-brand d-flex align-items-center">
                         <img
                             src="/assets/logo/logo.png"
                             alt="LALANTSIKA"
                             height="30"
-                            className="rounded"
                         />
-                        <span>Manager</span>
                     </div>
                 </div>
                 <ul className="sidebar-nav">
@@ -86,14 +84,14 @@ export default function ManagerLayout() {
                         {expandedMenu === 'utilisateur' ? (
                             <ul className="nav-group-items" style={{ display: 'block' }}>
                                 <li className="nav-item">
-                                    <a href="/manager/utilisateurs/ajout" className="nav-link">
+                                    <a href="/manager/utilisateurs/ajout" className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}>
                                         <span className="nav-icon"><span className="nav-icon-bullet"></span></span>
                                         <CIcon icon={cilPlus} className="me-2" />
                                         Ajouter
                                     </a>
                                 </li>
                                 <li className="nav-item">
-                                    <a href="/manager/utilisateurs/liste" className="nav-link">
+                                    <a href="/manager/utilisateurs/liste" className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}>
                                         <span className="nav-icon"><span className="nav-icon-bullet"></span></span>
                                         <CIcon icon={cilList} className="me-2" />
                                         Liste
@@ -103,14 +101,14 @@ export default function ManagerLayout() {
                         ) : (
                             <ul className="nav-group-items" style={{ display: 'none' }}>
                                 <li className="nav-item">
-                                    <a href="/manager/utilisateurs/ajout" className="nav-link">
+                                    <a href="/manager/utilisateurs/ajout" className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}>
                                         <span className="nav-icon"><span className="nav-icon-bullet"></span></span>
                                         <CIcon icon={cilPlus} className="me-2" />
                                         Ajouter
                                     </a>
                                 </li>
                                 <li className="nav-item">
-                                    <a href="/manager/utilisateurs/liste" className="nav-link">
+                                    <a href="/manager/utilisateurs/liste" className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}>
                                         <span className="nav-icon"><span className="nav-icon-bullet"></span></span>
                                         <CIcon icon={cilList} className="me-2" />
                                         Liste
@@ -138,7 +136,7 @@ export default function ManagerLayout() {
                 {/* Header */}
                 <div className="bg-dark text-white p-3 border-bottom shadow-sm">
                     <div className="d-flex justify-content-between align-items-center">
-                    <h3 className="mb-0"></h3>
+                        <h3 className="mb-0"></h3>
                         <small className="text-white-50">Gestion des signalements</small>
                     </div>
                 </div>

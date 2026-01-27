@@ -9,18 +9,29 @@ import {
     CButton,
     CCol,
     CRow,
+    CInputGroup,
+    CInputGroupText,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilPlus, cilSave } from '@coreui/icons'
+import { 
+    cilPlus, 
+    cilSave,
+    cilUser,
+    cilLockLocked,
+    cilCalendar,
+    cilEnvelopeOpen,
+} from '@coreui/icons'
 
 export default function AjoutUtilisateur() {
     const [formData, setFormData] = useState({
+        identifiant: '',
+        mdp: '',
         nom: '',
         prenom: '',
+        dtn: '',
         email: '',
-        telephone: '',
-        role: 'user',
-        statut: 'actif',
+        id_sexe: '',
+        id_type_utilisateur: '',
     })
 
     const handleChange = (e) => {
@@ -37,12 +48,14 @@ export default function AjoutUtilisateur() {
         // Ajouter la logique d'envoi au serveur ici
         alert('Utilisateur ajouté avec succès!')
         setFormData({
+            identifiant: '',
+            mdp: '',
             nom: '',
             prenom: '',
+            dtn: '',
             email: '',
-            telephone: '',
-            role: 'user',
-            statut: 'actif',
+            id_sexe: '',
+            id_type_utilisateur: '',
         })
     }
 
@@ -61,82 +74,141 @@ export default function AjoutUtilisateur() {
                     <CForm onSubmit={handleSubmit}>
                         <CRow className="g-3 mb-3">
                             <CCol md="6">
-                                <label className="form-label fw-semibold text-dark">Nom</label>
-                                <CFormInput
-                                    type="text"
-                                    name="nom"
-                                    value={formData.nom}
-                                    onChange={handleChange}
-                                    placeholder="Entrez le nom"
-                                    className="rounded-3"
-                                    required
-                                />
+                                <label className="form-label fw-semibold text-dark">Identifiant *</label>
+                                <CInputGroup className="rounded-3 overflow-hidden">
+                                    <CInputGroupText className="bg-light border-0">
+                                        <CIcon icon={cilUser} />
+                                    </CInputGroupText>
+                                    <CFormInput
+                                        type="text"
+                                        name="identifiant"
+                                        value={formData.identifiant}
+                                        onChange={handleChange}
+                                        placeholder="Entrez l'identifiant"
+                                        className="rounded-3 border-0"
+                                        required
+                                    />
+                                </CInputGroup>
                             </CCol>
                             <CCol md="6">
-                                <label className="form-label fw-semibold text-dark">Prénom</label>
-                                <CFormInput
-                                    type="text"
-                                    name="prenom"
-                                    value={formData.prenom}
-                                    onChange={handleChange}
-                                    placeholder="Entrez le prénom"
-                                    className="rounded-3"
-                                    required
-                                />
+                                <label className="form-label fw-semibold text-dark">Mot de passe *</label>
+                                <CInputGroup className="rounded-3 overflow-hidden">
+                                    <CInputGroupText className="bg-light border-0">
+                                        <CIcon icon={cilLockLocked} />
+                                    </CInputGroupText>
+                                    <CFormInput
+                                        type="password"
+                                        name="mdp"
+                                        value={formData.mdp}
+                                        onChange={handleChange}
+                                        placeholder="Entrez le mot de passe"
+                                        className="rounded-3 border-0"
+                                        required
+                                    />
+                                </CInputGroup>
                             </CCol>
                         </CRow>
 
                         <CRow className="g-3 mb-3">
                             <CCol md="6">
-                                <label className="form-label fw-semibold text-dark">Email</label>
-                                <CFormInput
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    placeholder="exemple@email.com"
-                                    className="rounded-3"
-                                    required
-                                />
+                                <label className="form-label fw-semibold text-dark">Nom *</label>
+                                <CInputGroup className="rounded-3 overflow-hidden">
+                                    <CInputGroupText className="bg-light border-0">
+                                        <CIcon icon={cilUser} />
+                                    </CInputGroupText>
+                                    <CFormInput
+                                        type="text"
+                                        name="nom"
+                                        value={formData.nom}
+                                        onChange={handleChange}
+                                        placeholder="Entrez le nom"
+                                        className="rounded-3 border-0"
+                                        required
+                                    />
+                                </CInputGroup>
                             </CCol>
                             <CCol md="6">
-                                <label className="form-label fw-semibold text-dark">Téléphone</label>
-                                <CFormInput
-                                    type="tel"
-                                    name="telephone"
-                                    value={formData.telephone}
-                                    onChange={handleChange}
-                                    placeholder="+261 XX XXX XX XX"
-                                    className="rounded-3"
-                                />
+                                <label className="form-label fw-semibold text-dark">Prénom *</label>
+                                <CInputGroup className="rounded-3 overflow-hidden">
+                                    <CInputGroupText className="bg-light border-0">
+                                        <CIcon icon={cilUser} />
+                                    </CInputGroupText>
+                                    <CFormInput
+                                        type="text"
+                                        name="prenom"
+                                        value={formData.prenom}
+                                        onChange={handleChange}
+                                        placeholder="Entrez le prénom"
+                                        className="rounded-3 border-0"
+                                        required
+                                    />
+                                </CInputGroup>
+                            </CCol>
+                        </CRow>
+
+                        <CRow className="g-3 mb-3">
+                            <CCol md="6">
+                                <label className="form-label fw-semibold text-dark">Date de naissance *</label>
+                                <CInputGroup className="rounded-3 overflow-hidden">
+                                    <CInputGroupText className="bg-light border-0">
+                                        <CIcon icon={cilCalendar} />
+                                    </CInputGroupText>
+                                    <CFormInput
+                                        type="date"
+                                        name="dtn"
+                                        value={formData.dtn}
+                                        onChange={handleChange}
+                                        className="rounded-3 border-0"
+                                        required
+                                    />
+                                </CInputGroup>
+                            </CCol>
+                            <CCol md="6">
+                                <label className="form-label fw-semibold text-dark">Email</label>
+                                <CInputGroup className="rounded-3 overflow-hidden">
+                                    <CInputGroupText className="bg-light border-0">
+                                        <CIcon icon={cilEnvelopeOpen} />
+                                    </CInputGroupText>
+                                    <CFormInput
+                                        type="email"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        placeholder="exemple@email.com"
+                                        className="rounded-3 border-0"
+                                    />
+                                </CInputGroup>
                             </CCol>
                         </CRow>
 
                         <CRow className="g-3 mb-4">
                             <CCol md="6">
-                                <label className="form-label fw-semibold text-dark">Rôle</label>
+                                <label className="form-label fw-semibold text-dark">Sexe *</label>
                                 <CFormSelect
-                                    name="role"
-                                    value={formData.role}
+                                    name="id_sexe"
+                                    value={formData.id_sexe}
                                     onChange={handleChange}
                                     className="rounded-3"
+                                    required
                                 >
-                                    <option value="user">Utilisateur standard</option>
-                                    <option value="superviseur">Superviseur</option>
-                                    <option value="admin">Administrateur</option>
+                                    <option value="">Sélectionnez un sexe</option>
+                                    <option value="1">Masculin</option>
+                                    <option value="2">Féminin</option>
                                 </CFormSelect>
                             </CCol>
                             <CCol md="6">
-                                <label className="form-label fw-semibold text-dark">Statut</label>
+                                <label className="form-label fw-semibold text-dark">Type d'utilisateur *</label>
                                 <CFormSelect
-                                    name="statut"
-                                    value={formData.statut}
+                                    name="id_type_utilisateur"
+                                    value={formData.id_type_utilisateur}
                                     onChange={handleChange}
                                     className="rounded-3"
+                                    required
                                 >
-                                    <option value="actif">Actif</option>
-                                    <option value="inactif">Inactif</option>
-                                    <option value="suspendu">Suspendu</option>
+                                    <option value="">Sélectionnez un type</option>
+                                    <option value="1">Administrateur</option>
+                                    <option value="2">Manager</option>
+                                    <option value="3">Utilisateur</option>
                                 </CFormSelect>
                             </CCol>
                         </CRow>

@@ -7,6 +7,7 @@ import Recap from './pages/visiteur/recap/Recap'
 import ManagerLayout from './layouts/manager/MainManager'
 import ManagerHome from './pages/manager/home/Home'
 import AjoutUtilisateur from './pages/manager/utilisateurs/ajout/Home'
+import ListeUtilisateur from './pages/manager/utilisateurs/liste/Home'
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route element={<ManagerLayout />}>
           <Route path="/manager/home" element={<ManagerHome />} />
           <Route path="/manager/utilisateurs/ajout" element={<AjoutUtilisateur />} />
+          <Route path="/manager/utilisateurs/liste" element={<ListeUtilisateur />} />
         </Route>
 
       </Routes>

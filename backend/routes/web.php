@@ -19,6 +19,11 @@ Route::get('/user/{name?}', function ($name = 'Guest') {
     return "User: " . htmlspecialchars($name);
 });
 
+// Page de test d'inscription
+Route::get('/test-register', function () {
+    return view('register');
+});
+
 Route::get('/about', function () {
     return view('about');
 });

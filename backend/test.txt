@@ -7,3 +7,10 @@ pwd: 1234
 
 recap: j'ai envie que vous me creer les api et les tables pour le model utilisateur, signalement
 voici les todo qu'on devrait faire @Todo%20Cloud%20S5%20sheet%20-%20tableau.pdf 
+
+
+
+
+
+Sedera Note :
+docker exec -it laravel_app composer require kreait/firebase-php --ignore-platform-req=ext-grpc

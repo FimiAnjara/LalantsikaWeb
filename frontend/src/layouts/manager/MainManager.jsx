@@ -14,6 +14,8 @@ import {
     cilList,
     cilArrowRight,
     cilUser,
+    cilSettings,
+    cilTask,
 } from '@coreui/icons'
 import '@coreui/coreui/dist/css/coreui.min.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -24,7 +26,7 @@ export default function ManagerLayout() {
     const [expandedMenu, setExpandedMenu] = useState(null)
 
     const isActive = (path) => location.pathname === path
-    
+
     const isMenuActive = (menuPrefix) => location.pathname.startsWith(menuPrefix)
 
     useEffect(() => {
@@ -79,23 +81,23 @@ export default function ManagerLayout() {
                                 className={`ms-auto arrow-icon ${expandedMenu === 'utilisateur' ? 'expanded' : ''}`}
                             />
                         </a>
-                        <ul 
-                            className="nav-group-items" 
-                            style={{ 
+                        <ul
+                            className="nav-group-items"
+                            style={{
                                 display: expandedMenu === 'utilisateur' ? 'block' : 'none'
                             }}
                         >
                             <li className="nav-item">
-                                <a 
-                                    href="/manager/utilisateurs/ajout" 
+                                <a
+                                    href="/manager/utilisateurs/ajout"
                                     className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}
                                 >
                                     Ajouter
                                 </a>
                             </li>
                             <li className="nav-item">
-                                <a 
-                                    href="/manager/utilisateurs/liste" 
+                                <a
+                                    href="/manager/utilisateurs/liste"
                                     className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}
                                 >
                                     Liste
@@ -103,6 +105,58 @@ export default function ManagerLayout() {
                             </li>
                         </ul>
                     </li>
+                    <li className="nav-item nav-group-parent">
+                        <a
+                            href="#"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                toggleMenu('signalement')
+                            }}
+                            className={`nav-link ${isMenuActive('/manager/signalements') ? 'parent-active' : ''}`}
+                        >
+                            <CIcon icon={cilTask} className="nav-icon" />
+                            Signalement
+                            <CIcon
+                                icon={cilArrowRight}
+                                className={`ms-auto arrow-icon ${expandedMenu === 'signalement' ? 'expanded' : ''}`}
+                            />
+                        </a>
+                        <ul
+                            className="nav-group-items"
+                            style={{
+                                display: expandedMenu === 'signalement' ? 'block' : 'none'
+                            }}
+                        >
+                            <li className="nav-item">
+                                <a
+                                    href="/manager/signalements/liste"
+                                    className={`nav-link ${isActive('/manager/signalements/liste') ? 'active' : ''}`}
+                                >
+                                    Liste
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a
+                                    href="/manager/signalements/carte"
+                                    className={`nav-link ${isActive('/manager/signalements/carte') ? 'active' : ''}`}
+                                >
+                                    Carte
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li className="nav-title">Parametres</li>
+                    <li className="nav-item">
+                        <a
+                            href="/manager/parametres"
+                            className={`nav-link ${isActive('/manager/parametres') ? 'active' : ''}`}
+                        >
+                            <CIcon icon={cilSettings} className="nav-icon" />
+                            Parametres
+                        </a>
+                    </li>
+
                 </ul>
                 <div className="sidebar-footer">
                     <CButton
@@ -127,8 +181,7 @@ export default function ManagerLayout() {
                                 <CIcon icon={cilUser} />
                             </div>
                             <div className="user-info">
-                                <div className="user-name">Utilisateur</div>
-                                <small className="text-muted">Connecté</small>
+                                <div className="user-name">Manager</div>
                             </div>
                         </div>
                     </div>

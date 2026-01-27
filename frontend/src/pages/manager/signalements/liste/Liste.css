@@ -1,0 +1,252 @@
+/* Signalements Liste Page */
+
+.signalement-liste .page-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.signalement-liste .header-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #0f3460 0%,#0f3460 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.signalement-liste h2 {
+    color: #1a1a2e;
+    font-weight: 700;
+}
+
+/* Filters Card */
+.signalement-liste .filters-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+}
+
+.signalement-liste .filters-card .form-label {
+    font-weight: 600;
+    color: #0f3460;
+    font-size: 0.875rem;
+}
+
+.signalement-liste .filters-card .fw-600 {
+    font-weight: 600 !important;
+}
+
+.signalement-liste .search-input {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.signalement-liste .filter-select {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    background-color: white;
+}
+
+.signalement-liste .filter-select:focus {
+    border-color: #0f3460;
+    box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
+}
+
+/* Table Card */
+.signalement-liste .signalement-table {
+    margin-bottom: 0;
+}
+
+.signalement-liste .signalement-table thead {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.signalement-liste .signalement-table th {
+    color: #0f3460;
+    font-weight: 600;
+    padding: 1rem;
+    border: none;
+    font-size: 0.875rem;
+}
+
+.signalement-liste .signalement-table td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-color: #e0e0e0;
+}
+
+.signalement-liste .signalement-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.signalement-liste .signalement-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Table Header Card */
+.signalement-liste .table-header {
+    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    color: white;
+    border: none;
+    padding: 1.5rem;
+}
+
+.signalement-liste .table-header h5 {
+    font-weight: 600;
+    margin: 0;
+}
+
+.signalement-liste .table-header small {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Budget in Ariary */
+.signalement-liste .budget-ariary {
+    color: #0f3460;
+    font-weight: 700;
+}
+
+/* Badge Styling */
+.signalement-liste .badge-custom {
+    display: inline-block;
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.signalement-liste .badge-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.signalement-liste .badge-info {
+    background-color: #cfe2ff;
+    color: #084298;
+    border: 1px solid #b6d4fe;
+}
+
+.signalement-liste .badge-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #badbcc;
+}
+
+/* Action Buttons */
+.signalement-liste .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.signalement-liste .btn-action {
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.signalement-liste .btn-view {
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    color: white;
+}
+
+.signalement-liste .btn-view:hover {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    color: white;
+}
+
+.signalement-liste .btn-edit {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+}
+
+.signalement-liste .btn-edit:hover {
+    background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
+    color: white;
+}
+
+.signalement-liste .btn-delete {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    color: white;
+}
+
+.signalement-liste .btn-delete:hover {
+    background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+    color: white;
+}
+
+/* Card Styling */
+.signalement-liste .card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.signalement-liste .card-body {
+    padding: 1.5rem;
+}
+
+/* Empty State */
+.signalement-liste .text-center {
+    padding: 3rem 1rem;
+}
+
+.signalement-liste .text-muted {
+    color: #999;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .signalement-liste .signalement-table {
+        font-size: 0.85rem;
+    }
+
+    .signalement-liste .signalement-table th,
+    .signalement-liste .signalement-table td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .signalement-liste .action-buttons {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .signalement-liste .btn-action {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .signalement-liste .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .signalement-liste .filters-card .row {
+        gap: 1rem;
+    }
+}

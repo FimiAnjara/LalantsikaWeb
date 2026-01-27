@@ -11,6 +11,7 @@ import {
     CTableHeaderCell,
     CButton,
     CFormInput,
+    CFormSelect,
     CRow,
     CCol,
     CBadge,
@@ -18,11 +19,13 @@ import {
     CInputGroupText,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilList, cilPencil, cilTrash, cilPlus, cilSearch, cilPeople } from '@coreui/icons'
+import { cilList, cilPencil, cilTrash, cilPlus, cilSearch, cilPeople, cilCheckAlt } from '@coreui/icons'
 import './Liste.css'
 
 export default function ListeUtilisateur() {
     const [searchTerm, setSearchTerm] = useState('')
+    const [filterType, setFilterType] = useState('')
+    const [filterStatus, setFilterStatus] = useState('')
     const [utilisateurs, setUtilisateurs] = useState([
         {
             id_utilisateur: 1,
@@ -31,7 +34,8 @@ export default function ListeUtilisateur() {
             prenom: 'John',
             email: 'john@example.com',
             sexe: 'Masculin',
-            type_utilisateur: 'Administrateur',
+            type_utilisateur: 'Utilisateur',
+            statut: 'actif',
         },
         {
             id_utilisateur: 2,
@@ -41,6 +45,7 @@ export default function ListeUtilisateur() {
             email: 'jane@example.com',
             sexe: 'Féminin',
             type_utilisateur: 'Manager',
+            statut: 'actif',
         },
         {
             id_utilisateur: 3,
@@ -50,6 +55,7 @@ export default function ListeUtilisateur() {
             email: 'bob@example.com',
             sexe: 'Masculin',
             type_utilisateur: 'Utilisateur',
+            statut: 'bloque',
         },
     ])
 
@@ -66,21 +72,33 @@ export default function ListeUtilisateur() {
         }
     }
 
-    const getSexeColor = (sexe) => {
-        return sexe === 'Masculin' ? 'primary' : 'success'
+    const getStatutColor = (statut) => {
+        return statut === 'actif' ? 'success' : 'danger'
     }
 
-    const filteredUtilisateurs = utilisateurs.filter((user) =>
-        user.identifiant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredUtilisateurs = utilisateurs.filter((user) => {
+        const matchSearch =
+            user.identifiant.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase())
+
+        const matchType = filterType === '' || user.type_utilisateur === filterType
+        const matchStatus = filterStatus === '' || user.statut === filterStatus
+
+        return matchSearch && matchType && matchStatus
+    })
 
     const handleDelete = (id) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur?')) {
             setUtilisateurs(utilisateurs.filter((user) => user.id_utilisateur !== id))
         }
+    }
+
+    const handleUnblock = (id) => {
+        setUtilisateurs(utilisateurs.map((user) =>
+            user.id_utilisateur === id ? { ...user, statut: 'actif' } : user
+        ))
     }
 
     return (
@@ -97,25 +115,48 @@ export default function ListeUtilisateur() {
                 </div>
             </div>
 
-            {/* Barre de recherche et bouton */}
+            {/* Filtres */}
             <CRow className="mb-4 g-3 align-items-end">
-                <CCol lg="6" md="8">
+                <CCol lg="4" md="6">
                     <CInputGroup className="search-input-group">
                         <CInputGroupText>
                             <CIcon icon={cilSearch} />
                         </CInputGroupText>
                         <CFormInput
                             type="text"
-                            placeholder="Rechercher par identifiant, nom, email..."
+                            placeholder="Rechercher..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </CInputGroup>
                 </CCol>
-                <CCol lg="6" md="4" className="text-md-end">
+                <CCol lg="3" md="6">
+                    <CFormSelect
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="">Tous les types</option>
+                        <option value="Administrateur">Administrateur</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Utilisateur">Utilisateur</option>
+                    </CFormSelect>
+                </CCol>
+                <CCol lg="3" md="6">
+                    <CFormSelect
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="">Tous les statuts</option>
+                        <option value="actif">Actif</option>
+                        <option value="bloque">Bloqué</option>
+                    </CFormSelect>
+                </CCol>
+                <CCol lg="2" md="6" className="text-md-end">
                     <CButton
                         href="/manager/utilisateurs/ajout"
-                        className="btn-add"
+                        className="btn-add w-100"
                     >
                         <CIcon icon={cilPlus} className="me-2" />
                         Ajouter
@@ -145,8 +186,8 @@ export default function ListeUtilisateur() {
                                         <CTableHeaderCell>Identifiant</CTableHeaderCell>
                                         <CTableHeaderCell>Nom complet</CTableHeaderCell>
                                         <CTableHeaderCell>Email</CTableHeaderCell>
-                                        <CTableHeaderCell className="text-center">Sexe</CTableHeaderCell>
                                         <CTableHeaderCell className="text-center">Type</CTableHeaderCell>
+                                        <CTableHeaderCell className="text-center">Statut</CTableHeaderCell>
                                         <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
                                     </CTableRow>
                                 </CTableHead>
@@ -170,17 +211,26 @@ export default function ListeUtilisateur() {
                                                 <span className="text-muted">{user.email}</span>
                                             </CTableDataCell>
                                             <CTableDataCell className="text-center">
-                                                <CBadge color={getSexeColor(user.sexe)} className="badge-pill">
-                                                    {user.sexe}
-                                                </CBadge>
-                                            </CTableDataCell>
-                                            <CTableDataCell className="text-center">
                                                 <CBadge color={getTypeColor(user.type_utilisateur)} className="badge-pill">
                                                     {user.type_utilisateur}
                                                 </CBadge>
                                             </CTableDataCell>
                                             <CTableDataCell className="text-center">
+                                                <CBadge color={getStatutColor(user.statut)} className="badge-pill">
+                                                    {user.statut === 'actif' ? 'Actif' : 'Bloqué'}
+                                                </CBadge>
+                                            </CTableDataCell>
+                                            <CTableDataCell className="text-center">
                                                 <div className="action-buttons">
+                                                    {user.statut === 'bloque' && (
+                                                        <CButton
+                                                            className="btn-action btn-unlock"
+                                                            onClick={() => handleUnblock(user.id_utilisateur)}
+                                                            title="Débloquer"
+                                                        >
+                                                            <CIcon icon={cilCheckAlt} />
+                                                        </CButton>
+                                                    )}
                                                     <CButton
                                                         className="btn-action btn-edit"
                                                         title="Modifier"

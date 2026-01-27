@@ -54,6 +54,25 @@
     box-shadow: none;
 }
 
+/* Filter Selects */
+.liste-utilisateur .filter-select {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+}
+
+.liste-utilisateur .filter-select:focus {
+    border-color: #0f3460;
+    box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
+}
+
+
+.liste-utilisateur .search-input-group .form-control:focus {
+    box-shadow: none;
+}
+
 /* Add Button */
 .liste-utilisateur .btn-add {
     background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
@@ -185,6 +204,18 @@
 
 .liste-utilisateur .btn-delete:hover {
     background-color: #dc3545;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Unlock Button */
+.liste-utilisateur .btn-unlock {
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+.liste-utilisateur .btn-unlock:hover {
+    background-color: #28a745;
     color: white;
     transform: translateY(-2px);
 }

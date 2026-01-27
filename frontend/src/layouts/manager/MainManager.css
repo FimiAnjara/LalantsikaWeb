@@ -198,6 +198,22 @@
     background-color: #ffffff;
     border-top: 1px solid #e0e0e0 !important;
     padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Settings Button */
+.manager-sidebar .btn-settings {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.manager-sidebar .btn-settings:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
 }
 
 /* Logout Button */

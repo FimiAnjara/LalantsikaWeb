@@ -4,6 +4,7 @@ namespace App\Services\Firebase;
 
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Firestore;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Service Firestore pour la gestion de la base de données Firebase
@@ -19,43 +20,43 @@ class FirestoreService
         try {
             $serviceAccountPath = storage_path('app/firebase/service-account.json');
             
-            \Log::info('🔍 Firestore initialization - Checking credentials at: ' . $serviceAccountPath);
+            Log::info('🔍 Firestore initialization - Checking credentials at: ' . $serviceAccountPath);
             
             if (!file_exists($serviceAccountPath)) {
                 throw new \Exception('Firebase credentials file not found at: ' . $serviceAccountPath);
             }
 
-            \Log::info('✅ Credentials file found, initializing Factory...');
+            Log::info('✅ Credentials file found, initializing Factory...');
 
             try {
                 // Essayer avec gRPC (défaut)
                 $factory = (new Factory)
                     ->withServiceAccount($serviceAccountPath);
                 
-                \Log::info('✅ Factory created, creating Firestore instance with REST...');
+                Log::info('✅ Factory created, creating Firestore instance with REST...');
                 
                 $this->firestore = $factory->createFirestore();
                 $this->isAvailable = true;
                 
-                \Log::info('✅ Firestore initialized successfully');
+                Log::info('✅ Firestore initialized successfully');
             } catch (\Exception $grpcError) {
-                \Log::warning('⚠️  gRPC initialization failed, trying REST: ' . $grpcError->getMessage());
+                Log::warning('⚠️  gRPC initialization failed, trying REST: ' . $grpcError->getMessage());
                 
                 // Fallback: essayer sans gRPC
                 $factory = (new Factory)
-                    ->withServiceAccount($serviceAccountPath)
-                    ->withDisabledAutoDiscovery();
+                    ->withServiceAccount($serviceAccountPath);
+                    
                 
                 $this->firestore = $factory->createFirestore();
                 $this->isAvailable = true;
                 
-                \Log::info('✅ Firestore initialized with REST fallback');
+                Log::info('✅ Firestore initialized with REST fallback');
             }
         } catch (\Exception $e) {
-            \Log::error('❌ Firestore initialization FAILED: ' . $e->getMessage());
-            \Log::error('Exception class: ' . get_class($e));
-            \Log::error('File: ' . $e->getFile() . ' Line: ' . $e->getLine());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('❌ Firestore initialization FAILED: ' . $e->getMessage());
+            Log::error('Exception class: ' . get_class($e));
+            Log::error('File: ' . $e->getFile() . ' Line: ' . $e->getLine());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             $this->isAvailable = false;
         }
     }
@@ -66,7 +67,7 @@ class FirestoreService
     public function isAvailable(): bool
     {
         if (!$this->isAvailable) {
-            \Log::warning('❌ Firestore not initialized');
+            Log::warning('❌ Firestore not initialized');
             return false;
         }
 
@@ -76,11 +77,11 @@ class FirestoreService
                 ->document('test')
                 ->snapshot();
             
-            \Log::info('✅ Firestore connection test SUCCESS');
+            Log::info('✅ Firestore connection test SUCCESS');
             return true;
         } catch (\Exception $e) {
-            \Log::error('❌ Firestore connection check failed: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('❌ Firestore connection check failed: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return false;
         }
     }
@@ -113,7 +114,7 @@ class FirestoreService
             
             return true;
         } catch (\Exception $e) {
-            \Log::error("Failed to save to {$collection}: " . $e->getMessage());
+            Log::error("Failed to save to {$collection}: " . $e->getMessage());
             return false;
         }
     }
@@ -135,7 +136,7 @@ class FirestoreService
             
             return $snapshot->exists() ? $snapshot->data() : null;
         } catch (\Exception $e) {
-            \Log::error("Failed to get from {$collection}: " . $e->getMessage());
+            Log::error("Failed to get from {$collection}: " . $e->getMessage());
             return null;
         }
     }
@@ -157,7 +158,7 @@ class FirestoreService
             
             return true;
         } catch (\Exception $e) {
-            \Log::error("Failed to update {$collection}: " . $e->getMessage());
+            Log::error("Failed to update {$collection}: " . $e->getMessage());
             return false;
         }
     }
@@ -179,7 +180,7 @@ class FirestoreService
             
             return true;
         } catch (\Exception $e) {
-            \Log::error("Failed to delete from {$collection}: " . $e->getMessage());
+            Log::error("Failed to delete from {$collection}: " . $e->getMessage());
             return false;
         }
     }
@@ -207,7 +208,7 @@ class FirestoreService
             
             return null;
         } catch (\Exception $e) {
-            \Log::error("Failed to query {$collection} by {$field}: " . $e->getMessage());
+            Log::error("Failed to query {$collection} by {$field}: " . $e->getMessage());
             return null;
         }
     }

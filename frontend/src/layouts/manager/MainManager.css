@@ -164,11 +164,40 @@
     color: #6c757d;
 }
 
+/* Breadcrumb Styles */
+.breadcrumb {
+    padding: 0;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.breadcrumb-item a {
+    color: #6c757d;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.breadcrumb-item a:hover {
+    color: #0f3460;
+    background-color: rgba(15, 52, 96, 0.05);
+}
+
+.breadcrumb-item.active {
+    color: #0f3460;
+    font-weight: 600;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: #adb5bd;
+}
+
 /* User Profile */
 .user-avatar {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #0f3460 0%, #1a5fb4 100%);
+    background-color: #0f3460;
     border-radius: 50%;
     display: flex;
     align-items: center;

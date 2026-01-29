@@ -1,27 +1,34 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-    CTable,
-    CTableHead,
-    CTableBody,
-    CTableHeaderCell,
-    CTableDataCell,
-    CTableRow,
-    CButton,
     CInputGroup,
     CFormInput,
     CCard,
-    CCardHeader,
     CCardBody,
     CFormSelect,
+    CTableRow,
+    CTableDataCell,
+    CBadge,
+    CPagination,
+    CPaginationItem,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilSearch, cilInfo, cilCloudDownload, cilTrash } from '@coreui/icons'
+import { cilSearch } from '@coreui/icons'
+import ActionButtons from '../../../../components/ActionButtons'
+import GenericTable from '../../../../components/GenericTable'
+import Modal from '../../../../components/Modal'
+import '../../../../styles/ListStyles.css'
 import './Liste.css'
 
 export default function SignalementListe() {
+    const navigate = useNavigate()
     const [searchTerm, setSearchTerm] = useState('')
     const [filterStatut, setFilterStatut] = useState('')
     const [filterUtilisateur, setFilterUtilisateur] = useState('')
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
+    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [deleteModal, setDeleteModal] = useState({ visible: false, id: null })
     const [signalements, setSignalements] = useState([
         {
             id_signalement: 1,
@@ -83,29 +90,53 @@ export default function SignalementListe() {
         return matchSearch && matchStatut && matchUtilisateur
     })
 
+    const totalPages = Math.ceil(filteredSignalements.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paginatedSignalements = filteredSignalements.slice(startIndex, endIndex)
+
+    const handlePageChange = (page) => {
+        if (page > 0 && page <= totalPages) {
+            setCurrentPage(page)
+        }
+    }
+
     const handleView = (id) => {
-        console.log('Voir signalement:', id)
+        navigate(`/manager/signalements/fiche/${id}`)
     }
 
     const handleEdit = (id) => {
-        console.log('Modifier signalement:', id)
+        navigate(`/manager/signalements/modifier/${id}`)
     }
 
     const handleDelete = (id) => {
-        setSignalements(signalements.filter((sig) => sig.id_signalement !== id))
+        setDeleteModal({ visible: true, id })
+    }
+
+    const confirmDelete = () => {
+        if (deleteModal.id) {
+            setSignalements(signalements.filter((sig) => sig.id_signalement !== deleteModal.id))
+            setDeleteModal({ visible: false, id: null })
+            setModal({
+                visible: true,
+                type: 'success',
+                title: 'Succès',
+                message: 'Signalement supprimé avec succès'
+            })
+        }
     }
 
     const getStatutBadge = (statut) => {
         const badgeClass = {
-            'En attente': 'badge-warning',
-            'En cours': 'badge-info',
-            'Résolu': 'badge-success',
+            'En attente': 'warning',
+            'En cours': 'info',
+            'Résolu': 'success',
         }
-        return badgeClass[statut] || 'badge-secondary'
+        return badgeClass[statut] || 'secondary'
     }
 
     return (
-        <div className="signalement-liste">
+        <div className="signalement-liste list-page">
             <div className="page-header d-flex align-items-center gap-3 mb-4">
                 <div className="header-icon">
                     <CIcon icon={cilSearch} size="lg" />
@@ -129,9 +160,6 @@ export default function SignalementListe() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="search-input"
                                 />
-                                <CButton color="info" variant="outline">
-                                    <CIcon icon={cilSearch} />
-                                </CButton>
                             </CInputGroup>
                         </div>
                         <div className="col-md-3">
@@ -169,92 +197,103 @@ export default function SignalementListe() {
             </CCard>
 
             {/* Table */}
-            <CCard>
-                <CCardHeader className="table-header">
-                    <div>
-                        <h5 className="mb-0">Liste des signalements</h5>
-                        <small className="text-muted">{filteredSignalements.length} signalement(s)</small>
-                    </div>
-                </CCardHeader>
-                <CCardBody className="p-0">
-                    <CTable responsive hover className="signalement-table">
-                        <CTableHead>
-                            <CTableRow>
-                                <CTableHeaderCell scope="col">ID</CTableHeaderCell>
-                                <CTableHeaderCell scope="col">Date</CTableHeaderCell>
-                                <CTableHeaderCell scope="col">Description</CTableHeaderCell>
-                                <CTableHeaderCell scope="col">Utilisateur</CTableHeaderCell>
-                                <CTableHeaderCell scope="col">Surface (m²)</CTableHeaderCell>
-                                <CTableHeaderCell scope="col">Budget</CTableHeaderCell>
-                                <CTableHeaderCell scope="col">Statut</CTableHeaderCell>
-                                <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                            </CTableRow>
-                        </CTableHead>
-                        <CTableBody>
-                            {filteredSignalements.map((sig) => (
-                                <CTableRow key={sig.id_signalement}>
-                                    <CTableDataCell>
-                                        <strong>#{sig.id_signalement}</strong>
-                                    </CTableDataCell>
-                                    <CTableDataCell>
-                                        <small>{sig.daty}</small>
-                                    </CTableDataCell>
-                                    <CTableDataCell>{sig.description}</CTableDataCell>
-                                    <CTableDataCell>{sig.utilisateur}</CTableDataCell>
-                                    <CTableDataCell>{sig.surface.toFixed(2)}</CTableDataCell>
-                                    <CTableDataCell>
-                                        <strong className="budget-ariary">Ar {sig.budget.toLocaleString('en-US')}</strong>
-                                    </CTableDataCell>
-                                    <CTableDataCell>
-                                        <span className={`badge-custom ${getStatutBadge(sig.statut)}`}>
-                                            {sig.statut}
-                                        </span>
-                                    </CTableDataCell>
-                                    <CTableDataCell>
-                                        <div className="action-buttons">
-                                            <CButton
-                                                color="info"
-                                                size="sm"
-                                                className="btn-action btn-view"
-                                                onClick={() => handleView(sig.id_signalement)}
-                                                title="Voir"
-                                            >
-                                                <CIcon icon={cilInfo} className="me-1" />
-                                                Voir
-                                            </CButton>
-                                            <CButton
-                                                color="warning"
-                                                size="sm"
-                                                className="btn-action btn-edit"
-                                                onClick={() => handleEdit(sig.id_signalement)}
-                                                title="Modifier"
-                                            >
-                                                <CIcon icon={cilCloudDownload} className="me-1" />
-                                                Éditer
-                                            </CButton>
-                                            <CButton
-                                                color="danger"
-                                                size="sm"
-                                                className="btn-action btn-delete"
-                                                onClick={() => handleDelete(sig.id_signalement)}
-                                                title="Supprimer"
-                                            >
-                                                <CIcon icon={cilTrash} className="me-1" />
-                                                Supprimer
-                                            </CButton>
-                                        </div>
-                                    </CTableDataCell>
-                                </CTableRow>
-                            ))}
-                        </CTableBody>
-                    </CTable>
-                    {filteredSignalements.length === 0 && (
-                        <div className="text-center py-5">
-                            <p className="text-muted">Aucun signalement trouvé</p>
-                        </div>
-                    )}
-                </CCardBody>
-            </CCard>
+            <GenericTable
+                title="Liste des signalements"
+                columns={[
+                    { key: 'id', label: 'ID' },
+                    { key: 'daty', label: 'Date' },
+                    { key: 'description', label: 'Description' },
+                    { key: 'utilisateur', label: 'Utilisateur' },
+                    { key: 'surface', label: 'Surface (m²)' },
+                    { key: 'budget', label: 'Budget' },
+                    { key: 'statut', label: 'Statut' },
+                    { key: 'actions', label: 'Actions' },
+                ]}
+                data={paginatedSignalements}
+                rowKey="id_signalement"
+                renderRow={(sig) => (
+                    <CTableRow key={sig.id_signalement}>
+                        <CTableDataCell>
+                            <strong>#{sig.id_signalement}</strong>
+                        </CTableDataCell>
+                        <CTableDataCell>
+                            <small>{sig.daty}</small>
+                        </CTableDataCell>
+                        <CTableDataCell>{sig.description}</CTableDataCell>
+                        <CTableDataCell>{sig.utilisateur}</CTableDataCell>
+                        <CTableDataCell>{sig.surface.toFixed(2)}</CTableDataCell>
+                        <CTableDataCell>
+                            <strong className="budget-ariary">Ar {sig.budget.toLocaleString('en-US')}</strong>
+                        </CTableDataCell>
+                        <CTableDataCell>
+                            <CBadge color={getStatutBadge(sig.statut)} className="p-2">
+                                {sig.statut}
+                            </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell>
+                            <ActionButtons
+                                id={sig.id_signalement}
+                                onView={handleView}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                            />
+                        </CTableDataCell>
+                    </CTableRow>
+                )}
+                emptyMessage="Aucun signalement trouvé"
+            />
+
+            {/* Pagination */}
+            {filteredSignalements.length > 0 && (
+                <div className="d-flex justify-content-center mt-4">
+                    <CPagination aria-label="Pagination des signalements">
+                        <CPaginationItem 
+                            aria-label="Précédent" 
+                            disabled={currentPage === 1}
+                            onClick={() => handlePageChange(currentPage - 1)}
+                        >
+                            <span aria-hidden="true">&laquo;</span>
+                        </CPaginationItem>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <CPaginationItem
+                                key={page}
+                                active={page === currentPage}
+                                onClick={() => handlePageChange(page)}
+                            >
+                                {page}
+                            </CPaginationItem>
+                        ))}
+                        <CPaginationItem 
+                            aria-label="Suivant"
+                            disabled={currentPage === totalPages}
+                            onClick={() => handlePageChange(currentPage + 1)}
+                        >
+                            <span aria-hidden="true">&raquo;</span>
+                        </CPaginationItem>
+                    </CPagination>
+                </div>
+            )}
+
+            {/* Modal for success messages */}
+            <Modal 
+                visible={modal.visible}
+                type={modal.type}
+                title={modal.title}
+                message={modal.message}
+                onClose={() => setModal({ ...modal, visible: false })}
+            />
+
+            {/* Modal for delete confirmation */}
+            <Modal
+                visible={deleteModal.visible}
+                type="danger"
+                title="Supprimer le signalement"
+                message="Cette action est irréversible. Voulez-vous vraiment supprimer ce signalement ?"
+                onClose={() => setDeleteModal({ visible: false, id: null })}
+                onConfirm={confirmDelete}
+                confirmText="Supprimer"
+                closeText="Annuler"
+            />
         </div>
     )
 }

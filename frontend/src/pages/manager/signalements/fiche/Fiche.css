@@ -1,0 +1,51 @@
+.fiche-signalement .btn-back {
+    background: none;
+    border: none;
+    color: #6c757d;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.fiche-signalement .btn-back:hover {
+    color: #0f3460;
+}
+
+.fiche-signalement .bg-navy {
+    background-color: #0f3460;
+}
+
+.description-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #444;
+}
+
+.info-box {
+    border: 1px solid #eee;
+    transition: transform 0.2s;
+}
+
+.info-box:hover {
+    transform: translateY(-5px);
+    border-color: #0f3460;
+}
+
+.profile-avatar {
+    font-size: 2rem;
+    font-weight: bold;
+    background-color: #0f3460 !important;
+    color: white;
+}
+
+.signalement-photo-container {
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+}
+
+.enterprise-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

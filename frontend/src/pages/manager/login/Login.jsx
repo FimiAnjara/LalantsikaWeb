@@ -9,7 +9,7 @@ import {
     CContainer,
     CRow,
     CCol,
-    CInputGroup,    
+    CInputGroup,
     CInputGroupText,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
@@ -132,10 +132,10 @@ export default function ManagerLogin() {
 
     return (
         <div className="login-container">
-            <CContainer fluid className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
-                <CRow className="w-100" style={{ maxWidth: '1000px' }}>
-                    <CCol lg="6" md="12" className="p-0">
-                        <div className="login-form-section">
+            <CRow className="login-wrapper">
+                <CCol lg="5" md="12" className="login-form-col p-0">
+                    <div className="login-form-section">
+                        <div className="login-content">
                             <div className="mb-4 text-center">
                                 <img
                                     src="/assets/logo/logo.png"
@@ -143,8 +143,7 @@ export default function ManagerLogin() {
                                     height="50"
                                     className="mb-3 rounded"
                                 />
-                                <h2 className="mb-2 text-dark fw-bold">LALANTSIKA Manager</h2>
-                                <small className="text-secondary">Connexion à votre compte</small>
+                                <h2 className="mb-2 text-dark fw-bold">Connexion Manager</h2>
                             </div>
 
                             <CForm onSubmit={handleSubmit}>
@@ -258,21 +257,31 @@ export default function ManagerLogin() {
                                 </small>
                             </div>
                         </div>
-                    </CCol>
+                    </div>
+                </CCol>
 
-                    <CCol lg="6" md="0" className="p-0">
-                        <div className="login-image-section">
-                            <div style={{ textAlign: 'center', color: 'white' }}>
-                                {/* <img
-                                    src="/assets/img/slide1.png"
-                                    alt="LALANTSIKA"
-                                    style={{ width: '100%', height: 'auto', maxWidth: '400px' }}
-                                /> */}
-                            </div>
+                <CCol lg="7" md="0" className="login-image-col p-0">
+                    <div className="login-image-section">
+                        <div className="login-image-content" style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '20px'
+                        }}>
+                            <img
+                                src="/assets/logo/login/logo.png"
+                                alt="LALANTSIKA"
+                                style={{ width: '100%', height: 'auto', maxWidth: '400px' }}
+                            />
+                            <img
+                                src="/assets/logo/login/Lalana.png"
+                                alt="LALANTSIKA"
+                                style={{ width: '100%', height: 'auto', maxWidth: '400px' }}
+                            />
                         </div>
-                    </CCol>
-                </CRow>
-            </CContainer>
+                    </div>
+                </CCol>
+            </CRow>
         </div>
     )
 }

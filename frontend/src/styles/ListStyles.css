@@ -1,0 +1,124 @@
+/* Shared List Styles */
+
+.list-page .page-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.list-page .header-icon {
+    width: 50px;
+    height: 50px;
+    background-color: #0f3460;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.list-page h2 {
+    color: #1a1a2e;
+    font-weight: 700;
+}
+
+/* Filters Card */
+.list-page .filters-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    background-color: #ffffff;
+}
+
+.list-page .filters-card .form-label {
+    font-weight: 600;
+    color: #0f3460;
+    font-size: 0.875rem;
+}
+
+.list-page .filters-card .fw-600 {
+    font-weight: 600 !important;
+}
+
+.list-page .search-input {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.list-page .search-input:focus {
+    border-color: #0f3460;
+    box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
+}
+
+.list-page .filter-select {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    background-color: white;
+}
+
+.list-page .filter-select:focus {
+    border-color: #0f3460;
+    box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
+}
+
+/* Badge Styling */
+.list-page .badge-custom {
+    display: inline-block;
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.list-page .badge-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.list-page .badge-info {
+    background-color: #cfe2ff;
+    color: #084298;
+    border: 1px solid #b6d4fe;
+}
+
+.list-page .badge-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #badbcc;
+}
+
+.list-page .badge-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.list-page .badge-secondary {
+    background-color: #e2e3e5;
+    color: #383d41;
+    border: 1px solid #d3d6d8;
+}
+
+/* Budget in Ariary */
+.list-page .budget-ariary {
+    color: #0f3460;
+    font-weight: 700;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .list-page .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .list-page .filters-card .row {
+        gap: 1rem;
+    }
+}

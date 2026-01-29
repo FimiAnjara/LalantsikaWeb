@@ -1,0 +1,15 @@
+.modifier-signalement .btn-back {
+    background: none;
+    border: none;
+    color: #6c757d;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.modifier-signalement .btn-back:hover {
+    color: #0f3460;
+}
+
+.fw-600 {
+    font-weight: 600;
+}

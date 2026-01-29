@@ -8,7 +8,7 @@
 .parametres-page .header-icon {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
+    background-color: #0f3460;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -29,7 +29,7 @@
 }
 
 .parametres-page .settings-card-header {
-    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
+    background-color: #0f3460;
     color: white;
     font-weight: 600;
     font-size: 1rem;
@@ -63,7 +63,7 @@
 
 /* Save Button */
 .parametres-page .btn-save {
-    background: linear-gradient(135deg, #0f3460 0%, #0f3460 100%);
+    background-color: #0f3460;
     border: none;
     color: white;
     font-weight: 600;
@@ -102,3 +102,29 @@
 .parametres-page .info-section strong {
     color: #333;
 }
+
+/* Sync Button */
+.parametres-page .btn-sync {
+    background-color: #0f3460;
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.parametres-page .btn-sync:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(15, 52, 96, 0.3);
+    color: white;
+}
+
+.parametres-page .btn-sync:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+

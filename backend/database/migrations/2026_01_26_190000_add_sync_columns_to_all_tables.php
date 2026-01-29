@@ -14,6 +14,7 @@ return new class extends Migration
         $tables = [
             'entreprise',
             'signalement',
+            'utilisateur',
             'point',
             'parametre',
             'histo_statut'

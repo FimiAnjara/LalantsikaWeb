@@ -15,23 +15,46 @@ class FirestoreService
     protected $isAvailable = false;
 
     public function __construct()
-    {
+    { 
         try {
             $serviceAccountPath = storage_path('app/firebase/service-account.json');
             
+            \Log::info('🔍 Firestore initialization - Checking credentials at: ' . $serviceAccountPath);
+            
             if (!file_exists($serviceAccountPath)) {
-                throw new \Exception('Firebase credentials file not found');
+                throw new \Exception('Firebase credentials file not found at: ' . $serviceAccountPath);
             }
 
-            $factory = (new Factory)
-                ->withServiceAccount($serviceAccountPath);
-            
-            $this->firestore = $factory->createFirestore();
-            $this->isAvailable = true;
-            
-            \Log::info('✅ Firestore initialized successfully with gRPC');
+            \Log::info('✅ Credentials file found, initializing Factory...');
+
+            try {
+                // Essayer avec gRPC (défaut)
+                $factory = (new Factory)
+                    ->withServiceAccount($serviceAccountPath);
+                
+                \Log::info('✅ Factory created, creating Firestore instance with REST...');
+                
+                $this->firestore = $factory->createFirestore();
+                $this->isAvailable = true;
+                
+                \Log::info('✅ Firestore initialized successfully');
+            } catch (\Exception $grpcError) {
+                \Log::warning('⚠️  gRPC initialization failed, trying REST: ' . $grpcError->getMessage());
+                
+                // Fallback: essayer sans gRPC
+                $factory = (new Factory)
+                    ->withServiceAccount($serviceAccountPath)
+                    ->withDisabledAutoDiscovery();
+                
+                $this->firestore = $factory->createFirestore();
+                $this->isAvailable = true;
+                
+                \Log::info('✅ Firestore initialized with REST fallback');
+            }
         } catch (\Exception $e) {
-            \Log::error('❌ Firestore initialization failed: ' . $e->getMessage());
+            \Log::error('❌ Firestore initialization FAILED: ' . $e->getMessage());
+            \Log::error('Exception class: ' . get_class($e));
+            \Log::error('File: ' . $e->getFile() . ' Line: ' . $e->getLine());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             $this->isAvailable = false;
         }
@@ -158,6 +181,34 @@ class FirestoreService
         } catch (\Exception $e) {
             \Log::error("Failed to delete from {$collection}: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Récupérer un document par un champ spécifique
+     */
+    public function getFromCollectionByField(string $collection, string $field, $value)
+    {
+        try {
+            if (!$this->isAvailable()) {
+                return null;
+            }
+
+            $query = $this->firestore->database()
+                ->collection($collection)
+                ->where($field, '=', $value)
+                ->documents();
+            
+            foreach ($query as $document) {
+                if ($document->exists()) {
+                    return $document->data();
+                }
+            }
+            
+            return null;
+        } catch (\Exception $e) {
+            \Log::error("Failed to query {$collection} by {$field}: " . $e->getMessage());
+            return null;
         }
     }
 }

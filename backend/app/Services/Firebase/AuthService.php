@@ -109,6 +109,7 @@ class AuthService
         }
     }
 
+
     /**
      * Get Firebase Auth instance
      */

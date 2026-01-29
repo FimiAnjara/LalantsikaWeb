@@ -27,6 +27,7 @@ Route::get('/test-register', function () {
 // Test de connexion Firestore détaillé
 require __DIR__.'/test-firestore.php';
 
+
 Route::get('/about', function () {
     return view('about');
 });

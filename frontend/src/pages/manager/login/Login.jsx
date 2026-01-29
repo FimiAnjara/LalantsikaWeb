@@ -14,17 +14,20 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser, cilCheckAlt } from '@coreui/icons'
+import { firebaseSignIn } from '../../../config/firebase'
 import './Login.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 export default function ManagerLogin() {
     const [formData, setFormData] = useState({
-        identifiant: '',
+        email: '',
         mdp: '',
         rememberMe: false,
     })
 
     const [errors, setErrors] = useState({})
+    const [isLoading, setIsLoading] = useState(false)
+    const [apiError, setApiError] = useState('')
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target
@@ -38,12 +41,18 @@ export default function ManagerLogin() {
                 [name]: '',
             })
         }
+        // Nettoyer l'erreur API quand l'utilisateur tape
+        if (apiError) {
+            setApiError('')
+        }
     }
 
     const validateForm = () => {
         const newErrors = {}
-        if (!formData.identifiant) {
-            newErrors.identifiant = 'L\'identifiant est requis'
+        if (!formData.email) {
+            newErrors.email = 'L\'email est requis'
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            newErrors.email = 'L\'email n\'est pas valide'
         }
         if (!formData.mdp) {
             newErrors.mdp = 'Le mot de passe est requis'
@@ -52,12 +61,72 @@ export default function ManagerLogin() {
         return Object.keys(newErrors).length === 0
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        if (validateForm()) {
-            console.log('Connexion avec:', formData)
-            alert('Connexion réussie!')
-            // Ajouter la logique de connexion ici
+        
+        if (!validateForm()) {
+            return
+        }
+
+        setIsLoading(true)
+        setApiError('')
+
+        try {
+            // ÉTAPE 1 : Authentification Firebase (côté client)
+            const firebaseResult = await firebaseSignIn(formData.email, formData.mdp)
+            
+            if (!firebaseResult.success) {
+                setApiError(firebaseResult.error)
+                setIsLoading(false)
+                return
+            }
+
+            // ÉTAPE 2 : Envoyer le ID Token au backend pour vérification
+            const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    firebase_token: firebaseResult.idToken,
+                })
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+               
+                if (formData.rememberMe) {
+                    localStorage.setItem('auth_token', data.data.access_token)
+                    localStorage.setItem('user', JSON.stringify(data.data.user))
+                } else {
+                    sessionStorage.setItem('auth_token', data.data.access_token)
+                    sessionStorage.setItem('user', JSON.stringify(data.data.user))
+                }
+
+               
+                alert('Connexion réussie!')
+                console.log('User connecté:', data.data.user)
+                window.location.href = '/manager/dashboard'
+            } else {
+               
+                if (data.data && data.data.errors) {
+                    
+                    const newErrors = {}
+                    Object.keys(data.data.errors).forEach(field => {
+                        newErrors[field] = data.data.errors[field][0] 
+                    })
+                    setErrors(newErrors)
+                } else {
+                    setApiError(data.message || 'Erreur de connexion')
+                }
+            }
+        } catch (error) {
+            console.error('Erreur de connexion:', error)
+            setApiError('Erreur de connexion au serveur')
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -79,34 +148,43 @@ export default function ManagerLogin() {
                             </div>
 
                             <CForm onSubmit={handleSubmit}>
-                                {/* Identifiant */}
+                                {/* Affichage erreur API */}
+                                {apiError && (
+                                    <div className="mb-3 p-3 bg-danger bg-opacity-10 border border-danger rounded-3">
+                                        <div className="text-danger fw-semibold">
+                                            {apiError}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Email */}
                                 <div className="mb-4">
-                                    <label htmlFor="identifiant" className="form-label fw-semibold text-dark">
-                                        Identifiant
+                                    <label htmlFor="email" className="form-label fw-semibold text-dark">
+                                        Email
                                     </label>
                                     <CInputGroup className="rounded-3 overflow-hidden has-validation">
                                         <CInputGroupText className="bg-light border-0">
                                             <CIcon icon={cilUser} />
                                         </CInputGroupText>
                                         <CFormInput
-                                            type="text"
-                                            id="identifiant"
-                                            name="identifiant"
-                                            value={formData.identifiant}
+                                            type="email"
+                                            id="email"
+                                            name="email"
+                                            value={formData.email}
                                             onChange={handleChange}
-                                            placeholder="Entrez votre identifiant"
+                                            placeholder="Entrez votre email"
                                             className="rounded-3 border-0"
                                             style={{
                                                 padding: '0.75rem 1rem',
                                                 fontSize: '1rem',
                                                 minHeight: '50px',
-                                                borderColor: errors.identifiant ? '#dc3545' : '',
+                                                borderColor: errors.email ? '#dc3545' : '',
                                             }}
                                         />
                                     </CInputGroup>
-                                    {errors.identifiant && (
+                                    {errors.email && (
                                         <div className="form-text text-danger mt-2">
-                                            {errors.identifiant}
+                                            {errors.email}
                                         </div>
                                     )}
                                 </div>
@@ -160,17 +238,16 @@ export default function ManagerLogin() {
                                 <CButton
                                     type="submit"
                                     color="primary"
+                                    disabled={isLoading}
                                     className="w-100 rounded-3 fw-bold d-flex align-items-center justify-content-center"
                                     style={{
                                         padding: '0.75rem 1.5rem',
                                         fontSize: '1rem',
                                         minHeight: '50px',
                                     }}
-                                    data-coreui-timeout="2000"
-                                    data-coreui-toggle="loading-button"
                                 >
                                     <CIcon icon={cilLockLocked} className="me-2" />
-                                    Se connecter
+                                    {isLoading ? 'Connexion en cours...' : 'Se connecter'}
                                 </CButton>
                             </CForm>
 

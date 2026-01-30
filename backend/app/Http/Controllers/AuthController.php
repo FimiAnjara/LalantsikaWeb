@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Sexe;
+use App\Models\TypeUtilisateur;
+use App\Models\StatutUtilisateur;
 use App\Services\Firebase\AuthService;
 use App\Services\Firebase\FirestoreService;
 use Illuminate\Http\Request;
@@ -10,11 +13,13 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
-    /**
+    /** 
      * Register a new user (Utilisateur uniquement - pas Manager)
+     * Enregistrement PostgreSQL uniquement
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -35,101 +40,57 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 422,
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'Échec de la validation',
                 'data' => ['errors' => $validator->errors()]
-            ], 422);
+            ]);
         }
 
-        // ÉTAPE 1 : Enregistrer dans PostgreSQL (BASE LOCALE PRIORITAIRE)
-        // Forcer le type utilisateur à "Utilisateur" (id = 2)
-        $user = User::create([
-            'identifiant' => $request->identifiant,
-            'mdp' => Hash::make($request->mdp),
-            'nom' => $request->nom,
-            'prenom' => $request->prenom,
-            'dtn' => $request->dtn,
-            'email' => $request->email,
-            'id_sexe' => $request->id_sexe,
-            'id_type_utilisateur' => 2, // TOUJOURS Utilisateur
-            'synchronized' => false,
-        ]);
+        try {
+            // Créer l'utilisateur dans PostgreSQL
+            $user = User::create([
+                'identifiant' => $request->identifiant,
+                'mdp' => Hash::make($request->mdp),
+                'nom' => $request->nom,
+                'prenom' => $request->prenom,
+                'dtn' => $request->dtn,
+                'email' => $request->email,
+                'id_sexe' => $request->id_sexe,
+                'id_type_utilisateur' => 2, 
+            ]);
 
-        $firestoreService = new FirestoreService();
-        $firebaseAuthService = new AuthService();
-        $synced = false;
-        $firebaseUid = null;
+            // Créer le statut utilisateur (etat = 1 = actif)
+            StatutUtilisateur::create([
+                'id_utilisateur' => $user->id_utilisateur,
+                'etat' => 1,
+                'date_' => now(),
+            ]);
 
-        // ÉTAPE 2 : Tester la connexion Firebase
-        \Log::info('🔍 Testing Firestore availability...');
-        $isFirestoreAvailable = $firestoreService->isAvailable();
-        \Log::info('Firestore available: ' . ($isFirestoreAvailable ? 'YES' : 'NO'));
+            Log::info("✅ Utilisateur créé avec succès: {$user->email}");
 
-        if ($isFirestoreAvailable) {
-            try {
-                \Log::info('📝 Creating Firebase Auth user...');
-                // 2A. Créer l'utilisateur dans Firebase Authentication
-                $firebaseUser = $firebaseAuthService->createUser(
-                    $request->email,
-                    $request->mdp,
-                    [
-                        'displayName' => $request->prenom . ' ' . $request->nom
-                    ]
-                );
-                $firebaseUid = $firebaseUser->uid;
-                \Log::info("✅ Firebase Auth user created: {$firebaseUid}");
+            $token = JWTAuth::fromUser($user);
 
-                // 2B. Enregistrer dans Firestore
-                \Log::info('📝 Saving to Firestore...');
-                $userData = [
-                    'id_utilisateur' => $user->id_utilisateur,
-                    'identifiant' => $user->identifiant,
-                    'nom' => $user->nom,
-                    'prenom' => $user->prenom,
-                    'dtn' => $user->dtn ? $user->dtn->format('Y-m-d') : null,
-                    'email' => $user->email,
-                    'id_sexe' => $user->id_sexe,
-                    'id_type_utilisateur' => $user->id_type_utilisateur,
-                    'firebase_uid' => $firebaseUid,
-                    'last_sync_at' => now()->toIso8601String(),
-                ];
+            return response()->json([
+                'code' => 201,
+                'success' => true,
+                'message' => 'Utilisateur enregistré avec succès',
+                'data' => [
+                    'user' => $user,
+                    'token' => $token,
+                ]
+            ]);
 
-                if ($firestoreService->saveToCollection('utilisateurs', $user->id_utilisateur, $userData)) {
-                    // Marquer comme synchronisé
-                    $user->update([
-                        'synchronized' => true,
-                        'last_sync_at' => now(),
-                        'firebase_uid' => $firebaseUid
-                    ]);
-                    $synced = true;
-                    \Log::info("✅ User {$user->id_utilisateur} synchronized with Firestore & Auth");
-                } else {
-                    \Log::error("❌ Failed to save to Firestore collection");
-                }
-            } catch (\Exception $e) {
-                \Log::error("❌ Firebase sync failed: " . $e->getMessage());
-                \Log::error("Stack trace: " . $e->getTraceAsString());
-            }
-        } else {
-            \Log::warning("⚠️ Firebase indisponible - User {$user->id_utilisateur} non synchronisé");
+        } catch (\Exception $e) {
+            Log::error("❌ Erreur lors de la création de l'utilisateur: " . $e->getMessage());
+            
+            return response()->json([
+                'code' => 500,
+                'success' => false,
+                'message' => 'Erreur lors de la création de l\'utilisateur',
+                'data' => ['error' => $e->getMessage()]
+            ]);
         }
-
-        $token = JWTAuth::fromUser($user);
-
-        return response()->json([
-            'code' => 201,
-            'success' => true,
-            'message' => 'User registered successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-                'synchronized' => $synced,
-                'firebase_uid' => $firebaseUid,
-                'sync_message' => $synced 
-                    ? 'Data synchronized with Firestore & Firebase Auth' 
-                    : 'Saved locally, will sync when connection is available'
-            ]
-        ], 201);
     }
+       
 
     /**
      * Login Manager (Web uniquement)
@@ -145,69 +106,107 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'code' => 422,
-                'success' => false,
-                'message' => 'Validation failed',
-                'data' => ['errors' => $validator->errors()]
-            ], 422);
+            return $this->loginPostgres($request);
         }
 
         $firestoreService = new FirestoreService();
         $firebaseAuthService = new AuthService();
         
         try {
-            \Log::info("🔥 Vérification du Firebase ID Token...");
+            Log::info("🔥 Vérification du Firebase ID Token...");
             
             // ÉTAPE 1 : Vérifier le token Firebase
             $verifiedToken = $firebaseAuthService->verifyIdToken($request->firebase_token);
             $firebaseUid = $verifiedToken->claims()->get('sub');
             $email = $verifiedToken->claims()->get('email');
             
-            \Log::info("✅ Token vérifié - UID: {$firebaseUid}, Email: {$email}");
+            Log::info("✅ Token vérifié - UID: {$firebaseUid}, Email: {$email}");
             
             // ÉTAPE 2 : Récupérer l'utilisateur depuis Firestore
             $firestoreUser = $firestoreService->getFromCollectionByField('utilisateurs', 'email', $email);
             
             if (!$firestoreUser) {
-                \Log::warning("❌ User not found in Firestore for email: {$email}");
-                return response()->json([
-                    'code' => 401,
-                    'success' => false,
-                    'message' => 'User not found in database',
-                    'data' => null
-                ], 401);
+                Log::warning("⚠️ User not found in Firestore for email: {$email} - Trying PostgreSQL fallback...");
+                
+                // FALLBACK : Chercher dans PostgreSQL
+                $user = User::where('email', $email)->first();
+                
+                if (!$user) {
+                    Log::warning("❌ User not found in PostgreSQL either for email: {$email}");
+                    return response()->json([
+                        'code' => 401,
+                        'success' => false,
+                        'message' => 'Utilisateur non trouvé dans la base de données',
+                        'data' => null
+                    ]);
+                }
+                
+                // Vérifier que c'est un Manager (id_type_utilisateur = 1)
+                if ($user->id_type_utilisateur != 1) {
+                    Log::warning("❌ User is not a Manager (id_type_utilisateur: {$user->id_type_utilisateur})");
+                    return response()->json([
+                        'code' => 403,
+                        'success' => false,
+                        'message' => 'Accès refusé. Seuls les Managers peuvent se connecter sur le Web.',
+                        'data' => null
+                    ]);
+                }
+                
+                // Mettre à jour le firebase_uid si nécessaire
+                if (!$user->firebase_uid) {
+                    $user->firebase_uid = $firebaseUid;
+                    $user->save();
+                }
+                
+                $token = JWTAuth::fromUser($user);
+                Log::info("✅ Login successful via PostgreSQL fallback - Manager: {$user->email}");
+                
+                return $this->respondWithToken($token, $user);
             }
             
             // ÉTAPE 3 : Vérifier que c'est un Manager (id_type_utilisateur = 1)
-            if (!isset($firestoreUser['id_type_utilisateur']) || $firestoreUser['id_type_utilisateur'] != 1) {
-                \Log::warning("❌ User is not a Manager (id_type_utilisateur: " . ($firestoreUser['id_type_utilisateur'] ?? 'null') . ")");
+            if (!isset($firestoreUser['type_utilisateur']['id_type_utilisateur']) || $firestoreUser['type_utilisateur']['id_type_utilisateur'] != 1) {
+                Log::warning("❌ User is not a Manager (id_type_utilisateur: " . ($firestoreUser['id_type_utilisateur'] ?? 'null') . ")");
                 return response()->json([
                     'code' => 403,
                     'success' => false,
-                    'message' => 'Access denied. Only Managers can login on Web.',
+                    'message' => 'Accès refusé. Seuls les Managers peuvent se connecter sur le Web.',
                     'data' => null
-                ], 403);
+                ]);
             }
             
-            // ÉTAPE 4 : Créer un objet User pour JWT
-            $user = new User();
-            $user->id_utilisateur = $firestoreUser['id_utilisateur'] ?? null;
-            $user->identifiant = $firestoreUser['identifiant'] ?? '';
-            $user->nom = $firestoreUser['nom'] ?? '';
-            $user->prenom = $firestoreUser['prenom'] ?? '';
-            $user->email = $firestoreUser['email'] ?? $email;
-            $user->id_type_utilisateur = $firestoreUser['id_type_utilisateur'];
-            $user->id_sexe = $firestoreUser['id_sexe'] ?? null;
-            $user->firebase_uid = $firebaseUid;
+            // ÉTAPE 4 : Chercher ou créer l'utilisateur dans PostgreSQL
+            $user = User::where('email', $email)->first();
+            
+            if (!$user) {
+                // Créer l'utilisateur dans PostgreSQL s'il n'existe pas
+                $user = User::create([
+                    'identifiant' => $firestoreUser['identifiant'] ?? $firebaseUid,
+                    'mdp' => Hash::make(uniqid()), // Mot de passe temporaire
+                    'nom' => $firestoreUser['nom'] ?? '',
+                    'prenom' => $firestoreUser['prenom'] ?? '',
+                    'dtn' => isset($firestoreUser['dtn']) ? $firestoreUser['dtn'] : now()->subYears(25),
+                    'email' => $email,
+                    'id_sexe' => $firestoreUser['sexe']['id_sexe'] ?? 1,
+                    'id_type_utilisateur' => $firestoreUser['type_utilisateur']['id_type_utilisateur'],
+                    'firebase_uid' => $firebaseUid,
+                ]);
+                Log::info("✅ User created in PostgreSQL from Firestore: {$user->email}");
+            } else {
+                // Mettre à jour le firebase_uid si nécessaire
+                if (!$user->firebase_uid) {
+                    $user->firebase_uid = $firebaseUid;
+                    $user->save();
+                }
+            }
             
             $token = JWTAuth::fromUser($user);
-            \Log::info("✅ Login successful via Firebase - Manager: {$user->email}");
+            Log::info("✅ Login successful via Firebase - Manager: {$user->email}");
             
             return $this->respondWithToken($token, $user);
             
         } catch (\Exception $e) {
-            \Log::error("🔴 Firebase token verification failed: " . $e->getMessage());
+            Log::error("🔴 Firebase token verification failed: " . $e->getMessage());
             return $this->loginPostgres($request);
         }
     }
@@ -220,7 +219,7 @@ class AuthController extends Controller
      */
     private function loginPostgres(Request $request)
     {
-        \Log::info("💾 Authentification via PostgreSQL local");
+        Log::info("💾 Authentification via PostgreSQL local");
          
         // Chercher l'utilisateur par email
         $user = User::where('email', $request->email)->first();
@@ -229,9 +228,9 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 401,
                 'success' => false,
-                'message' => 'Invalid credentials',
+                'message' => 'Identifiants invalides',
                 'data' => null
-            ], 401);
+            ]);
         }
 
         // Vérifier que l'utilisateur est un Manager
@@ -239,19 +238,19 @@ class AuthController extends Controller
             ->where('id_type_utilisateur', $user->id_type_utilisateur)
             ->first();
 
-        if (!$typeUtilisateur || $typeUtilisateur->libelle !== 'Manager') {
+        if (!$typeUtilisateur || $typeUtilisateur->id_type_utilisateur !== 1) {
             return response()->json([
                 'code' => 403,
                 'success' => false,
-                'message' => 'Access denied. Only Managers can login on Web.',
+                'message' => 'Accès refusé. Seuls les Managers peuvent se connecter sur le Web.',
                 'data' => null
-            ], 403);
+            ]);
         }
 
         // Générer le token JWT
         $token = JWTAuth::fromUser($user);
 
-        \Log::info("✅ Login réussi via PostgreSQL - Manager: {$user->email}");
+        Log::info("✅ Login réussi via PostgreSQL - Manager: {$user->email}");
         
         return $this->respondWithToken($token, $user);
     }
@@ -266,7 +265,7 @@ class AuthController extends Controller
         return response()->json([
             'code' => 200,
             'success' => true,
-            'message' => 'User retrieved successfully',
+            'message' => 'Utilisateur récupéré avec succès',
             'data' => ['user' => auth('api')->user()]
         ]);
     }
@@ -283,7 +282,7 @@ class AuthController extends Controller
         return response()->json([
             'code' => 200,
             'success' => true,
-            'message' => 'Successfully logged out',
+            'message' => 'Déconnexion réussie',
             'data' => null
         ]);
     }
@@ -312,7 +311,7 @@ class AuthController extends Controller
         return response()->json([
             'code' => 200,
             'success' => true,
-            'message' => 'Authentication successful',
+            'message' => 'Authentification réussie',
             'data' => [
                 'access_token' => $token,
                 'token_type' => 'bearer',
@@ -343,7 +342,7 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 422,
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'Échec de la validation',
                 'data' => ['errors' => $validator->errors()]
             ], 422);
         }
@@ -385,7 +384,7 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 200,
                 'success' => true,
-                'message' => 'Firebase authentication successful',
+                'message' => 'Authentification Firebase réussie',
                 'data' => [
                     'access_token' => $token,
                     'token_type' => 'bearer',
@@ -399,7 +398,7 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 401,
                 'success' => false,
-                'message' => 'Firebase authentication failed',
+                'message' => 'Échec de l\'authentification Firebase',
                 'data' => ['error' => $e->getMessage()]
             ], 401);
         }

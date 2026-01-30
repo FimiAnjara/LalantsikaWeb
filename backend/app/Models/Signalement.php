@@ -11,16 +11,23 @@ class Signalement extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'daty',
+        'surface',
+        'budget',
         'description',
-        'id_point',
+        'photo',
+        'id_entreprise',
         'id_utilisateur',
-        'date_signalement',
+        'id_statut',
+        'id_point',
         'synchronized',
         'last_sync_at'
     ];
 
     protected $casts = [
-        'date_signalement' => 'datetime',
+        'daty' => 'datetime',
+        'surface' => 'decimal:2',
+        'budget' => 'decimal:2',
         'synchronized' => 'boolean',
         'last_sync_at' => 'datetime'
     ];
@@ -31,5 +38,18 @@ class Signalement extends Model
         return $this->belongsTo(User::class, 'id_utilisateur', 'id_utilisateur');
     }
 
-  
+    public function statut()
+    {
+        return $this->belongsTo(Statut::class, 'id_statut', 'id_statut');
+    }
+
+    public function entreprise()
+    {
+        return $this->belongsTo(Entreprise::class, 'id_entreprise', 'id_entreprise');
+    }
+
+    public function point()
+    {
+        return $this->belongsTo(Point::class, 'id_point', 'id_point');
+    }
 }

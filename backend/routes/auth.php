@@ -7,16 +7,18 @@ use App\Services\Firebase\FirestoreService;
 use App\Models\User;
 
 Route::group(['prefix' => 'auth'], function () {
-    Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('firebase', [AuthController::class, 'firebaseAuth']);
     
     Route::middleware('auth:api')->group(function () {
+        Route::post('register', [AuthController::class, 'register']);
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('refresh', [AuthController::class, 'refresh']);
         Route::get('me', [AuthController::class, 'me']);
     });
 });
+
+
 
 // Routes de synchronisation (protégées par auth)
 Route::middleware('auth:api')->group(function () {

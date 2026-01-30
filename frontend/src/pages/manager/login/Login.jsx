@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom';
 import {
     CCard,
     CCardBody,
@@ -19,6 +20,7 @@ import './Login.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 export default function ManagerLogin() {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         email: '',
         mdp: '',
@@ -114,7 +116,7 @@ export default function ManagerLogin() {
 
                
                 console.log('User connecté:', data.data.user)
-                window.location.href = '/manager/home'
+                navigate('/manager/home');
             } else {
                
                 if (data.data && data.data.errors) {  

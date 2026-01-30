@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import ProtectedRoute from './components/ProtectedRoute';
 import './App.css'
 import MainLayout from './layouts/visiteur/MainLayout'
 import Home from './pages/visiteur/home/Home'
@@ -33,18 +34,58 @@ function App() {
         </Route>
 
         {/* Manager routes */}
-        <Route element={<ManagerLayout />}>
-          <Route path="/manager/home" element={<ManagerHome />} />
-          <Route path="/manager/utilisateurs/ajout" element={<AjoutUtilisateur />} />
-          <Route path="/manager/utilisateurs/liste" element={<ListeUtilisateur />} />
-          <Route path="/manager/utilisateurs/modifier/:id" element={<ModifierUtilisateur />} />
-          <Route path="/manager/utilisateurs/fiche/:id" element={<FicheUtilisateur />} />
-          <Route path="/manager/parametres" element={<Parametres />} />
-          <Route path="/manager/signalements/liste" element={<SignalementListe />} />
-          <Route path="/manager/signalements/carte" element={<SignalementCarte />} />
-          <Route path="/manager/signalements/fiche/:id" element={<SignalementFiche />} />
-          <Route path="/manager/signalements/modifier/:id" element={<SignalementModifier />} />
-        </Route>
+          <Route element={<ManagerLayout />}>
+            <Route path="/manager/home" element={
+              <ProtectedRoute>
+                <ManagerHome />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/utilisateurs/ajout" element={
+              <ProtectedRoute>
+                <AjoutUtilisateur />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/utilisateurs/liste" element={
+              <ProtectedRoute>
+                <ListeUtilisateur />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/utilisateurs/modifier/:id" element={
+              <ProtectedRoute>
+                <ModifierUtilisateur />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/utilisateurs/fiche/:id" element={
+              <ProtectedRoute>
+                <FicheUtilisateur />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/parametres" element={
+              <ProtectedRoute>
+                <Parametres />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/signalements/liste" element={
+              <ProtectedRoute>
+                <SignalementListe />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/signalements/carte" element={
+              <ProtectedRoute>
+                <SignalementCarte />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/signalements/fiche/:id" element={
+              <ProtectedRoute>
+                <SignalementFiche />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/signalements/modifier/:id" element={
+              <ProtectedRoute>
+                <SignalementModifier />
+              </ProtectedRoute>
+            } />
+          </Route>
 
       </Routes>
     </Router>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     CInputGroup,
@@ -11,6 +11,7 @@ import {
     CBadge,
     CPagination,
     CPaginationItem,
+    CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSearch } from '@coreui/icons'
@@ -29,63 +30,86 @@ export default function SignalementListe() {
     const itemsPerPage = 10
     const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null })
-    const [signalements, setSignalements] = useState([
-        {
-            id_signalement: 1,
-            daty: '2025-01-20 10:30',
-            surface: 1250.50,
-            budget: 50000.00,
-            description: 'Route endommagée',
-            photo: 'photo1.jpg',
-            id_entreprise: 1,
-            id_utilisateur: 1,
-            id_statut: 1,
-            id_point: 1,
-            statut: 'En attente',
-            utilisateur: 'Jean Dupont'
-        },
-        {
-            id_signalement: 2,
-            daty: '2025-01-21 14:15',
-            surface: 2000.75,
-            budget: 75000.00,
-            description: 'Pont dégradé',
-            photo: 'photo2.jpg',
-            id_entreprise: 2,
-            id_utilisateur: 2,
-            id_statut: 2,
-            id_point: 2,
-            statut: 'En cours',
-            utilisateur: 'Marie Martin'
-        },
-        {
-            id_signalement: 3,
-            daty: '2025-01-22 09:45',
-            surface: 500.25,
-            budget: 25000.00,
-            description: 'Trottoir cassé',
-            photo: 'photo3.jpg',
-            id_entreprise: 1,
-            id_utilisateur: 3,
-            id_statut: 3,
-            id_point: 3,
-            statut: 'Résolu',
-            utilisateur: 'Pierre Bernard'
-        },
-    ])
+    const [signalements, setSignalements] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [actionLoading, setActionLoading] = useState(false)
+    const [statuts, setStatuts] = useState([])
 
-    const utilisateurs = [...new Set(signalements.map(sig => sig.utilisateur))]
-    const statuts = [...new Set(signalements.map(sig => sig.statut))]
+    // Récupérer les signalements depuis l'API
+    useEffect(() => {
+        fetchSignalements()
+        fetchStatuts()
+    }, [])
+
+    const fetchSignalements = async () => {
+        setLoading(true)
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+            const response = await fetch('http://localhost:8000/api/signalements', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                }
+            })
+
+            const result = await response.json()
+
+            if (result.success && result.data) {
+                setSignalements(result.data)
+            } else {
+                setModal({
+                    visible: true,
+                    type: 'danger',
+                    title: 'Erreur',
+                    message: result.message || 'Erreur lors du chargement des signalements'
+                })
+            }
+        } catch (error) {
+            console.error('Erreur:', error)
+            setModal({
+                visible: true,
+                type: 'danger',
+                title: 'Erreur',
+                message: 'Impossible de charger les signalements'
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const fetchStatuts = async () => {
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+            const response = await fetch('http://localhost:8000/api/statuts', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                }
+            })
+
+            const result = await response.json()
+
+            if (result.success && result.data) {
+                setStatuts(result.data)
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des statuts:', error)
+        }
+    }
+
+    const utilisateurs = [...new Set(signalements.filter(sig => sig.utilisateur).map(sig => sig.utilisateur.nom_complet))]
+    const statutsUniques = [...new Set(signalements.filter(sig => sig.statut).map(sig => sig.statut))]
 
     const filteredSignalements = signalements.filter((sig) => {
         const searchLower = searchTerm.toLowerCase()
+        const utilisateurNom = sig.utilisateur?.nom_complet || ''
         const matchSearch = 
-            sig.description.toLowerCase().includes(searchLower) ||
-            sig.utilisateur.toLowerCase().includes(searchLower) ||
+            (sig.description || '').toLowerCase().includes(searchLower) ||
+            utilisateurNom.toLowerCase().includes(searchLower) ||
             sig.id_signalement.toString().includes(searchLower)
         
         const matchStatut = filterStatut === '' || sig.statut === filterStatut
-        const matchUtilisateur = filterUtilisateur === '' || sig.utilisateur === filterUtilisateur
+        const matchUtilisateur = filterUtilisateur === '' || utilisateurNom === filterUtilisateur
         
         return matchSearch && matchStatut && matchUtilisateur
     })
@@ -113,16 +137,49 @@ export default function SignalementListe() {
         setDeleteModal({ visible: true, id })
     }
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (deleteModal.id) {
-            setSignalements(signalements.filter((sig) => sig.id_signalement !== deleteModal.id))
-            setDeleteModal({ visible: false, id: null })
-            setModal({
-                visible: true,
-                type: 'success',
-                title: 'Succès',
-                message: 'Signalement supprimé avec succès'
-            })
+            setActionLoading(true)
+            try {
+                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+                const response = await fetch(`http://localhost:8000/api/signalements/${deleteModal.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                    }
+                })
+
+                const result = await response.json()
+
+                if (result.success) {
+                    setSignalements(signalements.filter((sig) => sig.id_signalement !== deleteModal.id))
+                    setDeleteModal({ visible: false, id: null })
+                    setModal({
+                        visible: true,
+                        type: 'success',
+                        title: 'Succès',
+                        message: 'Signalement supprimé avec succès'
+                    })
+                } else {
+                    setModal({
+                        visible: true,
+                        type: 'danger',
+                        title: 'Erreur',
+                        message: result.message || 'Impossible de supprimer le signalement'
+                    })
+                }
+            } catch (error) {
+                setModal({
+                    visible: true,
+                    type: 'danger',
+                    title: 'Erreur',
+                    message: 'Erreur lors de la suppression'
+                })
+            } finally {
+                setActionLoading(false)
+                setDeleteModal({ visible: false, id: null })
+            }
         }
     }
 
@@ -135,6 +192,14 @@ export default function SignalementListe() {
         return badgeClass[statut] || 'secondary'
     }
 
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+                <CSpinner color="primary" />
+            </div>
+        )
+    }
+
     return (
         <div className="signalement-liste list-page">
             <div className="page-header d-flex align-items-center gap-3 mb-4">
@@ -143,7 +208,7 @@ export default function SignalementListe() {
                 </div>
                 <div>
                     <h2 className="mb-0">Signalements</h2>
-                    <small className="text-muted">Gestion des signalements</small>
+                    <small className="text-muted">Gestion des signalements ({signalements.length} au total)</small>
                 </div>
             </div>
 
@@ -170,7 +235,7 @@ export default function SignalementListe() {
                                 className="filter-select"
                             >
                                 <option value="">Tous les statuts</option>
-                                {statuts.map((statut) => (
+                                {statutsUniques.map((statut) => (
                                     <option key={statut} value={statut}>
                                         {statut}
                                     </option>
@@ -217,17 +282,19 @@ export default function SignalementListe() {
                             <strong>#{sig.id_signalement}</strong>
                         </CTableDataCell>
                         <CTableDataCell>
-                            <small>{sig.daty}</small>
+                            <small>{sig.daty || '-'}</small>
                         </CTableDataCell>
-                        <CTableDataCell>{sig.description}</CTableDataCell>
-                        <CTableDataCell>{sig.utilisateur}</CTableDataCell>
-                        <CTableDataCell>{sig.surface.toFixed(2)}</CTableDataCell>
+                        <CTableDataCell>{sig.description || '-'}</CTableDataCell>
+                        <CTableDataCell>{sig.utilisateur?.nom_complet || '-'}</CTableDataCell>
+                        <CTableDataCell>{sig.surface ? sig.surface.toFixed(2) : '-'}</CTableDataCell>
                         <CTableDataCell>
-                            <strong className="budget-ariary">Ar {sig.budget.toLocaleString('en-US')}</strong>
+                            <strong className="budget-ariary">
+                                {sig.budget ? `Ar ${sig.budget.toLocaleString('en-US')}` : '-'}
+                            </strong>
                         </CTableDataCell>
                         <CTableDataCell>
                             <CBadge color={getStatutBadge(sig.statut)} className="p-2">
-                                {sig.statut}
+                                {sig.statut || 'Non défini'}
                             </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>

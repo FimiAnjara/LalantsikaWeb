@@ -19,7 +19,7 @@ const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 
 /**
- * Authentifier avec email et mot de passe
+ * Authentifier avec email e  t mot de passe
  * @returns {Promise<{success: boolean, idToken?: string, error?: string}>}
  */
 export async function firebaseSignIn(email, password) {

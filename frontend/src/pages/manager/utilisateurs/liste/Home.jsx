@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     CCard,
@@ -12,9 +12,10 @@ import {
     CBadge,
     CPagination,
     CPaginationItem,
+    CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilList, cilSearch, cilPeople, cilCheckAlt } from '@coreui/icons'
+import { cilList, cilSearch, cilPeople, cilCheckAlt, cilSync, cilCloudDownload } from '@coreui/icons'
 import ActionButtons from '../../../../components/ActionButtons'
 import GenericTable from '../../../../components/GenericTable'
 import Modal from '../../../../components/Modal'
@@ -26,43 +27,59 @@ export default function ListeUtilisateur() {
     const [searchTerm, setSearchTerm] = useState('')
     const [filterType, setFilterType] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
+    const [filterSync, setFilterSync] = useState('')
     const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null })
     const [unblockModal, setUnblockModal] = useState({ visible: false, id: null })
     const [currentPage, setCurrentPage] = useState(1)
+    const [loading, setLoading] = useState(true)
     const itemsPerPage = 10
-    const [utilisateurs, setUtilisateurs] = useState([
-        {
-            id_utilisateur: 1,
-            identifiant: 'john_doe',
-            nom: 'Doe',
-            prenom: 'John',
-            email: 'john@example.com',
-            sexe: 'Masculin',
-            type_utilisateur: 'Utilisateur',
-            statut: 'actif',
-        },
-        {
-            id_utilisateur: 2,
-            identifiant: 'jane_smith',
-            nom: 'Smith',
-            prenom: 'Jane',
-            email: 'jane@example.com',
-            sexe: 'Féminin',
-            type_utilisateur: 'Manager',
-            statut: 'actif',
-        },
-        {
-            id_utilisateur: 3,
-            identifiant: 'bob_wilson',
-            nom: 'Wilson',
-            prenom: 'Bob',
-            email: 'bob@example.com',
-            sexe: 'Masculin',
-            type_utilisateur: 'Utilisateur',
-            statut: 'bloque',
-        },
-    ])
+    const [utilisateurs, setUtilisateurs] = useState([])
+
+    // Récupérer la liste des utilisateurs au chargement
+    useEffect(() => {
+        fetchUtilisateurs()
+    }, [])
+
+    const fetchUtilisateurs = async () => {
+        setLoading(true)
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+            
+            const response = await fetch('http://localhost:8000/api/utilisateurs', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+                setUtilisateurs(data.data || [])
+            } else {
+                console.error('Erreur:', data.message)
+                setModal({
+                    visible: true,
+                    type: 'danger',
+                    title: 'Erreur',
+                    message: data.message || 'Erreur lors du chargement des utilisateurs'
+                })
+            }
+        } catch (error) {
+            console.error('Erreur:', error)
+            setModal({
+                visible: true,
+                type: 'danger',
+                title: 'Erreur',
+                message: 'Erreur de connexion au serveur'
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const getTypeColor = (type) => {
         switch (type) {
@@ -83,15 +100,18 @@ export default function ListeUtilisateur() {
 
     const filteredUtilisateurs = utilisateurs.filter((user) => {
         const matchSearch =
-            user.identifiant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase())
+            user.identifiant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchTerm.toLowerCase())
 
         const matchType = filterType === '' || user.type_utilisateur === filterType
         const matchStatus = filterStatus === '' || user.statut === filterStatus
+        const matchSync = filterSync === '' || 
+            (filterSync === 'oui' && user.synchronized) || 
+            (filterSync === 'non' && !user.synchronized)
 
-        return matchSearch && matchType && matchStatus
+        return matchSearch && matchType && matchStatus && matchSync
     })
 
     const totalPages = Math.ceil(filteredUtilisateurs.length / itemsPerPage)
@@ -109,16 +129,47 @@ export default function ListeUtilisateur() {
         setDeleteModal({ visible: true, id })
     }
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (deleteModal.id) {
-            setUtilisateurs(utilisateurs.filter((user) => user.id_utilisateur !== deleteModal.id))
+            try {
+                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+                
+                const response = await fetch(`http://localhost:8000/api/utilisateurs/${deleteModal.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                const data = await response.json()
+
+                if (data.success) {
+                    setUtilisateurs(utilisateurs.filter((user) => user.id_utilisateur !== deleteModal.id))
+                    setModal({
+                        visible: true,
+                        type: 'success',
+                        title: 'Succès',
+                        message: 'Utilisateur supprimé avec succès'
+                    })
+                } else {
+                    setModal({
+                        visible: true,
+                        type: 'danger',
+                        title: 'Erreur',
+                        message: data.message || 'Erreur lors de la suppression'
+                    })
+                }
+            } catch (error) {
+                setModal({
+                    visible: true,
+                    type: 'danger',
+                    title: 'Erreur',
+                    message: 'Erreur de connexion au serveur'
+                })
+            }
             setDeleteModal({ visible: false, id: null })
-            setModal({
-                visible: true,
-                type: 'success',
-                title: 'Succès',
-                message: 'Utilisateur supprimé avec succès'
-            })
         }
     }
 
@@ -126,18 +177,49 @@ export default function ListeUtilisateur() {
         setUnblockModal({ visible: true, id })
     }
 
-    const confirmUnblock = () => {
+    const confirmUnblock = async () => {
         if (unblockModal.id) {
-            setUtilisateurs(utilisateurs.map((user) =>
-                user.id_utilisateur === unblockModal.id ? { ...user, statut: 'actif' } : user
-            ))
+            try {
+                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+                
+                const response = await fetch(`http://localhost:8000/api/utilisateurs/${unblockModal.id}/debloquer`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                const data = await response.json()
+
+                if (data.success) {
+                    setUtilisateurs(utilisateurs.map((user) =>
+                        user.id_utilisateur === unblockModal.id ? { ...user, statut: 'actif' } : user
+                    ))
+                    setModal({
+                        visible: true,
+                        type: 'success',
+                        title: 'Succès',
+                        message: 'Utilisateur débloqué avec succès'
+                    })
+                } else {
+                    setModal({
+                        visible: true,
+                        type: 'danger',
+                        title: 'Erreur',
+                        message: data.message || 'Erreur lors du déblocage'
+                    })
+                }
+            } catch (error) {
+                setModal({
+                    visible: true,
+                    type: 'danger',
+                    title: 'Erreur',
+                    message: 'Erreur de connexion au serveur'
+                })
+            }
             setUnblockModal({ visible: false, id: null })
-            setModal({
-                visible: true,
-                type: 'success',
-                title: 'Succès',
-                message: 'Utilisateur débloqué avec succès'
-            })
         }
     }
 
@@ -157,7 +239,7 @@ export default function ListeUtilisateur() {
             <CCard className="filters-card mb-4">
                 <CCardBody>
                     <div className="row g-3">
-                        <div className="col-md-5">
+                        <div className="col-md-4">
                             <label className="form-label fw-600">Recherche</label>
                             <CInputGroup>
                                 <CFormInput
@@ -168,7 +250,7 @@ export default function ListeUtilisateur() {
                                 />
                             </CInputGroup>
                         </div>
-                        <div className="col-md-3">
+                        <div className="col-md-2">
                             <label className="form-label fw-600">Type</label>
                             <CFormSelect
                                 value={filterType}
@@ -176,12 +258,11 @@ export default function ListeUtilisateur() {
                                 className="filter-select"
                             >
                                 <option value="">Tous les types</option>
-                                <option value="Administrateur">Administrateur</option>
                                 <option value="Manager">Manager</option>
                                 <option value="Utilisateur">Utilisateur</option>
                             </CFormSelect>
                         </div>
-                        <div className="col-md-4">
+                        <div className="col-md-3">
                             <label className="form-label fw-600">Statut</label>
                             <CFormSelect
                                 value={filterStatus}
@@ -193,11 +274,29 @@ export default function ListeUtilisateur() {
                                 <option value="bloque">Bloqué</option>
                             </CFormSelect>
                         </div>
+                        <div className="col-md-3">
+                            <label className="form-label fw-600">Synchronisé</label>
+                            <CFormSelect
+                                value={filterSync}
+                                onChange={(e) => setFilterSync(e.target.value)}
+                                className="filter-select"
+                            >
+                                <option value="">Tous</option>
+                                <option value="oui">Synchronisé</option>
+                                <option value="non">Non synchronisé</option>
+                            </CFormSelect>
+                        </div>
                     </div>
                 </CCardBody>
             </CCard>
 
             {/* Table */}
+            {loading ? (
+                <div className="d-flex justify-content-center align-items-center py-5">
+                    <CSpinner color="primary" />
+                    <span className="ms-2">Chargement des utilisateurs...</span>
+                </div>
+            ) : (
             <GenericTable
                 title="Liste des utilisateurs"
                 columns={[
@@ -206,6 +305,7 @@ export default function ListeUtilisateur() {
                     { key: 'email', label: 'Email' },
                     { key: 'type', label: 'Type' },
                     { key: 'statut', label: 'Statut' },
+                    { key: 'sync', label: 'Synchronisé' },
                     { key: 'actions', label: 'Actions' },
                 ]}
                 data={paginatedUtilisateurs}
@@ -218,7 +318,7 @@ export default function ListeUtilisateur() {
                         <CTableDataCell>
                             <div className="d-flex align-items-center gap-2">
                                 <div className="avatar-circle">
-                                    {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                                    {user.prenom?.charAt(0)}{user.nom?.charAt(0)}
                                 </div>
                                 <div>
                                     <div className="fw-medium">{user.prenom} {user.nom}</div>
@@ -234,6 +334,16 @@ export default function ListeUtilisateur() {
                         <CTableDataCell>
                             <CBadge color={getStatutColor(user.statut)} className="p-2">
                                 {user.statut === 'actif' ? 'Actif' : 'Bloqué'}
+                            </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell>
+                            <CBadge 
+                                color={user.synchronized ? 'success' : 'warning'} 
+                                className="p-2 d-flex align-items-center gap-1"
+                                style={{ width: 'fit-content' }}
+                            >
+                                <CIcon icon={user.synchronized ? cilSync : cilCloudDownload} size="sm" />
+                                {user.synchronized ? 'Oui' : 'Non'}
                             </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>
@@ -261,9 +371,10 @@ export default function ListeUtilisateur() {
                 )}
                 emptyMessage="Aucun utilisateur trouvé"
             />
+            )}
 
             {/* Pagination */}
-            {filteredUtilisateurs.length > 0 && (
+            {!loading && filteredUtilisateurs.length > 0 && (
                 <div className="d-flex justify-content-center mt-4">
                     <CPagination aria-label="Pagination des utilisateurs">
                         <CPaginationItem 

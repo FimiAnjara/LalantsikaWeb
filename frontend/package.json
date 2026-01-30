@@ -15,6 +15,7 @@
     "@coreui/icons-react": "^2.2.1",
     "@coreui/react": "^5.0.0",
     "bootstrap": "^5.3.0",
+    "chart.js": "^4.5.1",
     "firebase": "^12.8.0",
     "leaflet": "^1.9.4",
     "react": "^18.2.0",

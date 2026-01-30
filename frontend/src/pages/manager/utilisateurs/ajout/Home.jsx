@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
     CCard,
     CCardBody,
@@ -11,6 +11,8 @@ import {
     CRow,
     CInputGroup,
     CInputGroupText,
+    CAlert,
+    CProgress,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
@@ -21,21 +23,70 @@ import {
     cilCalendar,
     cilEnvelopeOpen,
     cilPeople,
-    cilBadge,
+    cilChevronRight,
+    cilChevronLeft,
 } from '@coreui/icons'
 import './Ajout.css'
 
 export default function AjoutUtilisateur() {
+    const [step, setStep] = useState(1)
+    const [sexes, setSexes] = useState([])
+    const [sexesLoading, setSexesLoading] = useState(true)
     const [formData, setFormData] = useState({
         identifiant: '',
         mdp: '',
+        mdp_confirmation: '',
         nom: '',
         prenom: '',
         dtn: '',
         email: '',
         id_sexe: '',
-        id_type_utilisateur: '',
     })
+    const [loading, setLoading] = useState(false)
+    const [message, setMessage] = useState({ type: '', text: '' })
+    const [errors, setErrors] = useState({})
+
+    // Debug: Afficher l'état du token au chargement
+    useEffect(() => {
+        const localToken = localStorage.getItem('auth_token')
+        const sessionToken = sessionStorage.getItem('auth_token')
+        console.log('=== DEBUG AUTH ===')
+        console.log('localStorage auth_token:', localToken ? `${localToken.substring(0, 30)}...` : 'NULL')
+        console.log('sessionStorage auth_token:', sessionToken ? `${sessionToken.substring(0, 30)}...` : 'NULL')
+        console.log('==================')
+    }, [])
+
+    // Récupérer la liste des sexes au chargement
+    useEffect(() => {
+        const fetchSexes = async () => {
+            try {
+                // Récupérer le token du localStorage ou sessionStorage
+                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+                
+                const response = await fetch('http://localhost:8000/api/sexes', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    setSexes(data.data || [])
+                } else {
+                    console.error('Erreur lors du chargement des sexes')
+                }
+            } catch (error) {
+                console.error('Erreur:', error)
+            } finally {
+                setSexesLoading(false)
+            }
+        }
+
+        fetchSexes()
+    }, [])
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -43,22 +94,156 @@ export default function AjoutUtilisateur() {
             ...formData,
             [name]: value,
         })
+        // Nettoyer l'erreur du champ si l'utilisateur commence à corriger
+        if (errors[name]) {
+            setErrors({
+                ...errors,
+                [name]: ''
+            })
+        }
     }
 
-    const handleSubmit = (e) => {
+    const validateStep1 = () => {
+        const newErrors = {}
+        
+        if (!formData.identifiant.trim()) newErrors.identifiant = 'L\'identifiant est requis'
+        if (!formData.nom.trim()) newErrors.nom = 'Le nom est requis'
+        if (!formData.prenom.trim()) newErrors.prenom = 'Le prénom est requis'
+        if (!formData.dtn) newErrors.dtn = 'La date de naissance est requise'
+        if (!formData.id_sexe) newErrors.id_sexe = 'Le sexe est requis'
+
+        setErrors(newErrors)
+        return Object.keys(newErrors).length === 0
+    }
+
+    const validateStep2 = () => {
+        const newErrors = {}
+        
+        if (!formData.email.trim()) newErrors.email = 'L\'email est requis'
+        if (!formData.mdp) newErrors.mdp = 'Le mot de passe est requis'
+        if (!formData.mdp_confirmation) newErrors.mdp_confirmation = 'La confirmation est requise'
+        if (formData.mdp !== formData.mdp_confirmation) {
+            newErrors.mdp_confirmation = 'Les mots de passe ne correspondent pas'
+        }
+        if (formData.mdp && formData.mdp.length < 6) {
+            newErrors.mdp = 'Le mot de passe doit contenir au moins 6 caractères'
+        }
+
+        setErrors(newErrors)
+        return Object.keys(newErrors).length === 0
+    }
+
+    const handleNextStep = () => {
+        if (validateStep1()) {
+            setStep(2)
+            setMessage({ type: '', text: '' })
+        }
+    }
+
+    const handlePreviousStep = () => {
+        setStep(1)
+        setMessage({ type: '', text: '' })
+    }
+
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        console.log('Données du formulaire:', formData)
-        alert('Utilisateur ajouté avec succès!')
-        setFormData({
-            identifiant: '',
-            mdp: '',
-            nom: '',
-            prenom: '',
-            dtn: '',
-            email: '',
-            id_sexe: '',
-            id_type_utilisateur: '',
-        })
+        
+        if (!validateStep2()) {
+            return
+        }
+
+        setLoading(true)
+        setMessage({ type: '', text: '' })
+
+        try {
+            // Récupérer le token du localStorage ou sessionStorage
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+            
+            console.log('Token trouvé:', token ? 'Oui' : 'Non')
+            console.log('Token (premiers 50 chars):', token?.substring(0, 50))
+            
+            if (!token) {
+                setMessage({ 
+                    type: 'danger', 
+                    text: 'Session expirée. Veuillez vous reconnecter.'
+                })
+                setLoading(false)
+                return
+            }
+            
+            const response = await fetch('http://localhost:8000/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    identifiant: formData.identifiant,
+                    mdp: formData.mdp,
+                    mdp_confirmation: formData.mdp_confirmation,
+                    nom: formData.nom,
+                    prenom: formData.prenom,
+                    dtn: formData.dtn,
+                    email: formData.email,
+                    id_sexe: parseInt(formData.id_sexe),
+                }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                const error = new Error(data.message || 'Erreur lors de l\'enregistrement')
+                // Ajouter les erreurs de validation du serveur
+                if (data.data?.errors) {
+                    error.validationErrors = data.data.errors
+                }
+                throw error
+            }
+
+            setMessage({ 
+                type: 'success', 
+                text: 'Utilisateur créé avec succès! ' + (data.data?.sync_message || '') 
+            })
+            
+            // Réinitialiser le formulaire et revenir à l'étape 1
+            setFormData({
+                identifiant: '',
+                mdp: '',
+                mdp_confirmation: '',
+                nom: '',
+                prenom: '',
+                dtn: '',
+                email: '',
+                id_sexe: '',
+            })
+            setStep(1)
+            setErrors({})
+
+            setTimeout(() => {
+                setMessage({ type: '', text: '' })
+            }, 3000)
+        } catch (error) {
+            // Si l'erreur contient des erreurs de validation du serveur
+            if (error.validationErrors) {
+                const serverErrors = {}
+                Object.keys(error.validationErrors).forEach(field => {
+                    serverErrors[field] = error.validationErrors[field][0]
+                })
+                setErrors(serverErrors)
+                
+                // Si les erreurs concernent l'étape 1, revenir à cette étape
+                if (serverErrors.identifiant || serverErrors.nom || serverErrors.prenom || serverErrors.dtn || serverErrors.id_sexe) {
+                    setStep(1)
+                }
+            }
+            setMessage({ 
+                type: 'danger', 
+                text: error.message || 'Une erreur est survenue'
+            })
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -77,169 +262,247 @@ export default function AjoutUtilisateur() {
 
             <CCard className="form-card">
                 <CCardHeader className="form-card-header">
-                    <CIcon icon={cilUser} className="me-2" />
-                    Informations utilisateur
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                            <CIcon icon={cilUser} className="me-2" />
+                            {step === 1 ? 'Informations utilisateur' : 'Configuration du mot de passe'}
+                        </div>
+                        <small className="text-muted">Étape {step}/2</small>
+                    </div>
+                    <CProgress value={step * 50} className="mt-2" />
                 </CCardHeader>
                 <CCardBody className="p-4">
+                    {message.text && (
+                        <CAlert color={message.type} className="mb-3">
+                            {message.text}
+                        </CAlert>
+                    )}
                     <CForm onSubmit={handleSubmit}>
-                        <CRow className="g-4 mb-4">
-                            <CCol lg="6">
-                                <label className="form-label">Identifiant <span className="text-danger">*</span></label>
-                                <CInputGroup className="input-group-custom">
-                                    <CInputGroupText>
-                                        <CIcon icon={cilUser} />
-                                    </CInputGroupText>
-                                    <CFormInput
-                                        type="text"
-                                        name="identifiant"
-                                        value={formData.identifiant}
-                                        onChange={handleChange}
-                                        placeholder="Entrez l'identifiant"
-                                        required
-                                    />
-                                </CInputGroup>
-                            </CCol>
-                            <CCol lg="6">
-                                <label className="form-label">Mot de passe <span className="text-danger">*</span></label>
-                                <CInputGroup className="input-group-custom">
-                                    <CInputGroupText>
-                                        <CIcon icon={cilLockLocked} />
-                                    </CInputGroupText>
-                                    <CFormInput
-                                        type="password"
-                                        name="mdp"
-                                        value={formData.mdp}
-                                        onChange={handleChange}
-                                        placeholder="Entrez le mot de passe"
-                                        required
-                                    />
-                                </CInputGroup>
-                            </CCol>
-                        </CRow>
+                        {step === 1 ? (
+                            <>
+                                <CRow className="g-4 mb-4">
+                                    <CCol lg="6">
+                                        <label className="form-label">Identifiant <span className="text-danger">*</span></label>
+                                        <CInputGroup className="input-group-custom">
+                                            <CInputGroupText>
+                                                <CIcon icon={cilUser} />
+                                            </CInputGroupText>
+                                            <CFormInput
+                                                type="text"
+                                                name="identifiant"
+                                                value={formData.identifiant}
+                                                onChange={handleChange}
+                                                placeholder="Entrez l'identifiant"
+                                                isInvalid={!!errors.identifiant}
+                                            />
+                                        </CInputGroup>
+                                        {errors.identifiant && (
+                                            <small className="text-danger">{errors.identifiant}</small>
+                                        )}
+                                    </CCol>
+                                    <CCol lg="6">
+                                    </CCol>
+                                </CRow>
 
-                        <CRow className="g-4 mb-4">
-                            <CCol lg="6">
-                                <label className="form-label">Nom <span className="text-danger">*</span></label>
-                                <CInputGroup className="input-group-custom">
-                                    <CInputGroupText>
-                                        <CIcon icon={cilUser} />
-                                    </CInputGroupText>
-                                    <CFormInput
-                                        type="text"
-                                        name="nom"
-                                        value={formData.nom}
-                                        onChange={handleChange}
-                                        placeholder="Entrez le nom"
-                                        required
-                                    />
-                                </CInputGroup>
-                            </CCol>
-                            <CCol lg="6">
-                                <label className="form-label">Prénom <span className="text-danger">*</span></label>
-                                <CInputGroup className="input-group-custom">
-                                    <CInputGroupText>
-                                        <CIcon icon={cilUser} />
-                                    </CInputGroupText>
-                                    <CFormInput
-                                        type="text"
-                                        name="prenom"
-                                        value={formData.prenom}
-                                        onChange={handleChange}
-                                        placeholder="Entrez le prénom"
-                                        required
-                                    />
-                                </CInputGroup>
-                            </CCol>
-                        </CRow>
+                                <CRow className="g-4 mb-4">
+                                    <CCol lg="6">
+                                        <label className="form-label">Nom <span className="text-danger">*</span></label>
+                                        <CInputGroup className="input-group-custom">
+                                            <CInputGroupText>
+                                                <CIcon icon={cilUser} />
+                                            </CInputGroupText>
+                                            <CFormInput
+                                                type="text"
+                                                name="nom"
+                                                value={formData.nom}
+                                                onChange={handleChange}
+                                                placeholder="Entrez le nom"
+                                                isInvalid={!!errors.nom}
+                                            />
+                                        </CInputGroup>
+                                        {errors.nom && (
+                                            <small className="text-danger">{errors.nom}</small>
+                                        )}
+                                    </CCol>
+                                    <CCol lg="6">
+                                        <label className="form-label">Prénom <span className="text-danger">*</span></label>
+                                        <CInputGroup className="input-group-custom">
+                                            <CInputGroupText>
+                                                <CIcon icon={cilUser} />
+                                            </CInputGroupText>
+                                            <CFormInput
+                                                type="text"
+                                                name="prenom"
+                                                value={formData.prenom}
+                                                onChange={handleChange}
+                                                placeholder="Entrez le prénom"
+                                                isInvalid={!!errors.prenom}
+                                            />
+                                        </CInputGroup>
+                                        {errors.prenom && (
+                                            <small className="text-danger">{errors.prenom}</small>
+                                        )}
+                                    </CCol>
+                                </CRow>
 
-                        <CRow className="g-4 mb-4">
-                            <CCol lg="6">
-                                <label className="form-label">Date de naissance <span className="text-danger">*</span></label>
-                                <CInputGroup className="input-group-custom">
-                                    <CInputGroupText>
-                                        <CIcon icon={cilCalendar} />
-                                    </CInputGroupText>
-                                    <CFormInput
-                                        type="date"
-                                        name="dtn"
-                                        value={formData.dtn}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                </CInputGroup>
-                            </CCol>
-                            <CCol lg="6">
-                                <label className="form-label">Email</label>
-                                <CInputGroup className="input-group-custom">
-                                    <CInputGroupText>
-                                        <CIcon icon={cilEnvelopeOpen} />
-                                    </CInputGroupText>
-                                    <CFormInput
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        placeholder="exemple@email.com"
-                                    />
-                                </CInputGroup>
-                            </CCol>
-                        </CRow>
+                                <CRow className="g-4 mb-4">
+                                    <CCol lg="6">
+                                        <label className="form-label">Date de naissance <span className="text-danger">*</span></label>
+                                        <CInputGroup className="input-group-custom">
+                                            <CInputGroupText>
+                                                <CIcon icon={cilCalendar} />
+                                            </CInputGroupText>
+                                            <CFormInput
+                                                type="date"
+                                                name="dtn"
+                                                value={formData.dtn}
+                                                onChange={handleChange}
+                                                isInvalid={!!errors.dtn}
+                                            />
+                                        </CInputGroup>
+                                        {errors.dtn && (
+                                            <small className="text-danger">{errors.dtn}</small>
+                                        )}
+                                    </CCol>
+                                    <CCol lg="6">
+                                        <label className="form-label">Sexe <span className="text-danger">*</span></label>
+                                        <CInputGroup className="input-group-custom">
+                                            <CInputGroupText>
+                                                <CIcon icon={cilPeople} />
+                                            </CInputGroupText>
+                                            <CFormSelect
+                                                name="id_sexe"
+                                                value={formData.id_sexe}
+                                                onChange={handleChange}
+                                                isInvalid={!!errors.id_sexe}
+                                                disabled={sexesLoading}
+                                            >
+                                                <option value="">
+                                                    {sexesLoading ? 'Chargement...' : 'Sélectionnez votre sexe'}
+                                                </option>
+                                                {sexes.map(sexe => (
+                                                    <option key={sexe.id_sexe} value={sexe.id_sexe}>
+                                                        {sexe.libelle}
+                                                    </option>
+                                                ))}
+                                            </CFormSelect>
+                                        </CInputGroup>
+                                        {errors.id_sexe && (
+                                            <small className="text-danger">{errors.id_sexe}</small>
+                                        )}
+                                    </CCol>
+                                </CRow>
 
-                        <CRow className="g-4 mb-4">
-                            <CCol lg="6">
-                                <label className="form-label">Sexe <span className="text-danger">*</span></label>
-                                <CInputGroup className="input-group-custom">
-                                    <CInputGroupText>
-                                        <CIcon icon={cilPeople} />
-                                    </CInputGroupText>
-                                    <CFormSelect
-                                        name="id_sexe"
-                                        value={formData.id_sexe}
-                                        onChange={handleChange}
-                                        required
+                                <div className="d-flex gap-3 pt-3 border-top">
+                                    <CButton
+                                        type="button"
+                                        className="btn-submit"
+                                        onClick={handleNextStep}
                                     >
-                                        <option value="">Sélectionnez un sexe</option>
-                                        <option value="1">Masculin</option>
-                                        <option value="2">Féminin</option>
-                                    </CFormSelect>
-                                </CInputGroup>
-                            </CCol>
-                            <CCol lg="6">
-                                <label className="form-label">Type d'utilisateur <span className="text-danger">*</span></label>
-                                <CInputGroup className="input-group-custom">
-                                    <CInputGroupText>
-                                        <CIcon icon={cilBadge} />
-                                    </CInputGroupText>
-                                    <CFormSelect
-                                        name="id_type_utilisateur"
-                                        value={formData.id_type_utilisateur}
-                                        onChange={handleChange}
-                                        required
+                                        Suivant
+                                        <CIcon icon={cilChevronRight} className="ms-2" />
+                                    </CButton>
+                                    <CButton
+                                        type="reset"
+                                        className="btn-reset"
                                     >
-                                        <option value="">Sélectionnez un type</option>
-                                        <option value="1">Administrateur</option>
-                                        <option value="2">Manager</option>
-                                        <option value="3">Utilisateur</option>
-                                    </CFormSelect>
-                                </CInputGroup>
-                            </CCol>
-                        </CRow>
+                                        Réinitialiser
+                                    </CButton>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="alert alert-info mb-4">
+                                    <strong>{formData.prenom} {formData.nom}</strong>
+                                </div>
 
-                        <div className="d-flex gap-3 pt-3 border-top">
-                            <CButton
-                                type="submit"
-                                className="btn-submit"
-                            >
-                                <CIcon icon={cilSave} className="me-2" />
-                                Enregistrer
-                            </CButton>
-                            <CButton
-                                type="reset"
-                                className="btn-reset"
-                            >
-                                Réinitialiser
-                            </CButton>
-                        </div>
+                                <CRow className="g-4 mb-4">
+                                    <CCol lg="6">
+                                        <label className="form-label">Email <span className="text-danger">*</span></label>
+                                        <CInputGroup className="input-group-custom">
+                                            <CInputGroupText>
+                                                <CIcon icon={cilEnvelopeOpen} />
+                                            </CInputGroupText>
+                                            <CFormInput
+                                                type="email"
+                                                name="email"
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                placeholder="exemple@email.com"
+                                                isInvalid={!!errors.email}
+                                            />
+                                        </CInputGroup>
+                                        {errors.email && (
+                                            <small className="text-danger">{errors.email}</small>
+                                        )}
+                                    </CCol>
+                                </CRow>
+
+                                <CRow className="g-4 mb-4">
+                                    <CCol lg="6">
+                                        <label className="form-label">Mot de passe <span className="text-danger">*</span></label>
+                                        <CInputGroup className="input-group-custom">
+                                            <CInputGroupText>
+                                                <CIcon icon={cilLockLocked} />
+                                            </CInputGroupText>
+                                            <CFormInput
+                                                type="password"
+                                                name="mdp"
+                                                value={formData.mdp}
+                                                onChange={handleChange}
+                                                placeholder="Entrez le mot de passe"
+                                                isInvalid={!!errors.mdp}
+                                            />
+                                        </CInputGroup>
+                                        {errors.mdp && (
+                                            <small className="text-danger">{errors.mdp}</small>
+                                        )}
+                                    </CCol>
+                                </CRow>
+
+                                <CRow className="g-4 mb-4">
+                                    <CCol lg="6">
+                                        <label className="form-label">Confirmer le mot de passe <span className="text-danger">*</span></label>
+                                        <CInputGroup className="input-group-custom">
+                                            <CInputGroupText>
+                                                <CIcon icon={cilLockLocked} />
+                                            </CInputGroupText>
+                                            <CFormInput
+                                                type="password"
+                                                name="mdp_confirmation"
+                                                value={formData.mdp_confirmation}
+                                                onChange={handleChange}
+                                                placeholder="Confirmez le mot de passe"
+                                                isInvalid={!!errors.mdp_confirmation}
+                                            />
+                                        </CInputGroup>
+                                        {errors.mdp_confirmation && (
+                                            <small className="text-danger">{errors.mdp_confirmation}</small>
+                                        )}
+                                    </CCol>
+                                </CRow>
+
+                                <div className="d-flex gap-3 pt-3 border-top">
+                                    <CButton
+                                        type="button"
+                                        className="btn-reset"
+                                        onClick={handlePreviousStep}
+                                        disabled={loading}
+                                    >
+                                        <CIcon icon={cilChevronLeft} className="me-2" />
+                                        Précédent
+                                    </CButton>
+                                    <CButton
+                                        type="submit"
+                                        className="btn-submit"
+                                        disabled={loading}
+                                    >
+                                        <CIcon icon={cilSave} className="me-2" />
+                                        {loading ? 'Enregistrement en cours...' : 'Créer l\'utilisateur'}
+                                    </CButton>
+                                </div>
+                            </>
+                        )}
                     </CForm>
                 </CCardBody>
             </CCard>

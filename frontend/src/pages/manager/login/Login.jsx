@@ -72,25 +72,32 @@ export default function ManagerLogin() {
         setApiError('')
 
         try {
-            // ÉTAPE 1 : Authentification Firebase (côté client)
-            const firebaseResult = await firebaseSignIn(formData.email, formData.mdp)
-            
-            if (!firebaseResult.success) {
-                setApiError(firebaseResult.error)
-                setIsLoading(false)
-                return
+            // ÉTAPE 1 : Tenter l'authentification Firebase (côté client)
+            let firebaseToken = null
+            try {
+                const firebaseResult = await firebaseSignIn(formData.email, formData.mdp)
+                if (firebaseResult.success) {
+                    firebaseToken = firebaseResult.idToken
+                    console.log('✅ Firebase auth réussie')
+                } else {
+                    console.log('⚠️ Firebase auth échouée, fallback PostgreSQL')
+                }
+            } catch (firebaseError) {
+                console.log('⚠️ Firebase indisponible, fallback PostgreSQL:', firebaseError.message)
             }
 
-            // ÉTAPE 2 : Envoyer le ID Token au backend pour vérification
+            // ÉTAPE 2 : Envoyer au backend (avec token Firebase ou credentials pour fallback)
+            const requestBody = firebaseToken 
+                ? { firebase_token: firebaseToken }
+                : { email: formData.email, mdp: formData.mdp }
+
             const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({
-                    firebase_token: firebaseResult.idToken,
-                })
+                body: JSON.stringify(requestBody)
             })
 
             const data = await response.json()
@@ -106,13 +113,11 @@ export default function ManagerLogin() {
                 }
 
                
-                alert('Connexion réussie!')
                 console.log('User connecté:', data.data.user)
-                window.location.href = '/manager/dashboard'
+                window.location.href = '/manager/home'
             } else {
                
-                if (data.data && data.data.errors) {
-                    
+                if (data.data && data.data.errors) {  
                     const newErrors = {}
                     Object.keys(data.data.errors).forEach(field => {
                         newErrors[field] = data.data.errors[field][0] 

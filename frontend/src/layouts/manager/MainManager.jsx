@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Outlet, useLocation, Link } from 'react-router-dom'
+import { Outlet, useLocation, Link, useNavigate } from 'react-router-dom'
 import {
     CButton,
     CContainer,
     CBreadcrumb,
-    CBreadcrumbItem
+    CBreadcrumbItem,
+    CSpinner
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -25,7 +26,22 @@ import './MainManager.css'
 
 export default function ManagerLayout() {
     const location = useLocation()
+    const navigate = useNavigate()
     const [expandedMenu, setExpandedMenu] = useState(null)
+    const [loggingOut, setLoggingOut] = useState(false)
+    const [user, setUser] = useState(null)
+
+    // Charger les données utilisateur au montage
+    useEffect(() => {
+        const userData = localStorage.getItem('user') || sessionStorage.getItem('user')
+        if (userData) {
+            try {
+                setUser(JSON.parse(userData))
+            } catch (e) {
+                console.error('Erreur parsing user data:', e)
+            }
+        }
+    }, [])
 
     const isActive = (path) => location.pathname === path
 
@@ -77,6 +93,32 @@ export default function ManagerLayout() {
         })
 
         return breadcrumbs
+    }
+
+    const handleLogout = async () => {
+        setLoggingOut(true)
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+            
+            // Appeler l'API de déconnexion
+            await fetch('http://localhost:8000/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            })
+        } catch (error) {
+            console.error('Erreur lors de la déconnexion:', error)
+        } finally {
+            // Supprimer le token et rediriger vers le login (localStorage et sessionStorage)
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('user')
+            sessionStorage.removeItem('auth_token')
+            sessionStorage.removeItem('user')
+            navigate('/manager/login')
+        }
     }
 
     const breadcrumbs = getBreadcrumbs()
@@ -204,9 +246,20 @@ export default function ManagerLayout() {
                         color="danger"
                         size="sm"
                         className="w-100 d-flex align-items-center justify-content-center btn-logout"
+                        onClick={handleLogout}
+                        disabled={loggingOut}
                     >
-                        <CIcon icon={cilAccountLogout} className="me-2" />
-                        Déconnexion
+                        {loggingOut ? (
+                            <>
+                                <CSpinner size="sm" className="me-2" />
+                                Déconnexion...
+                            </>
+                        ) : (
+                            <>
+                                <CIcon icon={cilAccountLogout} className="me-2" />
+                                Déconnexion
+                            </>
+                        )}
                     </CButton>
                 </div>
             </div>
@@ -221,7 +274,9 @@ export default function ManagerLayout() {
                                 <CIcon icon={cilUser} />
                             </div>
                             <div className="user-info">
-                                <div className="user-name">Manager</div>
+                                <div className="user-name">
+                                    {user ? `${user.prenom} ${user.nom}` : 'Manager'}
+                                </div>
                             </div>
                         </div>
                     </div>

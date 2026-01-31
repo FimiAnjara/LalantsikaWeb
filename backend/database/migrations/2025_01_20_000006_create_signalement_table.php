@@ -20,7 +20,6 @@ return new class extends Migration
             $table->string('photo', 150)->nullable();
             $table->unsignedBigInteger('id_entreprise')->nullable();
             $table->unsignedBigInteger('id_utilisateur');
-            $table->unsignedBigInteger('id_statut');
             $table->geography('point', 4326)->nullable();
 
             $table->foreign('id_entreprise')
@@ -30,10 +29,6 @@ return new class extends Migration
             $table->foreign('id_utilisateur')
                 ->references('id_utilisateur')
                 ->on('utilisateur');
-
-            $table->foreign('id_statut')
-                ->references('id_statut')
-                ->on('statut');
         });
     }
 

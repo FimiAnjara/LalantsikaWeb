@@ -33,8 +33,8 @@ class HistoStatutSeeder extends Seeder
                 'daty' => '2025-01-17 09:00:00',
                 'image' => 'histo_2_2.jpg',
                 'description' => 'Prise en charge par JIRAMA',
-                'id_statut' => 2,
-                'id_signalement' => 2,
+                'id_statut' => 1,
+                'id_signalement' => 3,
             ],
             // Historique pour signalement 4
             [

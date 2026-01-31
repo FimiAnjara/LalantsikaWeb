@@ -4,14 +4,14 @@ import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 // Configuration Firebase - À remplacer par vos valeurs
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDyiDpodbZ2yPLNFnERQAt-oXGs1-RZq4M",
-  authDomain: "lalantsika-project.firebaseapp.com",
-  databaseURL: "https://lalantsika-project-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "lalantsika-project",
-  storageBucket: "lalantsika-project.firebasestorage.app",
-  messagingSenderId: "681061277527",
-  appId: "1:681061277527:web:ef6250570defc155512812",
-  measurementId: "G-MP6R0PCT51"
+    apiKey: "AIzaSyDyiDpodbZ2yPLNFnERQAt-oXGs1-RZq4M",
+    authDomain: "lalantsika-project.firebaseapp.com",
+    databaseURL: "https://lalantsika-project-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "lalantsika-project",
+    storageBucket: "lalantsika-project.firebasestorage.app",
+    messagingSenderId: "681061277527",
+    appId: "1:681061277527:web:ef6250570defc155512812",
+    measurementId: "G-MP6R0PCT51"
 };
 
 // Initialize Firebase
@@ -26,7 +26,7 @@ export async function firebaseSignIn(email, password) {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password)
         const idToken = await userCredential.user.getIdToken()
-        
+
         return {
             success: true,
             idToken: idToken,
@@ -35,7 +35,7 @@ export async function firebaseSignIn(email, password) {
         }
     } catch (error) {
         console.error('Firebase auth error:', error)
-        
+
         let errorMessage = 'Erreur d\'authentification'
         switch (error.code) {
             case 'auth/invalid-email':
@@ -57,7 +57,7 @@ export async function firebaseSignIn(email, password) {
                 errorMessage = 'Trop de tentatives. Réessayez plus tard.'
                 break
         }
-        
+
         return {
             success: false,
             error: errorMessage,

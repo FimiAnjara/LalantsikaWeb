@@ -1,0 +1,9 @@
+# TileServer GL pour Madagascar
+# Ce dockerfile n'est plus nécessaire car nous utilisons l'image officielle
+# maptiler/tileserver-gl directement dans docker-compose.yml
+
+# Si vous souhaitez personnaliser l'image, décommentez ci-dessous :
+# FROM maptiler/tileserver-gl:latest
+# COPY ./data /data
+# EXPOSE 8080
+# CMD ["--mbtiles", "/data/mada.mbtiles", "--verbose"]

@@ -21,23 +21,19 @@ return new class extends Migration
             $table->unsignedBigInteger('id_entreprise')->nullable();
             $table->unsignedBigInteger('id_utilisateur');
             $table->unsignedBigInteger('id_statut');
-            $table->unsignedBigInteger('id_point')->unique();
-            
+            $table->geometry('point', 4326)->nullable();
+
             $table->foreign('id_entreprise')
                 ->references('id_entreprise')
                 ->on('entreprise');
-            
+
             $table->foreign('id_utilisateur')
                 ->references('id_utilisateur')
                 ->on('utilisateur');
-            
+
             $table->foreign('id_statut')
                 ->references('id_statut')
                 ->on('statut');
-            
-            $table->foreign('id_point')
-                ->references('id_point')
-                ->on('point');
         });
     }
 

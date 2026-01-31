@@ -25,7 +25,9 @@ export default function SignalementListe() {
     const navigate = useNavigate()
     const [searchTerm, setSearchTerm] = useState('')
     const [filterStatut, setFilterStatut] = useState('')
-    const [filterUtilisateur, setFilterUtilisateur] = useState('')
+    const [filterDate, setFilterDate] = useState('')
+    const [filterBudgetMin, setFilterBudgetMin] = useState('')
+    const [filterBudgetMax, setFilterBudgetMax] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
     const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
@@ -45,7 +47,7 @@ export default function SignalementListe() {
         setLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch('http://localhost:8000/api/signalements', {
+            const response = await fetch('http://localhost:8000/api/reports', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -80,8 +82,8 @@ export default function SignalementListe() {
     const fetchStatuts = async () => {
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch('http://localhost:8000/api/statuts', {
-                headers: {
+            const response = await fetch('http://localhost:8000/api/statuses', {
+                headers: { 
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
                 }
@@ -97,22 +99,23 @@ export default function SignalementListe() {
         }
     }
 
-    const utilisateurs = [...new Set(signalements.filter(sig => sig.utilisateur).map(sig => sig.utilisateur.nom_complet))]
     const statutsUniques = [...new Set(signalements.filter(sig => sig.statut).map(sig => sig.statut))]
 
     const filteredSignalements = signalements.filter((sig) => {
-        const searchLower = searchTerm.toLowerCase()
-        const utilisateurNom = sig.utilisateur?.nom_complet || ''
-        const matchSearch = 
+        const searchLower = searchTerm.toLowerCase();
+        const utilisateurNom = sig.utilisateur?.nom_complet || '';
+        const matchSearch =
             (sig.description || '').toLowerCase().includes(searchLower) ||
             utilisateurNom.toLowerCase().includes(searchLower) ||
-            sig.id_signalement.toString().includes(searchLower)
-        
-        const matchStatut = filterStatut === '' || sig.statut === filterStatut
-        const matchUtilisateur = filterUtilisateur === '' || utilisateurNom === filterUtilisateur
-        
-        return matchSearch && matchStatut && matchUtilisateur
-    })
+            sig.id_signalement.toString().includes(searchLower);
+
+        const matchStatut = filterStatut === '' || sig.statut === filterStatut;
+        const matchDate = filterDate === '' || (sig.daty && sig.daty.startsWith(filterDate));
+        const matchBudgetMin = filterBudgetMin === '' || (sig.budget && sig.budget >= parseFloat(filterBudgetMin));
+        const matchBudgetMax = filterBudgetMax === '' || (sig.budget && sig.budget <= parseFloat(filterBudgetMax));
+
+        return matchSearch && matchStatut && matchDate && matchBudgetMin && matchBudgetMax;
+    });
 
     const totalPages = Math.ceil(filteredSignalements.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -142,7 +145,7 @@ export default function SignalementListe() {
             setActionLoading(true)
             try {
                 const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const response = await fetch(`http://localhost:8000/api/signalements/${deleteModal.id}`, {
+                const response = await fetch(`http://localhost:8000/api/reports/${deleteModal.id}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -216,13 +219,46 @@ export default function SignalementListe() {
             <CCard className="filters-card mb-4">
                 <CCardBody>
                     <div className="row g-3">
-                        <div className="col-md-5">
+                        <div className="col-md-3">
                             <label className="form-label fw-600">Recherche</label>
                             <CInputGroup>
                                 <CFormInput
                                     placeholder="Rechercher..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="search-input"
+                                />
+                            </CInputGroup>
+                        </div>
+                        <div className="col-md-2">
+                            <label className="form-label fw-600">Date</label>
+                            <CInputGroup>
+                                <CFormInput
+                                    type="date"
+                                    value={filterDate}
+                                    onChange={(e) => setFilterDate(e.target.value)}
+                                    className="search-input"
+                                />
+                            </CInputGroup>
+                        </div>
+                        <div className="col-md-2">
+                            <label className="form-label fw-600">Budget min</label>
+                            <CInputGroup>
+                                <CFormInput
+                                    type="number"
+                                    value={filterBudgetMin}
+                                    onChange={(e) => setFilterBudgetMin(e.target.value)}
+                                    className="search-input"
+                                />
+                            </CInputGroup>
+                        </div>
+                        <div className="col-md-2">
+                            <label className="form-label fw-600">Budget max</label>
+                            <CInputGroup>
+                                <CFormInput
+                                    type="number"
+                                    value={filterBudgetMax}
+                                    onChange={(e) => setFilterBudgetMax(e.target.value)}
                                     className="search-input"
                                 />
                             </CInputGroup>
@@ -242,21 +278,6 @@ export default function SignalementListe() {
                                 ))}
                             </CFormSelect>
                         </div>
-                        <div className="col-md-4">
-                            <label className="form-label fw-600">Utilisateur</label>
-                            <CFormSelect
-                                value={filterUtilisateur}
-                                onChange={(e) => setFilterUtilisateur(e.target.value)}
-                                className="filter-select"
-                            >
-                                <option value="">Tous les utilisateurs</option>
-                                {utilisateurs.map((util) => (
-                                    <option key={util} value={util}>
-                                        {util}
-                                    </option>
-                                ))}
-                            </CFormSelect>
-                        </div>
                     </div>
                 </CCardBody>
             </CCard>
@@ -264,13 +285,15 @@ export default function SignalementListe() {
             {/* Table */}
             <GenericTable
                 title="Liste des signalements"
-                columns={[
+                columns={[ 
                     { key: 'id', label: 'ID' },
                     { key: 'daty', label: 'Date' },
                     { key: 'description', label: 'Description' },
                     { key: 'utilisateur', label: 'Utilisateur' },
                     { key: 'surface', label: 'Surface (m²)' },
                     { key: 'budget', label: 'Budget' },
+                    { key: 'latitude', label: 'Latitude' },
+                    { key: 'longitude', label: 'Longitude' },
                     { key: 'statut', label: 'Statut' },
                     { key: 'actions', label: 'Actions' },
                 ]}
@@ -292,6 +315,8 @@ export default function SignalementListe() {
                                 {sig.budget ? `Ar ${sig.budget.toLocaleString('en-US')}` : '-'}
                             </strong>
                         </CTableDataCell>
+                        <CTableDataCell>{sig.latitude ?? '-'}</CTableDataCell>
+                        <CTableDataCell>{sig.longitude ?? '-'}</CTableDataCell>
                         <CTableDataCell>
                             <CBadge color={getStatutBadge(sig.statut)} className="p-2">
                                 {sig.statut || 'Non défini'}

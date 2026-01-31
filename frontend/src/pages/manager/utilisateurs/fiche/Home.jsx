@@ -45,7 +45,7 @@ export default function FicheUtilisateur() {
         setLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch(`http://localhost:8000/api/utilisateurs/${id}`, {
+            const response = await fetch(`http://localhost:8000/api/users/${id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -123,8 +123,8 @@ export default function FicheUtilisateur() {
                 setActionLoading(true)
                 try {
                     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                    const endpoint = isActif ? 'bloquer' : 'debloquer'
-                    const response = await fetch(`http://localhost:8000/api/utilisateurs/${id}/${endpoint}`, {
+                    const endpoint = isActif ? 'block' : 'unblock'
+                    const response = await fetch(`http://localhost:8000/api/users/${id}/${endpoint}`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -174,7 +174,7 @@ export default function FicheUtilisateur() {
                 setActionLoading(true)
                 try {
                     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                    const response = await fetch(`http://localhost:8000/api/utilisateurs/${id}`, {
+                    const response = await fetch(`http://localhost:8000/api/users/${id}`, {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${token}`,

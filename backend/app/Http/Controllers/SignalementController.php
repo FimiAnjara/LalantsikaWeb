@@ -18,25 +18,23 @@ class SignalementController extends Controller
     public function index()
     {
         try {
-            $signalements = Signalement::with(['utilisateur', 'statut', 'entreprise', 'point'])
+            $signalements = Signalement::with(['utilisateur', 'statut', 'entreprise'])
                 ->orderBy('id_signalement', 'desc')
                 ->get()
                 ->map(function ($signalement) {
-                    // Récupérer les coordonnées du point
+                    // Extraire latitude/longitude du champ geometry
                     $coordinates = null;
                     if ($signalement->point) {
-                        $pointData = DB::selectOne("
-                            SELECT 
-                                ST_Y(coordonnee::geometry) as latitude,
-                                ST_X(coordonnee::geometry) as longitude
-                            FROM point 
-                            WHERE id_point = ?
-                        ", [$signalement->id_point]);
-                        
-                        if ($pointData) {
+                        $lat = null;
+                        $lng = null;
+                        try {
+                            $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
+                            $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
+                        } catch (\Exception $e) {}
+                        if ($lat !== null && $lng !== null) {
                             $coordinates = [
-                                'latitude' => $pointData->latitude,
-                                'longitude' => $pointData->longitude,
+                                'latitude' => $lat,
+                                'longitude' => $lng,
                             ];
                         }
                     }
@@ -61,6 +59,8 @@ class SignalementController extends Controller
                             'nom' => $signalement->entreprise->nom,
                         ] : null,
                         'coordinates' => $coordinates,
+                        'latitude' => $coordinates ? $coordinates['latitude'] : null,
+                        'longitude' => $coordinates ? $coordinates['longitude'] : null,
                         'synchronized' => $signalement->synchronized ?? false,
                     ];
                 });
@@ -81,7 +81,7 @@ class SignalementController extends Controller
                 'message' => 'Erreur lors de la récupération des signalements',
                 'error' => $e->getMessage(),
                 'data' => null
-            ], 500);
+            ]);
         }
     }
 
@@ -94,24 +94,22 @@ class SignalementController extends Controller
     public function show($id)
     {
         try {
-            $signalement = Signalement::with(['utilisateur', 'statut', 'entreprise', 'point'])
+            $signalement = Signalement::with(['utilisateur', 'statut', 'entreprise'])
                 ->findOrFail($id);
 
-            // Récupérer les coordonnées du point
+            // Récupérer les coordonnées du point (depuis la colonne point de signalement)
             $coordinates = null;
             if ($signalement->point) {
-                $pointData = DB::selectOne("
-                    SELECT 
-                        ST_Y(coordonnee::geometry) as latitude,
-                        ST_X(coordonnee::geometry) as longitude
-                    FROM point 
-                    WHERE id_point = ?
-                ", [$signalement->id_point]);
-                
-                if ($pointData) {
+                $lat = null;
+                $lng = null;
+                try {
+                    $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
+                    $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
+                } catch (\Exception $e) {}
+                if ($lat !== null && $lng !== null) {
                     $coordinates = [
-                        'latitude' => $pointData->latitude,
-                        'longitude' => $pointData->longitude,
+                        'latitude' => $lat,
+                        'longitude' => $lng,
                     ];
                 }
             }
@@ -144,7 +142,7 @@ class SignalementController extends Controller
                 'success' => false,
                 'message' => 'Signalement non trouvé',
                 'data' => null
-            ], 404);
+            ]);
         }
     }
 
@@ -200,14 +198,7 @@ class SignalementController extends Controller
     {
         try {
             $signalement = Signalement::findOrFail($id);
-            $idPoint = $signalement->id_point;
-            
             $signalement->delete();
-
-            // Supprimer aussi le point associé si nécessaire
-            if ($idPoint) {
-                DB::table('point')->where('id_point', $idPoint)->delete();
-            }
 
             return response()->json([
                 'code' => 200,

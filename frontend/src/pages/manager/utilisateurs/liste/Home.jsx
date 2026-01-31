@@ -35,18 +35,40 @@ export default function ListeUtilisateur() {
     const [loading, setLoading] = useState(true)
     const itemsPerPage = 10
     const [utilisateurs, setUtilisateurs] = useState([])
+    const [typesUtilisateur, setTypesUtilisateur] = useState([])
+    const [statutsUtilisateur, setStatutsUtilisateur] = useState([])
 
-    // Récupérer la liste des utilisateurs au chargement
+    // Récupérer la liste des utilisateurs, types et statuts au chargement
     useEffect(() => {
-        fetchUtilisateurs()
-    }, [])
+        fetchUtilisateurs();
+        fetchTypesUtilisateur();
+    }, []);
+
+    const fetchTypesUtilisateur = async () => {
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            const response = await fetch('http://localhost:8000/api/user-types', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setTypesUtilisateur(data.data || []);
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des types:', error);
+        }
+    };
 
     const fetchUtilisateurs = async () => {
         setLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            
-            const response = await fetch('http://localhost:8000/api/utilisateurs', {
+            const response = await fetch('http://localhost:8000/api/users', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -54,9 +76,7 @@ export default function ListeUtilisateur() {
                     'Authorization': `Bearer ${token}`
                 }
             })
-
             const data = await response.json()
-
             if (data.success) {
                 setUtilisateurs(data.data || [])
             } else {
@@ -82,6 +102,7 @@ export default function ListeUtilisateur() {
     }
 
     const getTypeColor = (type) => {
+        if (!type) return 'secondary';
         switch (type) {
             case 'Administrateur':
                 return 'danger'
@@ -95,15 +116,16 @@ export default function ListeUtilisateur() {
     }
 
     const getStatutColor = (statut) => {
+        if (!statut) return 'secondary';
         return statut === 'actif' ? 'success' : 'danger'
     }
 
     const filteredUtilisateurs = utilisateurs.filter((user) => {
         const matchSearch =
-            user.identifiant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+            (user.identifiant?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (user.nom?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (user.prenom?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
 
         const matchType = filterType === '' || user.type_utilisateur === filterType
         const matchStatus = filterStatus === '' || user.statut === filterStatus
@@ -133,8 +155,7 @@ export default function ListeUtilisateur() {
         if (deleteModal.id) {
             try {
                 const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                
-                const response = await fetch(`http://localhost:8000/api/utilisateurs/${deleteModal.id}`, {
+                const response = await fetch(`http://localhost:8000/api/users/${deleteModal.id}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
@@ -181,8 +202,7 @@ export default function ListeUtilisateur() {
         if (unblockModal.id) {
             try {
                 const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                
-                const response = await fetch(`http://localhost:8000/api/utilisateurs/${unblockModal.id}/debloquer`, {
+                const response = await fetch(`http://localhost:8000/api/users/${unblockModal.id}/unblock`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -258,8 +278,11 @@ export default function ListeUtilisateur() {
                                 className="filter-select"
                             >
                                 <option value="">Tous les types</option>
-                                <option value="Manager">Manager</option>
-                                <option value="Utilisateur">Utilisateur</option>
+                                {typesUtilisateur.map((type) => (
+                                    <option key={`type-${type.id_type_utilisateur}`} value={type.libelle}>
+                                        {type.libelle}
+                                    </option>
+                                ))}
                             </CFormSelect>
                         </div>
                         <div className="col-md-3">
@@ -270,8 +293,8 @@ export default function ListeUtilisateur() {
                                 className="filter-select"
                             >
                                 <option value="">Tous les statuts</option>
-                                <option value="actif">Actif</option>
-                                <option value="bloque">Bloqué</option>
+                                <option value="1">Actif</option>
+                                <option value="0">Bloqué</option>
                             </CFormSelect>
                         </div>
                         <div className="col-md-3">
@@ -281,9 +304,9 @@ export default function ListeUtilisateur() {
                                 onChange={(e) => setFilterSync(e.target.value)}
                                 className="filter-select"
                             >
-                                <option value="">Tous</option>
-                                <option value="oui">Synchronisé</option>
-                                <option value="non">Non synchronisé</option>
+                                <option key="sync-all" value="">Tous</option>
+                                <option key="sync-yes" value="oui">Synchronisé</option>
+                                <option key="sync-no" value="non">Non synchronisé</option>
                             </CFormSelect>
                         </div>
                     </div>
@@ -313,27 +336,29 @@ export default function ListeUtilisateur() {
                 renderRow={(user) => (
                     <CTableRow key={user.id_utilisateur}>
                         <CTableDataCell>
-                            <strong>{user.identifiant}</strong>
+                            <strong>{user.identifiant || '-'}</strong>
                         </CTableDataCell>
                         <CTableDataCell>
                             <div className="d-flex align-items-center gap-2">
                                 <div className="avatar-circle">
-                                    {user.prenom?.charAt(0)}{user.nom?.charAt(0)}
+                                    {user.prenom?.charAt(0) || ''}{user.nom?.charAt(0) || ''}
                                 </div>
                                 <div>
-                                    <div className="fw-medium">{user.prenom} {user.nom}</div>
+                                    <div className="fw-medium">
+                                        {(user.prenom || '') + ' ' + (user.nom || '')}
+                                    </div>
                                 </div>
                             </div>
                         </CTableDataCell>
-                        <CTableDataCell>{user.email}</CTableDataCell>
+                        <CTableDataCell>{user.email || '-'}</CTableDataCell>
                         <CTableDataCell>
                             <CBadge color={getTypeColor(user.type_utilisateur)} className="p-2">
-                                {user.type_utilisateur}
+                                {user.type_utilisateur || '-'}
                             </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>
                             <CBadge color={getStatutColor(user.statut)} className="p-2">
-                                {user.statut === 'actif' ? 'Actif' : 'Bloqué'}
+                                {user.statut === 'actif' ? 'Actif' : user.statut === 'bloque' ? 'Bloqué' : '-'}
                             </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>
@@ -386,7 +411,7 @@ export default function ListeUtilisateur() {
                         </CPaginationItem>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                             <CPaginationItem
-                                key={page}
+                                key={`page-${page}`}
                                 active={page === currentPage}
                                 onClick={() => handlePageChange(page)}
                             >
@@ -438,5 +463,4 @@ export default function ListeUtilisateur() {
             />
         </div>
     )
-
 }

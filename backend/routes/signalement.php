@@ -10,18 +10,18 @@ use App\Http\Controllers\SignalementController;
 */
 
 Route::middleware('auth:api')->group(function () {
-    // Liste des signalements
-    Route::get('/signalements', [SignalementController::class, 'index']);
-    
-    // Détails d'un signalement
-    Route::get('/signalements/{id}', [SignalementController::class, 'show']);
-    
-    // Mise à jour du statut d'un signalement
-    Route::put('/signalements/{id}/statut', [SignalementController::class, 'updateStatut']);
-    
-    // Suppression d'un signalement
-    Route::delete('/signalements/{id}', [SignalementController::class, 'destroy']);
-    
-    // Liste des statuts disponibles
-    Route::get('/statuts', [SignalementController::class, 'getStatuts']);
+    // List of reports
+    Route::get('/reports', [SignalementController::class, 'index']);
+
+    // Report details
+    Route::get('/reports/{id}', [SignalementController::class, 'show']);
+
+    // Update report status
+    Route::put('/reports/{id}/status', [SignalementController::class, 'updateStatut']);
+
+    // Delete a report
+    Route::delete('/reports/{id}', [SignalementController::class, 'destroy']);
+
+    // List of available statuses
+    Route::get('/statuses', [SignalementController::class, 'getStatuts']);
 });

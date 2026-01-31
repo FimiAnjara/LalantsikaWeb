@@ -12,12 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('point', function (Blueprint $table) {
-            $table->id('id_point');
-        });
-        
-        // Add geography column using raw SQL for PostGIS
-        DB::statement('ALTER TABLE point ADD COLUMN coordonnee geography(POINT, 4326) NOT NULL');
+        // Changer la colonne coordonnee en geography si elle existe déjà
+        DB::statement('ALTER TABLE point ALTER COLUMN coordonnee TYPE geography(POINT, 4326) USING coordonnee::geography');
     }
 
     /**
@@ -25,6 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('point');
+        // Optionnel : repasser en geometry si besoin
+        // DB::statement('ALTER TABLE point ALTER COLUMN coordonnee TYPE geometry(POINT, 4326) USING coordonnee::geometry');
     }
 };

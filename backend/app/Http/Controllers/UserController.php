@@ -325,4 +325,33 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Liste tous les statuts d'utilisateurs
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */    
+    public function getStatutsUtilisateurs()
+    {
+        try {
+            $statuts = StatutUtilisateur::all();
+
+            return response()->json([
+                'code' => 200,
+                'success' => true,
+                'message' => 'Liste des statuts d\'utilisateurs récupérée avec succès',
+                'data' => $statuts
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la récupération des statuts d'utilisateurs: " . $e->getMessage());
+            
+            return response()->json([
+                'code' => 500,
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des statuts d\'utilisateurs',
+                'data' => null
+            ], 500);
+        }
+    }
 }

@@ -46,7 +46,7 @@ export default function ModifierUtilisateur() {
         setLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch(`http://localhost:8000/api/utilisateurs/${id}`, {
+            const response = await fetch(`http://localhost:8000/api/users/${id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -108,7 +108,7 @@ export default function ModifierUtilisateur() {
     const fetchTypesUtilisateurs = async () => {
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch('http://localhost:8000/api/types-utilisateurs', {
+            const response = await fetch('http://localhost:8000/api/user-types', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -140,7 +140,7 @@ export default function ModifierUtilisateur() {
 
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch(`http://localhost:8000/api/utilisateurs/${id}`, {
+            const response = await fetch(`http://localhost:8000/api/users/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,

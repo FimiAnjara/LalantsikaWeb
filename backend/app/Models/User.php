@@ -12,6 +12,7 @@ class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+    use \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $table = 'utilisateur';
     protected $primaryKey = 'id_utilisateur';
@@ -36,6 +37,8 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     public $timestamps = false;
+
+    protected $dates = ['deleted_at'];
 
     /**
      * The attributes that should be hidden for serialization.

@@ -19,7 +19,7 @@ class Signalement extends Model
         'id_entreprise',
         'id_utilisateur',
         'id_statut',
-        'id_point',
+        'point',
         'synchronized',
         'last_sync_at'
     ];
@@ -48,8 +48,5 @@ class Signalement extends Model
         return $this->belongsTo(Entreprise::class, 'id_entreprise', 'id_entreprise');
     }
 
-    public function point()
-    {
-        return $this->belongsTo(Point::class, 'id_point', 'id_point');
-    }
+    // Si tu veux manipuler la géométrie, tu peux ajouter des méthodes ici
 }

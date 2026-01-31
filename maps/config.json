@@ -1,0 +1,29 @@
+{
+  "options": {
+    "paths": {
+      "root": "/data",
+      "fonts": "fonts",
+      "styles": "styles",
+      "mbtiles": "/data"
+    },
+    "serveStaticMaps": true,
+    "pbfAlias": "pbf",
+    "maxScaleFactor": 3,
+    "maxSize": 2048,
+    "pbfDefaultStyle": "basic-preview",
+    "serveAllStyles": true
+  },
+  "styles": {
+    "basic-preview": {
+      "style": "basic-preview.json",
+      "tilejson": {
+        "bounds": [42.30124, -26.5823, 51.14843, -11.02746]
+      }
+    }
+  },
+  "data": {
+    "mada": {
+      "mbtiles": "mada.mbtiles"
+    }
+  }
+}

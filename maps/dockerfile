@@ -3,7 +3,7 @@
 # maptiler/tileserver-gl directement dans docker-compose.yml
 
 # Si vous souhaitez personnaliser l'image, décommentez ci-dessous :
-# FROM maptiler/tileserver-gl:latest
-# COPY ./data /data
-# EXPOSE 8080
-# CMD ["--mbtiles", "/data/mada.mbtiles", "--verbose"]
+FROM maptiler/tileserver-gl:latest
+COPY ./data /data
+EXPOSE 8080
+CMD ["--mbtiles", "/data/mada.mbtiles", "--verbose"]

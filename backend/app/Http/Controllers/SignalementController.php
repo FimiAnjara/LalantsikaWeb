@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Signalement;
 use App\Models\Statut;
 use Illuminate\Http\Request;
+
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\HistoStatut;
 
 class SignalementController extends Controller
 {
@@ -18,7 +20,8 @@ class SignalementController extends Controller
     public function index()
     {
         try {
-            $signalements = Signalement::with(['utilisateur', 'statut', 'entreprise'])
+
+            $signalements = Signalement::with(['utilisateur', 'entreprise'])
                 ->orderBy('id_signalement', 'desc')
                 ->get()
                 ->map(function ($signalement) {
@@ -39,6 +42,16 @@ class SignalementController extends Controller
                         }
                     }
 
+                    // Récupérer le dernier statut depuis histo_statut
+                    $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
+                        ->orderByDesc('daty')
+                        ->first();
+                    $statut = null;
+                    if ($lastHisto) {
+                        $statutObj = $lastHisto->statut;
+                        $statut = $statutObj ? $statutObj->libelle : null;
+                    }
+
                     return [
                         'id_signalement' => $signalement->id_signalement,
                         'daty' => $signalement->daty ? $signalement->daty->format('Y-m-d H:i') : null,
@@ -46,8 +59,7 @@ class SignalementController extends Controller
                         'budget' => (float) $signalement->budget,
                         'description' => $signalement->description,
                         'photo' => $signalement->photo,
-                        'statut' => $signalement->statut ? $signalement->statut->libelle : null,
-                        'id_statut' => $signalement->id_statut,
+                        'statut' => $statut,
                         'utilisateur' => $signalement->utilisateur ? [
                             'id' => $signalement->utilisateur->id_utilisateur,
                             'nom' => $signalement->utilisateur->nom,
@@ -68,12 +80,11 @@ class SignalementController extends Controller
             return response()->json([
                 'code' => 200,
                 'success' => true,
-                'message' => 'Liste des signalements récupérée avec succès',
+                'message' => 'Signalements récupérés avec succès',
                 'data' => $signalements
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Erreur lors de la récupération des signalements: " . $e->getMessage());
             
             return response()->json([
                 'code' => 500,
@@ -82,6 +93,57 @@ class SignalementController extends Controller
                 'error' => $e->getMessage(),
                 'data' => null
             ]);
+        }
+    }
+
+
+
+        /**
+     * Met à jour un signalement (budget, entreprise, etc.)
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $signalement = Signalement::findOrFail($id);
+
+            $data = $request->only(['id_entreprise', 'budget']);
+            $updated = false;
+
+            if (isset($data['id_entreprise'])) {
+                $signalement->id_entreprise = $data['id_entreprise'];
+                $updated = true;
+            }
+            if (isset($data['budget'])) {
+                $signalement->budget = $data['budget'];
+                $updated = true;
+            }
+
+            if ($updated) {
+                $signalement->save();
+            }
+
+            // Charger les relations pour la réponse
+            $signalement->load(['utilisateur', 'statut', 'entreprise']);
+
+            return response()->json([
+                'code' => 200,
+                'success' => true,
+                'message' => 'Signalement mis à jour avec succès',
+                'data' => $signalement
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la mise à jour du signalement: " . $e->getMessage());
+            return response()->json([
+                'code' => 500,
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour du signalement',
+                'error' => $e->getMessage(),
+                'data' => null
+            ], 500);
         }
     }
 
@@ -94,7 +156,8 @@ class SignalementController extends Controller
     public function show($id)
     {
         try {
-            $signalement = Signalement::with(['utilisateur', 'statut', 'entreprise'])
+
+            $signalement = Signalement::with(['utilisateur', 'entreprise'])
                 ->findOrFail($id);
 
             // Récupérer les coordonnées du point (depuis la colonne point de signalement)
@@ -114,6 +177,16 @@ class SignalementController extends Controller
                 }
             }
 
+            // Récupérer le dernier statut depuis histo_statut (modèle)
+            $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
+                ->orderByDesc('daty')
+                ->first();
+            $statut = null;
+            if ($lastHisto) {
+                $statutObj = $lastHisto->statut;
+                $statut = $statutObj ? $statutObj->libelle : null;
+            }
+
             return response()->json([
                 'code' => 200,
                 'success' => true,
@@ -125,8 +198,7 @@ class SignalementController extends Controller
                     'budget' => (float) $signalement->budget,
                     'description' => $signalement->description,
                     'photo' => $signalement->photo,
-                    'statut' => $signalement->statut,
-                    'id_statut' => $signalement->id_statut,
+                    'statut' => $statut,
                     'utilisateur' => $signalement->utilisateur,
                     'entreprise' => $signalement->entreprise,
                     'coordinates' => $coordinates,
@@ -146,47 +218,97 @@ class SignalementController extends Controller
         }
     }
 
-    /**
-     * Met à jour le statut d'un signalement
+       /**
+     * Ajoute un historique de statut (histostatut) pour un signalement
      *
      * @param Request $request
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updateStatut(Request $request, $id)
+    public function addHistoStatut(Request $request, $id)
     {
         try {
             $request->validate([
-                'id_statut' => 'required|exists:statut,id_statut'
+                'id_statut' => 'required|exists:statut,id_statut',
+                'description' => 'required|string',
+                'daty' => 'required|date',
             ]);
 
             $signalement = Signalement::findOrFail($id);
-            $signalement->id_statut = $request->id_statut;
-            $signalement->save();
 
-            $statut = Statut::find($request->id_statut);
+            // Gestion de l'image (optionnelle)
+            $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('histostatut', 'public');
+            }
+
+            // Insertion via modèle HistoStatut
+            $histo = new HistoStatut();
+            $histo->id_signalement = $signalement->id_signalement;
+            $histo->id_statut = $request->id_statut;
+            $histo->description = $request->description;
+            $histo->daty = $request->daty;
+            $histo->image = $photoPath;
+            $histo->save();
+
+            return response()->json([
+                'code' => 201,
+                'success' => true,
+                'message' => 'Historique de statut ajouté avec succès',
+                'data' => [
+                    'id_histo_statut' => $histo->id_histo_statut,
+                    'id_signalement' => $histo->id_signalement,
+                    'id_statut' => $histo->id_statut,
+                    'description' => $histo->description,
+                    'daty' => $histo->daty,
+                    'image' => $histo->image,
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de l'ajout de l'historique de statut: " . $e->getMessage());
+            return response()->json([
+                'code' => 500,
+                'success' => false,
+                'message' => 'Erreur lors de l\'ajout de l\'historique de statut',
+                'error' => $e->getMessage(),
+                'data' => null
+            ]);
+        }
+    }
+
+      /**
+     * Récupère l'historique des statuts d'un signalement
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getHistoStatuts($id)
+    {
+        try {
+            $histos = HistoStatut::with('statut')
+                ->where('id_signalement', $id)
+                ->orderBy('daty', 'desc')
+                ->get();
 
             return response()->json([
                 'code' => 200,
                 'success' => true,
-                'message' => 'Statut du signalement mis à jour avec succès',
-                'data' => [
-                    'id_signalement' => $signalement->id_signalement,
-                    'statut' => $statut ? $statut->libelle : null,
-                ]
+                'message' => 'Historique des statuts récupéré avec succès',
+                'data' => $histos
             ]);
-
         } catch (\Exception $e) {
-            Log::error("Erreur lors de la mise à jour du statut: " . $e->getMessage());
-            
             return response()->json([
                 'code' => 500,
                 'success' => false,
-                'message' => 'Erreur lors de la mise à jour du statut',
+                'message' => 'Erreur lors de la récupération de l\'historique',
+                'error' => $e->getMessage(),
                 'data' => null
-            ], 500);
+            ]);
         }
     }
+
+
+    // La mise à jour du statut du signalement n'est plus nécessaire : le statut courant est le dernier de l'historique
 
     /**
      * Supprime un signalement

@@ -7,7 +7,7 @@
       "url": "mbtiles://{mada}"
     }
   },
-  "glyphs": "http://localhost:8080/fonts/{fontstack}/{range}.pbf",
+  "glyphs": "http://localhost:8088/fonts/{fontstack}/{range}.pbf",
   "layers": [
     {
       "id": "background",

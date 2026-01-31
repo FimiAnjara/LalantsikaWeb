@@ -16,6 +16,17 @@ class EntrepriseController extends Controller
         $this->syncService = $syncService;
     }
 
+    public function index()
+    {
+        $entreprises = Entreprise::all();
+        return response()->json([
+            'data' => $entreprises,
+            'success' => true,
+            'message' => 'Entreprises retrieved successfully',
+            'code' => 200
+        ]);
+    }
+
     /**
      * Créer une entreprise (PostgreSQL + Firebase)
      */

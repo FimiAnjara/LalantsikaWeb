@@ -15,12 +15,12 @@ class UtilisateurSeeder extends Seeder
     {
         DB::table('utilisateur')->insert([
             [
-                'identifiant' => 'admin',
-                'mdp' => Hash::make('admin123'),
+                'identifiant' => 'manager',
+                'mdp' => Hash::make('manager123'),
                 'nom' => 'Rakoto',
                 'prenom' => 'Jean',
                 'dtn' => '1990-05-15',
-                'email' => 'admin@lalantsika.mg',
+                'email' => 'manager@example.com',
                 'id_sexe' => 1,
                 'id_type_utilisateur' => 1,
             ],

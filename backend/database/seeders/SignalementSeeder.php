@@ -22,7 +22,7 @@ class SignalementSeeder extends Seeder
                 'id_entreprise' => null,
                 'id_utilisateur' => 3,
                 'id_statut' => 1,
-                'id_point' => 1,
+                'point' =>  ['lat' => -18.9101, 'lng' => 47.5256],
             ],
             [
                 'daty' => '2025-01-16 10:15:00',
@@ -33,7 +33,7 @@ class SignalementSeeder extends Seeder
                 'id_entreprise' => 1,
                 'id_utilisateur' => 4,
                 'id_statut' => 2,
-                'id_point' => 2,
+                'point' =>   ['lat' => -18.9150, 'lng' => 47.5230],
             ],
             [
                 'daty' => '2025-01-17 14:00:00',
@@ -44,7 +44,7 @@ class SignalementSeeder extends Seeder
                 'id_entreprise' => null,
                 'id_utilisateur' => 5,
                 'id_statut' => 1,
-                'id_point' => 3,
+                'point' =>  ['lat' => -18.9147, 'lng' => 47.5250],
             ],
             [
                 'daty' => '2025-01-18 09:45:00',
@@ -55,7 +55,7 @@ class SignalementSeeder extends Seeder
                 'id_entreprise' => 2,
                 'id_utilisateur' => 3,
                 'id_statut' => 3,
-                'id_point' => 4,
+                'point' =>   ['lat' => -18.8890, 'lng' => 47.5375],
             ],
             [
                 'daty' => '2025-01-19 16:30:00',
@@ -66,7 +66,7 @@ class SignalementSeeder extends Seeder
                 'id_entreprise' => 1,
                 'id_utilisateur' => 4,
                 'id_statut' => 5,
-                'id_point' => 5,
+                'point' =>  ['lat' => -18.8995, 'lng' => 47.5268],
             ],
             [
                 'daty' => '2025-01-20 11:00:00',
@@ -77,7 +77,7 @@ class SignalementSeeder extends Seeder
                 'id_entreprise' => null,
                 'id_utilisateur' => 5,
                 'id_statut' => 2,
-                'id_point' => 6,
+                'point' =>   ['lat' => -18.9032, 'lng' => 47.5237],
             ],
         ]);
     }

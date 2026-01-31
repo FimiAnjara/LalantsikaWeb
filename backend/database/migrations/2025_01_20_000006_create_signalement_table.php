@@ -21,7 +21,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id_entreprise')->nullable();
             $table->unsignedBigInteger('id_utilisateur');
             $table->unsignedBigInteger('id_statut');
-            $table->geometry('point', 4326)->nullable();
+            $table->geography('point', 4326)->nullable();
 
             $table->foreign('id_entreprise')
                 ->references('id_entreprise')

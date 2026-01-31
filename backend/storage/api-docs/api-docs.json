@@ -1,0 +1,165 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API Signalement Lalantsika",
+    "version": "1.0.0",
+    "description": "Documentation de l'API pour la gestion des signalements et entreprises."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api",
+      "description": "Serveur local"
+    },
+    {
+      "url": "/api",
+      "description": "API principale"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Vérifier l'état de l'API",
+        "description": "Endpoint de vérification de santé",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "API fonctionnelle",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "API Signalement Lalantsika fonctionnelle"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/signalements": {
+      "get": {
+        "tags": ["Signalements"],
+        "summary": "Liste des signalements",
+        "description": "Récupérer la liste de tous les signalements",
+        "operationId": "getSignalements",
+        "responses": {
+          "200": {
+            "description": "Liste des signalements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id_signalement": { "type": "integer" },
+                      "daty": { "type": "string", "format": "date-time" },
+                      "surface": { "type": "number" },
+                      "budget": { "type": "number" },
+                      "description": { "type": "string" },
+                      "photo": { "type": "string", "nullable": true },
+                      "statut": { "type": "string", "nullable": true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entreprises": {
+      "get": {
+        "tags": ["Entreprises"],
+        "summary": "Liste des entreprises",
+        "description": "Récupérer la liste de toutes les entreprises",
+        "operationId": "getEntreprises",
+        "responses": {
+          "200": {
+            "description": "Liste des entreprises",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id_entreprise": { "type": "integer" },
+                      "nom": { "type": "string" },
+                      "synchronized": { "type": "boolean" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Entreprises"],
+        "summary": "Créer une entreprise",
+        "description": "Créer une nouvelle entreprise",
+        "operationId": "createEntreprise",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["nom"],
+                "properties": {
+                  "nom": {
+                    "type": "string",
+                    "example": "Entreprise X"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Entreprise créée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "entreprise": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

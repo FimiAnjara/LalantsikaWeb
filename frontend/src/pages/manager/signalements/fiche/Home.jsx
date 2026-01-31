@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
     CCard,
@@ -30,6 +30,8 @@ export default function SignalementFiche() {
     const { id } = useParams()
     const navigate = useNavigate()
     const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [histoStatuts, setHistoStatuts] = useState([])
+    const [loadingHisto, setLoadingHisto] = useState(true)
     const [deleteModal, setDeleteModal] = useState({ visible: false })
     const [assignModal, setAssignModal] = useState({ visible: false })
     const [entreprises, setEntreprises] = useState([])
@@ -41,6 +43,37 @@ export default function SignalementFiche() {
     const [signalement, setSignalement] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+
+    const assignModalRef = useRef(null)
+
+    // Gestion du clic en dehors de la modal d'assignation
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (assignModalRef.current &&
+                !assignModalRef.current.contains(event.target) &&
+                assignModal.visible) {
+                setAssignModal({ visible: false })
+            }
+        }
+
+        const handleEscapeKey = (event) => {
+            if (event.key === 'Escape' && assignModal.visible) {
+                setAssignModal({ visible: false })
+            }
+        }
+
+        if (assignModal.visible) {
+            document.addEventListener('mousedown', handleClickOutside)
+            document.addEventListener('keydown', handleEscapeKey)
+            document.body.style.overflow = 'hidden'
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('keydown', handleEscapeKey)
+            document.body.style.overflow = 'auto'
+        }
+    }, [assignModal.visible])
 
     useEffect(() => {
         const fetchSignalement = async () => {
@@ -71,12 +104,39 @@ export default function SignalementFiche() {
         fetchSignalement()
     }, [id])
 
+    // Charger l'historique des statuts
+    useEffect(() => {
+        const fetchHisto = async () => {
+            setLoadingHisto(true)
+            try {
+                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+                const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                    }
+                })
+                const result = await res.json()
+                if (result.success && result.data) {
+                    setHistoStatuts(result.data)
+                } else {
+                    setHistoStatuts([])
+                }
+            } catch (e) {
+                setHistoStatuts([])
+            } finally {
+                setLoadingHisto(false)
+            }
+        }
+        fetchHisto()
+    }, [id])
+
     // Charger la liste des entreprises pour l'assignation
     useEffect(() => {
         const fetchEntreprises = async () => {
             try {
                 const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const res = await fetch('http://localhost:8000/api/company', {
+                const res = await fetch('http://localhost:8000/api/companies', {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Accept': 'application/json',
@@ -123,8 +183,8 @@ export default function SignalementFiche() {
         setAssignLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const res = await fetch(`http://localhost:8000/api/reports/${id}/assign`, {
-                method: 'POST',
+            const res = await fetch(`http://localhost:8000/api/reports/${id}`, {
+                method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -137,29 +197,22 @@ export default function SignalementFiche() {
             })
             const result = await res.json()
             if (result.success) {
-                setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement assigné avec succès.' })
+                setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement mis à jour avec succès.' })
                 setAssignModal({ visible: false })
                 // Optionnel : recharger le signalement
-                setLoading(true)
-                const reload = await fetch(`http://localhost:8000/api/reports/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                    }
-                })
-                const reloadResult = await reload.json()
-                if (reloadResult.success && reloadResult.data) {
-                    setSignalement(reloadResult.data)
-                }
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
             } else {
-                throw new Error(result.message || 'Erreur lors de l\'assignation')
+                throw new Error(result.message || 'Erreur lors de la mise à jour')
             }
         } catch (e) {
-            setModal({ visible: true, type: 'danger', title: 'Erreur', message: e.message || "Erreur lors de l'assignation." })
+            setModal({ visible: true, type: 'danger', title: 'Erreur', message: e.message || "Erreur lors de la mise à jour." })
         } finally {
             setAssignLoading(false)
         }
     }
+
     const handleViewUser = () => {
         if (signalement && signalement.utilisateur) {
             // Prend en compte id, id_utilisateur ou autre champ unique
@@ -209,12 +262,65 @@ export default function SignalementFiche() {
         }
     }
 
+    // Fonction pour fermer la modal d'assignation
+    const closeAssignModal = () => {
+        setAssignModal({ visible: false })
+    }
+
+
     if (loading) return <div className="fiche-signalement"><div className="text-center p-5">Chargement...</div></div>
     if (error) return <div className="fiche-signalement"><div className="alert alert-danger m-4">{error}</div></div>
     if (!signalement) return null
 
+    // Action Valider/Rejeter
+    const handleValidationRejet = async (action) => {
+        setModal({ visible: false })
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            const resStatut = await fetch('http://localhost:8000/api/statuses', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                }
+            })
+            const statutsResult = await resStatut.json();
+            if (!statutsResult.success || !statutsResult.data) throw new Error('Impossible de récupérer les statuts');
+            const statutObj = statutsResult.data.find(s => s.libelle === action);
+            if (!statutObj) throw new Error('Statut non trouvé');
+            const formData = new FormData();
+            formData.append('id_statut', statutObj.id_statut);
+            formData.append('description', action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté');
+            formData.append('daty', new Date().toISOString().slice(0, 16));
+            const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+                body: formData
+            });
+            const result = await res.json();
+            if (!result.success) throw new Error(result.message || 'Erreur lors de la mise à jour du statut');
+            setModal({
+                visible: true,
+                type: 'success',
+                title: action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté',
+                message: action === 'Validé' ? 'Le signalement a été validé.' : 'Le signalement a été rejeté.'
+            });
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (e) {
+            setModal({
+                visible: true,
+                type: 'danger',
+                title: 'Erreur',
+                message: e.message || 'Erreur lors de la validation/rejet.'
+            });
+        }
+    }
+
     return (
         <div className="fiche-signalement">
+
             <div className="page-header d-flex justify-content-between align-items-center mb-4">
                 <div className="d-flex align-items-center gap-3">
                     <button className="btn-back" onClick={handleBack} title="Retour">
@@ -226,22 +332,36 @@ export default function SignalementFiche() {
                     </div>
                 </div>
                 <div className="header-actions d-flex gap-2">
-                    <CButton color="primary" className="btn-theme" onClick={handleEdit}>
+                    <CButton
+                        color="primary"
+                        className="btn-theme"
+                        onClick={handleEdit}
+                        disabled={signalement.statut !== 'Validé' && signalement.statut !== 'En cours' && signalement.statut !== 'Résolu'}
+                        title={signalement.statut !== 'Validé' && signalement.statut !== 'En cours' && signalement.statut !== 'Résolu' ? 'Impossible de modifier le statut tant que le signalement n\'est pas validé' : ''}
+                    >
                         <CIcon icon={cilPencil} className="me-2" />
-                        Modifier
+                        Modifier Status
                     </CButton>
                     <CButton color="info" onClick={handleAssign}>
                         <CIcon icon={cilBuilding} className="me-2" />
                         Assigner
                     </CButton>
-                    <CButton color="danger" onClick={handleDelete}>
-                        <CIcon icon={cilTrash} className="me-2" />
-                        Supprimer
-                    </CButton>
+                    {/* Boutons Valider/Rejeter si statut = En attente */}
+                    {signalement.statut === 'En attente' && (
+                        <>
+                            <CButton color="success" onClick={() => handleValidationRejet('Validé')}>
+                                Valider
+                            </CButton>
+                            <CButton color="danger" onClick={() => handleValidationRejet('Rejeté')}>
+                                Rejeter
+                            </CButton>
+                        </>
+                    )}
                 </div>
             </div>
 
             <CRow>
+
                 <CCol lg="8">
                     <CCard className="mb-4 border-0 shadow-sm">
                         <CCardHeader className="bg-white p-3 border-0 d-flex justify-content-between align-items-center">
@@ -252,7 +372,7 @@ export default function SignalementFiche() {
                         </CCardHeader>
                         <CCardBody className="p-4">
                             <p className="description-text mb-4">{signalement.description}</p>
-                            
+
                             <div className="signalement-photo-container rounded-4 overflow-hidden mb-4 shadow-sm">
                                 {signalement.photo ? (
                                     <CImage src={signalement.photo} alt="Photo du signalement" style={{ width: '100%', height: '300px', objectFit: 'cover' }} />
@@ -331,18 +451,38 @@ export default function SignalementFiche() {
                             </CButton>
                         </CCardBody>
                     </CCard>
-
-                    <CCard className="border-0 shadow-sm bg-navy text-white">
+                    {/* Historique des statuts (en bas) */}
+                    <CCard className="mb-4 border-0 shadow-sm">
+                        <CCardHeader className="bg-white p-3 border-0">
+                            <h5 className="mb-0 fw-bold">Historique des statuts</h5>
+                        </CCardHeader>
                         <CCardBody className="p-4">
-                            <h6 className="text-uppercase small mb-3 opacity-75">Statistiques Point</h6>
-                            <div className="d-flex justify-content-between mb-2">
-                                <span>Total Signalements</span>
-                                <span className="fw-bold">12</span>
-                            </div>
-                            <div className="d-flex justify-content-between">
-                                <span>Degré de priorité</span>
-                                <span className="badge bg-danger">Haut</span>
-                            </div>
+                            {loadingHisto ? (
+                                <div className="text-center text-muted">Chargement de l'historique...</div>
+                            ) : histoStatuts.length === 0 ? (
+                                <div className="text-center text-muted">Aucun historique de statut.</div>
+                            ) : (
+                                <ul className="list-unstyled mb-0">
+                                    {histoStatuts.map((histo) => (
+                                        <li key={histo.id_histo_statut} className="mb-3 border-bottom pb-2">
+                                            <div className="d-flex align-items-center gap-3">
+                                                <CBadge color="secondary" className="me-2">
+                                                    {histo.statut && histo.statut.libelle ? histo.statut.libelle : 'Statut inconnu'}
+                                                </CBadge>
+                                                <span className="text-muted small">{histo.daty ? new Date(histo.daty).toLocaleString() : ''}</span>
+                                            </div>
+                                            <div className="mt-1 mb-1">{histo.description}</div>
+                                            {histo.image && (
+                                                <CImage
+                                                    src={histo.image.startsWith('http') ? histo.image : `http://localhost:8000/storage/${histo.image}`}
+                                                    alt="Preuve"
+                                                    style={{ maxWidth: 120, maxHeight: 80, borderRadius: 6 }}
+                                                />
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </CCardBody>
                     </CCard>
                 </CCol>
@@ -356,62 +496,104 @@ export default function SignalementFiche() {
                 onClose={() => setModal({ ...modal, visible: false })}
             />
 
-            {/* Modal d'assignation */}
+            {/* Modal d'assignation - VERSION CORRIGÉE */}
             {assignModal.visible && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100vw',
-                        height: '100vh',
-                        background: 'rgba(0,0,0,0.2)',
-                        zIndex: 9999,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                    onClick={() => setAssignModal({ visible: false })}
-                >
+                <>
                     <div
-                        className="modal-dialog modal-sm bg-white p-4 rounded-4 shadow-lg"
-                        style={{ maxWidth: 400, width: '100%', boxSizing: 'border-box' }}
-                        onClick={e => e.stopPropagation()}
+                        className="modal-backdrop fade show"
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            zIndex: 1040
+                        }}
+                    ></div>
+                    <div
+                        className="modal d-block"
+                        tabIndex="-1"
+                        style={{ zIndex: 1050 }}
                     >
-                        <h5 className="mb-3">Assigner à une entreprise</h5>
-                        <div className="mb-3">
-                            <label className="form-label">Entreprise</label>
-                            <select className="form-select" value={selectedEntreprise} onChange={e => setSelectedEntreprise(e.target.value)}>
-                                <option value="">Sélectionner...</option>
-                                {entreprises.map(ent => (
-                                    <option key={ent.id_entreprise || ent.id} value={ent.id_entreprise || ent.id}>{ent.nom}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="mb-3">
-                            <label className="form-label">Budget</label>
-                            <input type="number" className="form-control" value={assignBudget} onChange={e => setAssignBudget(e.target.value)} min="0" placeholder="Montant en Ariary" />
-                        </div>
-                        <div className="d-flex gap-2 justify-content-end mt-4">
-                            <button className="btn btn-secondary" onClick={() => setAssignModal({ visible: false })} disabled={assignLoading}>Annuler</button>
-                            <button className="btn btn-primary" onClick={confirmAssign} disabled={assignLoading}>
-                                {assignLoading ? 'Assignation...' : 'Assigner'}
-                            </button>
+                        <div
+                            ref={assignModalRef}
+                            className="modal-dialog modal-dialog-centered"
+                        >
+                            <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                                <div className="modal-header bg-light border-bottom-0">
+                                    <h5 className="modal-title fw-bold">Assigner à une entreprise</h5>
+                                    <button
+                                        type="button"
+                                        className="btn-close"
+                                        onClick={closeAssignModal}
+                                        aria-label="Close"
+                                        disabled={assignLoading}
+                                    ></button>
+                                </div>
+                                <div className="modal-body p-4">
+                                    <div className="mb-3">
+                                        <label className="form-label fw-medium">Entreprise</label>
+                                        <select
+                                            className="form-select"
+                                            value={selectedEntreprise}
+                                            onChange={e => setSelectedEntreprise(e.target.value)}
+                                            disabled={assignLoading}
+                                        >
+                                            <option value="">Sélectionner une entreprise...</option>
+                                            {entreprises.map(ent => (
+                                                <option key={ent.id_entreprise || ent.id} value={ent.id_entreprise || ent.id}>
+                                                    {ent.nom}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <label className="form-label fw-medium">Budget (Ar)</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={assignBudget}
+                                            onChange={e => setAssignBudget(e.target.value)}
+                                            min="0"
+                                            step="1000"
+                                            placeholder="Ex: 500000"
+                                            disabled={assignLoading}
+                                        />
+                                        <div className="form-text">Montant en Ariary</div>
+                                    </div>
+                                </div>
+                                <div className="modal-footer border-top-0 bg-light">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary px-4"
+                                        onClick={closeAssignModal}
+                                        disabled={assignLoading}
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary px-4"
+                                        onClick={confirmAssign}
+                                        disabled={assignLoading || !selectedEntreprise || !assignBudget}
+                                    >
+                                        {assignLoading ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                Assignation...
+                                            </>
+                                        ) : 'Assigner'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </>
             )}
 
-            <Modal
-                visible={deleteModal.visible}
-                type="danger"
-                title="Supprimer le signalement"
-                message="Cette action est irréversible. Voulez-vous vraiment supprimer ce signalement ?"
-                onClose={() => setDeleteModal({ visible: false })}
-                onConfirm={confirmDelete}
-                confirmText="Supprimer"
-                closeText="Annuler"
-            />
+
         </div>
     )
 }

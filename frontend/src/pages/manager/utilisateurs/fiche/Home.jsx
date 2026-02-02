@@ -255,7 +255,7 @@ export default function FicheUtilisateur() {
                         ) : (
                             <CIcon icon={user.statut === 'actif' ? cilLockLocked : cilLockUnlocked} className="me-2" />
                         )}
-                        {user.statut === 'actif' ? 'Bloquer' : 'Débloquer'}
+                        {user.statut !== 'actif' ? 'Bloquer' : 'Débloquer'}
                     </CButton>
                     <CButton color="danger" onClick={handleDelete} disabled={actionLoading}>
                         <CIcon icon={cilTrash} className="me-2" />

@@ -232,12 +232,126 @@
         </div>
       </div>
 
+      <!-- Carte flottante Recap/Dashboard -->
+      <div v-if="activeMenu === 'recap'" class="recap-card">
+        <div class="card-header">
+          <h2>Récapitulatif</h2>
+          <button class="close-btn" @click="backToMap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="card-body">
+          <!-- Spinner de chargement -->
+          <SpinnerLoader 
+            v-if="isLoadingList" 
+            :fullscreen="false" 
+            message="Chargement des statistiques..." 
+          />
+          
+          <!-- Contenu du dashboard -->
+          <template v-else>
+            <!-- Statistiques principales -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon total">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <h3>{{ totalSignalements }}</h3>
+                  <p>Signalements</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon budget">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <h3>{{ formatBudget(totalBudget) }}</h3>
+                  <p>Budget Total</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon surface">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <h3>{{ totalSurface }} m²</h3>
+                  <p>Surface Totale</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progression par statut -->
+            <div class="status-section">
+              <h3 class="section-title">Progression des signalements</h3>
+              <div class="status-progress-list">
+                <div v-for="stat in statusStats" :key="stat.label" class="status-progress-item">
+                  <div class="status-header">
+                    <span class="status-label">{{ stat.label }}</span>
+                    <span class="status-count">{{ stat.count }} ({{ stat.percentage }}%)</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div 
+                      class="progress-fill" 
+                      :class="'progress-' + stat.type"
+                      :style="{ width: stat.percentage + '%' }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Diagramme circulaire -->
+            <div class="chart-section">
+              <h3 class="section-title">Répartition par statut</h3>
+              <div class="pie-chart">
+                <svg viewBox="0 0 200 200" class="pie-svg">
+                  <circle
+                    v-for="(segment, index) in pieChartSegments"
+                    :key="index"
+                    cx="100"
+                    cy="100"
+                    r="80"
+                    fill="none"
+                    :stroke="segment.color"
+                    stroke-width="40"
+                    :stroke-dasharray="segment.dashArray"
+                    :stroke-dashoffset="segment.dashOffset"
+                    :transform="`rotate(-90 100 100)`"
+                  />
+                </svg>
+                <div class="chart-legend">
+                  <div v-for="stat in statusStats" :key="stat.label" class="legend-item">
+                    <div class="legend-color" :style="{ backgroundColor: stat.color }"></div>
+                    <span>{{ stat.label }}: {{ stat.count }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
       <!-- Menu horizontal en bas -->
       <div class="bottom-menu">
         <button 
           class="menu-item" 
           :class="{ active: activeMenu === 'map' }"
-          @click="activeMenu = 'map'"
+          @click="backToMap"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 21l9-9 3 3 6-6"/>
@@ -255,21 +369,19 @@
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
           </svg>
           <span>Signalements</span>
-          <span v-if="savedCount > 0" class="badge">{{ savedCount }}</span>
         </button>
 
         <button 
           class="menu-item" 
-          :class="{ active: activeMenu === 'contributions' }"
-          @click="activeMenu = 'contributions'"
+          :class="{ active: activeMenu === 'recap' }"
+          @click="activeMenu = 'recap'"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="9" y1="9" x2="15" y2="9"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
           </svg>
-          <span>Contributions</span>
+          <span>Recap</span>
         </button>
       </div>
 
@@ -361,6 +473,69 @@ const currentMarkers = computed(() => {
   return markers.value;
 });
 
+// Statistiques pour le dashboard
+const totalSignalements = computed(() => allSignalements.value.length);
+
+const totalBudget = computed(() => {
+  // Pour le moment, budget par défaut de 500 000 Ar par signalement
+  // À remplacer quand la colonne budget sera ajoutée
+  return allSignalements.value.reduce((sum, sig) => {
+    return sum + (sig.budget || 500000);
+  }, 0);
+});
+
+const totalSurface = computed(() => {
+  return allSignalements.value.reduce((sum, sig) => {
+    return sum + (sig.surface || 0);
+  }, 0);
+});
+
+const statusStats = computed(() => {
+  const stats = [
+    { type: 'danger', label: '🔴 Rejeté', count: 0, color: '#dc3545' },
+    { type: 'warning', label: '🟠 En attente', count: 0, color: '#ff9800' },
+    { type: 'info', label: '🔵 En cours', count: 0, color: '#2196f3' },
+    { type: 'success', label: '🟢 Terminé', count: 0, color: '#28a745' }
+  ];
+
+  allSignalements.value.forEach(sig => {
+    const type = getStatutType(sig.statut.id_statut);
+    const stat = stats.find(s => s.type === type);
+    if (stat) stat.count++;
+  });
+
+  const total = allSignalements.value.length || 1;
+  return stats.map(stat => ({
+    ...stat,
+    percentage: Math.round((stat.count / total) * 100)
+  }));
+});
+
+const pieChartSegments = computed(() => {
+  const circumference = 2 * Math.PI * 80;
+  let currentOffset = 0;
+  
+  return statusStats.value
+    .filter(stat => stat.count > 0)
+    .map(stat => {
+      const dashLength = (stat.percentage / 100) * circumference;
+      const segment = {
+        color: stat.color,
+        dashArray: `${dashLength} ${circumference}`,
+        dashOffset: -currentOffset
+      };
+      currentOffset += dashLength;
+      return segment;
+    });
+});
+
+const formatBudget = (amount: number) => {
+  if (amount >= 1000000) {
+    return `${(amount / 1000000).toFixed(1)} M Ar`;
+  }
+  return `${(amount / 1000).toFixed(0)} K Ar`;
+};
+
 // Charger les signalements au montage
 onMounted(async () => {
   await loadSignalements();
@@ -370,6 +545,11 @@ onMounted(async () => {
 onIonViewWillEnter(async () => {
   console.log('🔄 Retour sur MapPage - Rechargement des signalements...');
   await loadSignalements();
+  
+  // Forcer le rafraîchissement de la carte pour éviter les bugs d'affichage
+  setTimeout(() => {
+    mapComponent.value?.invalidateSize();
+  }, 300);
 });
 
 // Charger tous les signalements
@@ -647,6 +827,15 @@ const validateReport = async () => {
   }
 };
 
+// Retourner à la carte et rafraîchir
+const backToMap = () => {
+  activeMenu.value = 'map';
+  // Forcer le rafraîchissement de la carte après fermeture des modales
+  setTimeout(() => {
+    mapComponent.value?.invalidateSize();
+  }, 200);
+};
+
 const showToast = async (message: string, color: 'success' | 'danger' | 'warning' | 'primary' = 'danger') => {
   const toast = await toastController.create({
     message,
@@ -666,7 +855,7 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
 /* Header avec recherche et profil alignés */
 .map-header {
   position: absolute;
-  top: 80px;
+  top: 50px;
   left: 0;
   right: 0;
   z-index: 1000;
@@ -674,6 +863,8 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
   align-items: center;
   gap: 0.75rem;
   padding: 0 1rem;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .profile-btn {
@@ -699,10 +890,10 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
 /* Filtre de la carte */
 .map-filter {
   position: absolute;
-  top: 140px;
+  top: 110px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: 1001;
   display: flex;
   background: white;
   border-radius: 25px;
@@ -774,6 +965,8 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
   font-size: 0.95rem;
   background-color: rgb(251, 251, 251);
   color: #0a1e37;
+  min-width: 0;
+  width: 100%;
 }
 
 .search-input::placeholder {
@@ -834,7 +1027,7 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
 /* Boutons d'action (validation/annulation) */
 .action-buttons {
   position: absolute;
-  bottom: 180px;
+  bottom: 100px;
   right: 1rem;
   z-index: 1000;
   display: flex;
@@ -983,7 +1176,8 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
 }
 
 /* Carte flottante des signalements */
-.saved-reports-card {
+.saved-reports-card,
+.recap-card {
   position: absolute;
   top: 10vh;
   left: 0;
@@ -1241,4 +1435,185 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
 .delete-btn svg {
   stroke: white;
 }
+
+/* Dashboard Recap Styles */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.stat-icon.total {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-icon.budget {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-icon.surface {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-icon svg {
+  stroke: white;
+}
+
+.stat-info h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0a1e37;
+}
+
+.stat-info p {
+  margin: 0.15rem 0 0 0;
+  font-size: 0.7rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.status-section,
+.chart-section {
+  margin-top: 2rem;
+}
+
+.status-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.status-progress-item {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 12px;
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.status-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0a1e37;
+}
+
+.status-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s ease;
+}
+
+.progress-danger {
+  background: linear-gradient(90deg, #dc3545 0%, #ff6b7a 100%);
+}
+
+.progress-warning {
+  background: linear-gradient(90deg, #ff9800 0%, #ffc947 100%);
+}
+
+.progress-info {
+  background: linear-gradient(90deg, #2196f3 0%, #64b5f6 100%);
+}
+
+.progress-success {
+  background: linear-gradient(90deg, #28a745 0%, #66bb6a 100%);
+}
+
+.chart-section {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 16px;
+}
+
+.pie-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.pie-svg {
+  width: 200px;
+  height: 200px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.chart-legend {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #0a1e37;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
 </style>

@@ -5,12 +5,13 @@ namespace App\Services\Firebase;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Firestore;
 use Illuminate\Support\Facades\Log;
+use App\Services\Contracts\FirestoreServiceInterface;
 
 /**
  * Service Firestore pour la gestion de la base de données Firebase
  * Fournit des méthodes CRUD pour toutes les collections
  */
-class FirestoreService
+class FirestoreService implements FirestoreServiceInterface
 {
     protected $firestore;
     protected $isAvailable = false;

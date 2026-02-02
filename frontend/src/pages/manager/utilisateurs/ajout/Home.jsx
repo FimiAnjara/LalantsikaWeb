@@ -13,6 +13,7 @@ import {
     CInputGroupText,
     CAlert,
     CProgress,
+    CBadge,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
@@ -25,7 +26,9 @@ import {
     cilPeople,
     cilChevronRight,
     cilChevronLeft,
+    cilCheckAlt,
 } from '@coreui/icons'
+import MessageModal from '../../../../components/MessageModal'
 import './Ajout.css'
 
 export default function AjoutUtilisateur() {
@@ -45,7 +48,12 @@ export default function AjoutUtilisateur() {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState({ type: '', text: '' })
     const [errors, setErrors] = useState({})
-
+    const [modalVisible, setModalVisible] = useState(false)
+    const [modalConfig, setModalConfig] = useState({
+        type: 'success',
+        title: '',
+        message: ''
+    })
     // Debug: Afficher l'état du token au chargement
     useEffect(() => {
         const localToken = localStorage.getItem('auth_token')
@@ -201,10 +209,12 @@ export default function AjoutUtilisateur() {
                 throw error
             }
 
-            setMessage({ 
-                type: 'success', 
-                text: 'Utilisateur créé avec succès! ' + (data.data?.sync_message || '') 
+            setModalConfig({
+                type: 'success',
+                title: 'Utilisateur créé!',
+                message: 'L\'utilisateur a été créé avec succès. ' + (data.data?.sync_message || '')
             })
+            setModalVisible(true)
             
             // Réinitialiser le formulaire et revenir à l'étape 1
             setFormData({
@@ -219,10 +229,6 @@ export default function AjoutUtilisateur() {
             })
             setStep(1)
             setErrors({})
-
-            setTimeout(() => {
-                setMessage({ type: '', text: '' })
-            }, 3000)
         } catch (error) {
             // Si l'erreur contient des erreurs de validation du serveur
             if (error.validationErrors) {
@@ -237,10 +243,12 @@ export default function AjoutUtilisateur() {
                     setStep(1)
                 }
             }
-            setMessage({ 
-                type: 'danger', 
-                text: error.message || 'Une erreur est survenue'
+            setModalConfig({
+                type: 'error',
+                title: 'Erreur!',
+                message: error.message || 'Une erreur est survenue lors de la création de l\'utilisateur.'
             })
+            setModalVisible(true)
         } finally {
             setLoading(false)
         }
@@ -248,6 +256,17 @@ export default function AjoutUtilisateur() {
 
     return (
         <div className="ajout-utilisateur">
+            {/* Modal de message */}
+            <MessageModal
+                visible={modalVisible}
+                type={modalConfig.type}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                onClose={() => setModalVisible(false)}
+                autoClose={modalConfig.type === 'success'}
+                autoCloseDelay={4000}
+            />
+
             <div className="page-header mb-4">
                 <div className="d-flex align-items-center gap-3">
                     <div className="header-icon">
@@ -260,31 +279,50 @@ export default function AjoutUtilisateur() {
                 </div>
             </div>
 
-            <CCard className="form-card">
-                <CCardHeader className="form-card-header">
-                    <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                            <CIcon icon={cilUser} className="me-2" />
-                            {step === 1 ? 'Informations utilisateur' : 'Configuration du mot de passe'}
+            {/* Timeline d'étapes */}
+            <div className="steps-timeline mb-4">
+                <div className="timeline-container">
+                    <div className={`timeline-step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
+                        <div className="timeline-marker">
+                            {step > 1 ? <CIcon icon={cilCheckAlt} /> : '1'}
                         </div>
-                        <small className="text-muted">Étape {step}/2</small>
+                        <div className="timeline-content">
+                            <span className="timeline-label">Étape 1</span>
+                            <span className="timeline-title">Informations personnelles</span>
+                        </div>
                     </div>
-                    <CProgress value={step * 50} className="mt-2" />
-                </CCardHeader>
-                <CCardBody className="p-4">
-                    {message.text && (
-                        <CAlert color={message.type} className="mb-3">
-                            {message.text}
-                        </CAlert>
-                    )}
-                    <CForm onSubmit={handleSubmit}>
-                        {step === 1 ? (
-                            <>
+                    
+                    <div className={`timeline-connector ${step > 1 ? 'active' : ''}`}></div>
+                    
+                    <div className={`timeline-step ${step >= 2 ? 'active' : ''}`}>
+                        <div className="timeline-marker">2</div>
+                        <div className="timeline-content">
+                            <span className="timeline-label">Étape 2</span>
+                            <span className="timeline-title">Sécurité et email</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <CCard className="form-card shadow-lg">
+                {step === 1 ? (
+                    <>
+                        <CCardBody className="p-5">
+                            <div className="form-section-title mb-4">
+                                <div className="section-icon">
+                                    <CIcon icon={cilUser} />
+                                </div>
+                                <div>
+                                    <h6 className="mb-0 fw-bold">Identité de l'utilisateur</h6>
+                                    <small className="text-muted">Ces informations seront utilisées pour identifier l'utilisateur</small>
+                                </div>
+                            </div>
+                            <CForm onSubmit={handleSubmit}>
                                 <CRow className="g-4 mb-4">
                                     <CCol lg="6">
-                                        <label className="form-label">Identifiant <span className="text-danger">*</span></label>
+                                        <label className="form-label fw-semibold">Identifiant <span className="text-danger">*</span></label>
                                         <CInputGroup className="input-group-custom">
-                                            <CInputGroupText>
+                                            <CInputGroupText className="bg-light">
                                                 <CIcon icon={cilUser} />
                                             </CInputGroupText>
                                             <CFormInput
@@ -294,21 +332,20 @@ export default function AjoutUtilisateur() {
                                                 onChange={handleChange}
                                                 placeholder="Entrez l'identifiant"
                                                 isInvalid={!!errors.identifiant}
+                                                className="form-control-lg"
                                             />
                                         </CInputGroup>
                                         {errors.identifiant && (
-                                            <small className="text-danger">{errors.identifiant}</small>
+                                            <small className="text-danger d-block mt-2"><strong>{errors.identifiant}</strong></small>
                                         )}
-                                    </CCol>
-                                    <CCol lg="6">
                                     </CCol>
                                 </CRow>
 
                                 <CRow className="g-4 mb-4">
                                     <CCol lg="6">
-                                        <label className="form-label">Nom <span className="text-danger">*</span></label>
+                                        <label className="form-label fw-semibold">Nom <span className="text-danger">*</span></label>
                                         <CInputGroup className="input-group-custom">
-                                            <CInputGroupText>
+                                            <CInputGroupText className="bg-light">
                                                 <CIcon icon={cilUser} />
                                             </CInputGroupText>
                                             <CFormInput
@@ -318,16 +355,17 @@ export default function AjoutUtilisateur() {
                                                 onChange={handleChange}
                                                 placeholder="Entrez le nom"
                                                 isInvalid={!!errors.nom}
+                                                className="form-control-lg"
                                             />
                                         </CInputGroup>
                                         {errors.nom && (
-                                            <small className="text-danger">{errors.nom}</small>
+                                            <small className="text-danger d-block mt-2"><strong>{errors.nom}</strong></small>
                                         )}
                                     </CCol>
                                     <CCol lg="6">
-                                        <label className="form-label">Prénom <span className="text-danger">*</span></label>
+                                        <label className="form-label fw-semibold">Prénom <span className="text-danger">*</span></label>
                                         <CInputGroup className="input-group-custom">
-                                            <CInputGroupText>
+                                            <CInputGroupText className="bg-light">
                                                 <CIcon icon={cilUser} />
                                             </CInputGroupText>
                                             <CFormInput
@@ -337,19 +375,20 @@ export default function AjoutUtilisateur() {
                                                 onChange={handleChange}
                                                 placeholder="Entrez le prénom"
                                                 isInvalid={!!errors.prenom}
+                                                className="form-control-lg"
                                             />
                                         </CInputGroup>
                                         {errors.prenom && (
-                                            <small className="text-danger">{errors.prenom}</small>
+                                            <small className="text-danger d-block mt-2"><strong>{errors.prenom}</strong></small>
                                         )}
                                     </CCol>
                                 </CRow>
 
                                 <CRow className="g-4 mb-4">
                                     <CCol lg="6">
-                                        <label className="form-label">Date de naissance <span className="text-danger">*</span></label>
+                                        <label className="form-label fw-semibold">Date de naissance <span className="text-danger">*</span></label>
                                         <CInputGroup className="input-group-custom">
-                                            <CInputGroupText>
+                                            <CInputGroupText className="bg-light">
                                                 <CIcon icon={cilCalendar} />
                                             </CInputGroupText>
                                             <CFormInput
@@ -358,16 +397,17 @@ export default function AjoutUtilisateur() {
                                                 value={formData.dtn}
                                                 onChange={handleChange}
                                                 isInvalid={!!errors.dtn}
+                                                className="form-control-lg"
                                             />
                                         </CInputGroup>
                                         {errors.dtn && (
-                                            <small className="text-danger">{errors.dtn}</small>
+                                            <small className="text-danger d-block mt-2"><strong>{errors.dtn}</strong></small>
                                         )}
                                     </CCol>
                                     <CCol lg="6">
-                                        <label className="form-label">Sexe <span className="text-danger">*</span></label>
+                                        <label className="form-label fw-semibold">Sexe <span className="text-danger">*</span></label>
                                         <CInputGroup className="input-group-custom">
-                                            <CInputGroupText>
+                                            <CInputGroupText className="bg-light">
                                                 <CIcon icon={cilPeople} />
                                             </CInputGroupText>
                                             <CFormSelect
@@ -376,6 +416,7 @@ export default function AjoutUtilisateur() {
                                                 onChange={handleChange}
                                                 isInvalid={!!errors.id_sexe}
                                                 disabled={sexesLoading}
+                                                className="form-control-lg"
                                             >
                                                 <option value="">
                                                     {sexesLoading ? 'Chargement...' : 'Sélectionnez votre sexe'}
@@ -388,15 +429,15 @@ export default function AjoutUtilisateur() {
                                             </CFormSelect>
                                         </CInputGroup>
                                         {errors.id_sexe && (
-                                            <small className="text-danger">{errors.id_sexe}</small>
+                                            <small className="text-danger d-block mt-2"><strong>{errors.id_sexe}</strong></small>
                                         )}
                                     </CCol>
                                 </CRow>
 
-                                <div className="d-flex gap-3 pt-3 border-top">
+                                <div className="d-flex gap-3 pt-4 border-top">
                                     <CButton
                                         type="button"
-                                        className="btn-submit"
+                                        className="btn-submit flex-grow-1"
                                         onClick={handleNextStep}
                                     >
                                         Suivant
@@ -409,18 +450,35 @@ export default function AjoutUtilisateur() {
                                         Réinitialiser
                                     </CButton>
                                 </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="alert alert-info mb-4">
-                                    <strong>{formData.prenom} {formData.nom}</strong>
+                            </CForm>
+                        </CCardBody>
+                    </>
+                ) : (
+                    <>
+                        <CCardBody className="p-5">
+                            <div className="form-section-title mb-4">
+                                <div className="section-icon">
+                                    <CIcon icon={cilLockLocked} />
+                                </div>
+                                <div>
+                                    <h6 className="mb-0 fw-bold">Configuration sécurité</h6>
+                                    <small className="text-muted">Définissez votre email et mot de passe</small>
+                                </div>
+                            </div>
+                            <CForm onSubmit={handleSubmit}>
+                                <div className="alert alert-info mb-4 rounded-3">
+                                    <div className="d-flex gap-3 align-items-center">
+                                        <div className="profile-summary">
+                                            <strong>Récapitulatif :</strong> {formData.prenom} {formData.nom}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <CRow className="g-4 mb-4">
                                     <CCol lg="6">
-                                        <label className="form-label">Email <span className="text-danger">*</span></label>
+                                        <label className="form-label fw-semibold">Email <span className="text-danger">*</span></label>
                                         <CInputGroup className="input-group-custom">
-                                            <CInputGroupText>
+                                            <CInputGroupText className="bg-light">
                                                 <CIcon icon={cilEnvelopeOpen} />
                                             </CInputGroupText>
                                             <CFormInput
@@ -430,59 +488,70 @@ export default function AjoutUtilisateur() {
                                                 onChange={handleChange}
                                                 placeholder="exemple@email.com"
                                                 isInvalid={!!errors.email}
+                                                className="form-control-lg"
                                             />
                                         </CInputGroup>
                                         {errors.email && (
-                                            <small className="text-danger">{errors.email}</small>
+                                            <small className="text-danger d-block mt-2"><strong>{errors.email}</strong></small>
                                         )}
                                     </CCol>
                                 </CRow>
 
-                                <CRow className="g-4 mb-4">
-                                    <CCol lg="6">
-                                        <label className="form-label">Mot de passe <span className="text-danger">*</span></label>
-                                        <CInputGroup className="input-group-custom">
-                                            <CInputGroupText>
-                                                <CIcon icon={cilLockLocked} />
-                                            </CInputGroupText>
-                                            <CFormInput
-                                                type="password"
-                                                name="mdp"
-                                                value={formData.mdp}
-                                                onChange={handleChange}
-                                                placeholder="Entrez le mot de passe"
-                                                isInvalid={!!errors.mdp}
-                                            />
-                                        </CInputGroup>
-                                        {errors.mdp && (
-                                            <small className="text-danger">{errors.mdp}</small>
-                                        )}
-                                    </CCol>
-                                </CRow>
+                                <div className="security-section">
+                                    <h6 className="fw-bold mb-4 text-muted">
+                                        <CIcon icon={cilLockLocked} className="me-2" />
+                                        Mot de passe
+                                    </h6>
 
-                                <CRow className="g-4 mb-4">
-                                    <CCol lg="6">
-                                        <label className="form-label">Confirmer le mot de passe <span className="text-danger">*</span></label>
-                                        <CInputGroup className="input-group-custom">
-                                            <CInputGroupText>
-                                                <CIcon icon={cilLockLocked} />
-                                            </CInputGroupText>
-                                            <CFormInput
-                                                type="password"
-                                                name="mdp_confirmation"
-                                                value={formData.mdp_confirmation}
-                                                onChange={handleChange}
-                                                placeholder="Confirmez le mot de passe"
-                                                isInvalid={!!errors.mdp_confirmation}
-                                            />
-                                        </CInputGroup>
-                                        {errors.mdp_confirmation && (
-                                            <small className="text-danger">{errors.mdp_confirmation}</small>
-                                        )}
-                                    </CCol>
-                                </CRow>
+                                    <CRow className="g-4 mb-4">
+                                        <CCol lg="6">
+                                            <label className="form-label fw-semibold">Mot de passe <span className="text-danger">*</span></label>
+                                            <CInputGroup className="input-group-custom">
+                                                <CInputGroupText className="bg-light">
+                                                    <CIcon icon={cilLockLocked} />
+                                                </CInputGroupText>
+                                                <CFormInput
+                                                    type="password"
+                                                    name="mdp"
+                                                    value={formData.mdp}
+                                                    onChange={handleChange}
+                                                    placeholder="Entrez le mot de passe"
+                                                    isInvalid={!!errors.mdp}
+                                                    className="form-control-lg"
+                                                />
+                                            </CInputGroup>
+                                            {errors.mdp && (
+                                                <small className="text-danger d-block mt-2"><strong>{errors.mdp}</strong></small>
+                                            )}
+                                            <small className="text-muted d-block mt-2">Minimum 6 caractères</small>
+                                        </CCol>
+                                    </CRow>
 
-                                <div className="d-flex gap-3 pt-3 border-top">
+                                    <CRow className="g-4 mb-4">
+                                        <CCol lg="6">
+                                            <label className="form-label fw-semibold">Confirmer le mot de passe <span className="text-danger">*</span></label>
+                                            <CInputGroup className="input-group-custom">
+                                                <CInputGroupText className="bg-light">
+                                                    <CIcon icon={cilLockLocked} />
+                                                </CInputGroupText>
+                                                <CFormInput
+                                                    type="password"
+                                                    name="mdp_confirmation"
+                                                    value={formData.mdp_confirmation}
+                                                    onChange={handleChange}
+                                                    placeholder="Confirmez le mot de passe"
+                                                    isInvalid={!!errors.mdp_confirmation}
+                                                    className="form-control-lg"
+                                                />
+                                            </CInputGroup>
+                                            {errors.mdp_confirmation && (
+                                                <small className="text-danger d-block mt-2"><strong>{errors.mdp_confirmation}</strong></small>
+                                            )}
+                                        </CCol>
+                                    </CRow>
+                                </div>
+
+                                <div className="d-flex gap-3 pt-4 border-top">
                                     <CButton
                                         type="button"
                                         className="btn-reset"
@@ -494,17 +563,17 @@ export default function AjoutUtilisateur() {
                                     </CButton>
                                     <CButton
                                         type="submit"
-                                        className="btn-submit"
+                                        className="btn-submit flex-grow-1"
                                         disabled={loading}
                                     >
                                         <CIcon icon={cilSave} className="me-2" />
                                         {loading ? 'Enregistrement en cours...' : 'Créer l\'utilisateur'}
                                     </CButton>
                                 </div>
-                            </>
-                        )}
-                    </CForm>
-                </CCardBody>
+                            </CForm>
+                        </CCardBody>
+                    </>
+                )}
             </CCard>
         </div>
     )

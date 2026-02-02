@@ -1,4 +1,5 @@
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 /**
  * Interface pour les options de prise de photo
@@ -25,10 +26,34 @@ export interface PhotoResult {
  */
 class PhotoService {
   /**
+   * Vérifie si l'app tourne sur une plateforme native (iOS/Android)
+   */
+  isNativePlatform(): boolean {
+    return Capacitor.isNativePlatform();
+  }
+
+  /**
+   * Vérifie si la caméra native est disponible
+   */
+  isCameraAvailable(): boolean {
+    return Capacitor.isPluginAvailable('Camera');
+  }
+
+  /**
    * Prendre une photo avec la caméra
+   * Sur le web, cela ouvrira un sélecteur de fichier (pas la vraie caméra)
+   * Sur mobile natif, cela ouvrira la vraie caméra
    */
   async takePhoto(options: PhotoOptions = {}): Promise<PhotoResult | null> {
     try {
+      // Sur le web, on ne peut pas accéder directement à la caméra
+      // Capacitor utilise un fallback vers input file
+      if (!this.isNativePlatform()) {
+        console.log('📷 Mode navigateur: utilisation du sélecteur de fichier');
+      } else {
+        console.log('📷 Mode natif: ouverture de la caméra');
+      }
+
       const photo = await Camera.getPhoto({
         quality: options.quality || 80,
         allowEditing: options.allowEditing || false,
@@ -36,7 +61,13 @@ class PhotoService {
         source: CameraSource.Camera,
         width: options.width || 1024,
         height: options.height || 1024,
-        correctOrientation: true
+        correctOrientation: true,
+        // Pour le web, permettre la sélection depuis la galerie si caméra non dispo
+        webUseInput: true,
+        promptLabelHeader: 'Photo',
+        promptLabelCancel: 'Annuler',
+        promptLabelPhoto: 'Depuis la galerie',
+        promptLabelPicture: 'Prendre une photo'
       });
 
       return this.processPhoto(photo);
@@ -44,7 +75,7 @@ class PhotoService {
       console.error('Erreur lors de la prise de photo:', error);
       
       // L'utilisateur a annulé
-      if (error.message?.includes('cancelled') || error.message?.includes('canceled')) {
+      if (error.message?.includes('cancelled') || error.message?.includes('canceled') || error.message?.includes('User cancelled')) {
         return null;
       }
       
@@ -64,7 +95,8 @@ class PhotoService {
         source: CameraSource.Photos,
         width: options.width || 1024,
         height: options.height || 1024,
-        correctOrientation: true
+        correctOrientation: true,
+        webUseInput: true
       });
 
       return this.processPhoto(photo);
@@ -72,7 +104,7 @@ class PhotoService {
       console.error('Erreur lors de la sélection de photo:', error);
       
       // L'utilisateur a annulé
-      if (error.message?.includes('cancelled') || error.message?.includes('canceled')) {
+      if (error.message?.includes('cancelled') || error.message?.includes('canceled') || error.message?.includes('User cancelled')) {
         return null;
       }
       

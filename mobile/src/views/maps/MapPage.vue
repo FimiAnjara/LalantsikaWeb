@@ -444,12 +444,6 @@ const searchCity = async () => {
   }
 };
 
-const showMarkerDetails = (marker: any) => {
-  console.log('Marqueur cliqué:', marker);
-  // Afficher les détails du marqueur
-  alert(`${marker.title}\nType: ${marker.type}`);
-};
-
 const goToProfile = () => {
   router.push({ name: 'Profile' });
 };
@@ -521,15 +515,19 @@ const getCityName = async (lat: number, lng: number): Promise<string> => {
 
 // Gestion des signalements enregistrés
 const openReportDetails = (report: any) => {
-  // Naviguer vers la page de détails/modification du signalement
+  // Naviguer vers la nouvelle page de détails du signalement
   router.push({ 
-    name: 'ReportDetails', 
-    params: { id: report.firebase_id || report.id },
-    query: { 
-      lat: report.lat, 
-      lng: report.lng,
-      title: report.title 
-    }
+    name: 'SignalementDetails', 
+    params: { id: report.firebase_id || report.id }
+  });
+};
+
+const showMarkerDetails = (marker: any) => {
+  console.log('Marqueur cliqué:', marker);
+  // Naviguer vers les détails du signalement
+  router.push({ 
+    name: 'SignalementDetails', 
+    params: { id: marker.id }
   });
 };
 
@@ -545,24 +543,33 @@ const deleteReport = async (reportId: string) => {
       {
         text: 'Supprimer',
         role: 'destructive',
-        handler: async () => {
-          isDeleting.value = true;
-          loadingMessage.value = 'Suppression en cours...';
-          try {
-            await signalementService.deleteSignalement(reportId);
-            await loadSignalements(); // Recharger la liste
-            await showToast('Signalement supprimé', 'success');
-          } catch (error) {
-            console.error('Erreur lors de la suppression:', error);
-            await showToast('Erreur lors de la suppression', 'danger');
-          } finally {
-            isDeleting.value = false;
-          }
+        handler: () => {
+          // Retourner false pour que le handler gère manuellement la fermeture
+          // Cela permet d'afficher le spinner avant la fermeture
+          performDelete(reportId);
+          return true; // Ferme immédiatement le dialog
         }
       }
     ]
   });
   await alert.present();
+};
+
+// Fonction séparée pour effectuer la suppression
+const performDelete = async (reportId: string) => {
+  isDeleting.value = true;
+  loadingMessage.value = 'Suppression en cours...';
+  
+  try {
+    await signalementService.deleteSignalement(reportId);
+    await loadSignalements(); // Recharger la liste
+    await showToast('Signalement supprimé', 'success');
+  } catch (error) {
+    console.error('Erreur lors de la suppression:', error);
+    await showToast('Erreur lors de la suppression', 'danger');
+  } finally {
+    isDeleting.value = false;
+  }
 };
 
 // Mode signalement

@@ -366,6 +366,53 @@ class SignalementService {
   }
 
   /**
+   * Récupérer l'historique des statuts d'un signalement
+   */
+  async getHistoStatuts(firebaseSignalementId: string): Promise<any[]> {
+    try {
+      const histoRef = collection(db, 'histo_statuts');
+      const q = query(
+        histoRef,
+        where('firebase_signalement_id', '==', firebaseSignalementId),
+        orderBy('daty', 'desc')
+      );
+      
+      const snapshot = await getDocs(q);
+      
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'historique:', error);
+      // Si erreur d'index, essayer sans orderBy
+      try {
+        const histoRef = collection(db, 'histo_statuts');
+        const q = query(
+          histoRef,
+          where('firebase_signalement_id', '==', firebaseSignalementId)
+        );
+        
+        const snapshot = await getDocs(q);
+        const results = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Trier en mémoire
+        return results.sort((a: any, b: any) => {
+          const dateA = new Date(a.daty).getTime();
+          const dateB = new Date(b.daty).getTime();
+          return dateB - dateA;
+        });
+      } catch (innerError) {
+        console.error('Erreur lors de la récupération de l\'historique (fallback):', innerError);
+        return [];
+      }
+    }
+  }
+
+  /**
    * Marquer un signalement comme synchronisé
    */
   async markAsSynced(firebaseId: string, id_signalement: number): Promise<void> {

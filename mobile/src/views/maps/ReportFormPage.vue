@@ -2,9 +2,9 @@
   <ion-page>
     <!-- Spinner de chargement -->
     <SpinnerLoader 
-      v-if="isSubmitting" 
+      v-if="isSubmitting || isLoading" 
       :fullscreen="true" 
-      :message="loadingMessage" 
+      :message="isLoading ? 'Chargement...' : loadingMessage" 
     />
     
     <ion-header>
@@ -17,7 +17,7 @@
             </svg>
           </ion-button>
         </ion-buttons>
-        <ion-title>Nouveau signalement</ion-title>
+        <ion-title>{{ pageTitle }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -145,6 +145,13 @@ import { useRoute, useRouter } from 'vue-router';
 import { signalementService } from '@/services/signalement';
 import { photoService } from '@/services/photo';
 import SpinnerLoader from '@/components/SpinnerLoader.vue';
+import { Signalement } from '@/models/Signalement';
+
+// Props pour le mode édition
+const props = defineProps<{
+  editMode?: boolean;
+  signalementId?: string;
+}>();
 
 const route = useRoute();
 const router = useRouter();
@@ -153,8 +160,13 @@ const latitude = ref('');
 const longitude = ref('');
 const cityName = ref('');
 const isSubmitting = ref(false);
+const isLoading = ref(false);
 const isLoadingCity = ref(false);
 const loadingMessage = ref('Enregistrement en cours...');
+const existingSignalement = ref<Signalement | null>(null);
+
+// Titre dynamique
+const pageTitle = computed(() => props.editMode ? 'Modifier le signalement' : 'Nouveau signalement');
 
 const formData = ref({
   description: '',
@@ -163,17 +175,58 @@ const formData = ref({
 });
 
 onMounted(async () => {
-  // Récupérer les coordonnées
-  latitude.value = route.query.lat as string || '';
-  longitude.value = route.query.lng as string || '';
-  
-  // Récupérer le nom de la ville passé en paramètre ou le chercher
-  if (route.query.city) {
-    cityName.value = route.query.city as string;
-  } else if (latitude.value && longitude.value) {
-    await fetchCityName();
+  // Mode édition: charger le signalement existant
+  if (props.editMode && props.signalementId) {
+    await loadExistingSignalement();
+  } else {
+    // Mode création: récupérer les coordonnées de la route
+    latitude.value = route.query.lat as string || '';
+    longitude.value = route.query.lng as string || '';
+    
+    // Récupérer le nom de la ville passé en paramètre ou le chercher
+    if (route.query.city) {
+      cityName.value = route.query.city as string;
+    } else if (latitude.value && longitude.value) {
+      await fetchCityName();
+    }
   }
 });
+
+// Charger un signalement existant pour modification
+const loadExistingSignalement = async () => {
+  if (!props.signalementId) return;
+  
+  isLoading.value = true;
+  
+  try {
+    const signalement = await signalementService.getSignalementById(props.signalementId);
+    
+    if (signalement) {
+      existingSignalement.value = signalement;
+      
+      // Remplir le formulaire avec les données existantes
+      latitude.value = signalement.point.latitude.toString();
+      longitude.value = signalement.point.longitude.toString();
+      cityName.value = signalement.city || '';
+      formData.value.description = signalement.description || '';
+      formData.value.surface = signalement.surface || null;
+      formData.value.photoUrl = signalement.photo || '';
+    } else {
+      throw new Error('Signalement non trouvé');
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement du signalement:', error);
+    const toast = await toastController.create({
+      message: 'Erreur lors du chargement du signalement',
+      duration: 2000,
+      color: 'danger'
+    });
+    await toast.present();
+    router.back();
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 // Récupérer le nom de la ville via reverse geocoding
 const fetchCityName = async () => {
@@ -238,12 +291,16 @@ const goBack = () => {
 
 const takePhoto = async () => {
   try {
+    // Vérifier si on est sur une plateforme native
+    const isNative = photoService.isNativePlatform();
+    
     // Afficher le choix entre caméra et galerie
     const actionSheet = await actionSheetController.create({
       header: 'Ajouter une photo',
+      subHeader: !isNative ? '(Mode navigateur: sélection depuis fichiers)' : undefined,
       buttons: [
         {
-          text: 'Prendre une photo',
+          text: isNative ? 'Prendre une photo' : 'Prendre/Choisir une photo',
           icon: 'camera',
           handler: () => {
             captureFromCamera();
@@ -271,6 +328,9 @@ const takePhoto = async () => {
 
 const captureFromCamera = async () => {
   try {
+    // Demander les permissions si nécessaire
+    await photoService.requestPermissions();
+    
     const result = await photoService.takePhoto({ quality: 80 });
     if (result && result.dataUrl) {
       formData.value.photoUrl = result.dataUrl;
@@ -323,43 +383,60 @@ const saveReport = async () => {
   if (!isFormValid.value || isSubmitting.value) return;
 
   isSubmitting.value = true;
-  loadingMessage.value = 'Enregistrement en cours...';
+  loadingMessage.value = props.editMode ? 'Modification en cours...' : 'Enregistrement en cours...';
 
   try {
-    // Utiliser le service pour créer le signalement
-    // Champs utilisateur uniquement: point, description, surface, photo, city
-    // daty et utilisateur sont ajoutés automatiquement
-    const signalement = await signalementService.createSignalement({
-      latitude: parseFloat(latitude.value),
-      longitude: parseFloat(longitude.value),
-      description: formData.value.description,
-      surface: formData.value.surface || undefined,
-      photo: formData.value.photoUrl || undefined,
-      city: cityName.value || undefined
-    });
+    if (props.editMode && props.signalementId) {
+      // Mode édition: mettre à jour le signalement existant
+      await signalementService.updateSignalement(props.signalementId, {
+        description: formData.value.description,
+        surface: formData.value.surface || undefined,
+        photo: formData.value.photoUrl || undefined
+      });
 
-    console.log('Signalement créé:', signalement);
+      console.log('Signalement modifié:', props.signalementId);
 
-    isSubmitting.value = false;
+      const toast = await toastController.create({
+        message: 'Signalement modifié avec succès !',
+        duration: 2000,
+        color: 'success'
+      });
+      await toast.present();
 
-    const toast = await toastController.create({
-      message: 'Signalement enregistré avec succès !',
-      duration: 2000,
-      color: 'success'
-    });
-    await toast.present();
+      // Retourner à la page de détails
+      setTimeout(() => {
+        router.back();
+      }, 1000);
+    } else {
+      // Mode création: créer un nouveau signalement
+      const signalement = await signalementService.createSignalement({
+        latitude: parseFloat(latitude.value),
+        longitude: parseFloat(longitude.value),
+        description: formData.value.description,
+        surface: formData.value.surface || undefined,
+        photo: formData.value.photoUrl || undefined,
+        city: cityName.value || undefined
+      });
 
-    // Retourner à la page de la carte
-    setTimeout(() => {
-      router.push({ name: 'Map' });
-    }, 1000);
+      console.log('Signalement créé:', signalement);
+
+      const toast = await toastController.create({
+        message: 'Signalement enregistré avec succès !',
+        duration: 2000,
+        color: 'success'
+      });
+      await toast.present();
+
+      // Retourner à la page de la carte
+      setTimeout(() => {
+        router.push({ name: 'Map' });
+      }, 1000);
+    }
 
   } catch (error: any) {
     console.error('Erreur lors de l\'enregistrement:', error);
     console.error('Message:', error.message);
     console.error('Stack:', error.stack);
-    
-    isSubmitting.value = false;
 
     let errorMessage = 'Erreur lors de l\'enregistrement';
     

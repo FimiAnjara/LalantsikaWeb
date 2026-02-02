@@ -7,6 +7,7 @@ import ModePage from '../views/settings/ModePage.vue';
 import MapPage from '../views/maps/MapPage.vue';
 import ReportDetailsPage from '../views/maps/ReportDetailsPage.vue';
 import ReportFormPage from '../views/maps/ReportFormPage.vue';
+import SignalementDetailsPage from '../views/maps/SignalementDetailsPage.vue';
 import SplashPage from '../views/SplashPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
@@ -43,6 +44,17 @@ const routes: Array<RouteRecordRaw> = [
     path: '/report/:id',
     name: 'ReportDetails',
     component: ReportDetailsPage
+  },
+  {
+    path: '/signalement/:id',
+    name: 'SignalementDetails',
+    component: SignalementDetailsPage
+  },
+  {
+    path: '/signalement/:id/edit',
+    name: 'EditSignalement',
+    component: ReportFormPage,
+    props: route => ({ editMode: true, signalementId: route.params.id })
   },
   {
     path: '/report-form',

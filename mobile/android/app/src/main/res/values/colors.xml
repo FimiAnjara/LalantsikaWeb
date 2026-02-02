@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Couleurs principales de l'application -->
+    <color name="colorPrimary">#0a1e37</color>
+    <color name="colorPrimaryDark">#081729</color>
+    <color name="colorAccent">#feb000</color>
+    
+    <!-- Couleur du splash screen -->
+    <color name="splashBackground">#0a1e37</color>
+    
+    <!-- Couleurs additionnelles -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

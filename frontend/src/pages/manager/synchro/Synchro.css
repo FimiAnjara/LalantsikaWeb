@@ -229,15 +229,14 @@
     .parametres-page .stat-box .stat-value {
         font-size: 1.25rem;
     }
-    
+
     .parametres-page .stat-box .stat-label {
         font-size: 0.65rem;
     }
-    
+
     .parametres-page .btn-sync,
     .parametres-page .btn-force-sync {
         width: 100%;
         justify-content: center;
     }
 }
-

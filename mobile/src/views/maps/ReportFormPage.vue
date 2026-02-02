@@ -388,11 +388,20 @@ const saveReport = async () => {
   try {
     if (props.editMode && props.signalementId) {
       // Mode édition: mettre à jour le signalement existant
-      await signalementService.updateSignalement(props.signalementId, {
-        description: formData.value.description,
-        surface: formData.value.surface || undefined,
-        photo: formData.value.photoUrl || undefined
-      });
+      // Construire l'objet de mise à jour sans valeurs undefined (Firebase les refuse)
+      const updateData: Record<string, any> = {
+        description: formData.value.description
+      };
+      
+      // N'ajouter que les champs avec des valeurs définies
+      if (formData.value.surface !== null && formData.value.surface !== undefined) {
+        updateData.surface = formData.value.surface;
+      }
+      if (formData.value.photoUrl && formData.value.photoUrl.trim() !== '') {
+        updateData.photo = formData.value.photoUrl;
+      }
+      
+      await signalementService.updateSignalement(props.signalementId, updateData);
 
       console.log('Signalement modifié:', props.signalementId);
 
@@ -595,9 +604,12 @@ ion-button {
   --padding-end: 1rem;
   --padding-top: 0.75rem;
   --padding-bottom: 0.75rem;
+  --color: #0a1e37;
+  --placeholder-color: #999;
   border: 1px solid #e9ecef;
   border-radius: 10px;
   font-size: 0.95rem;
+  color: #0a1e37;
 }
 
 .custom-select {

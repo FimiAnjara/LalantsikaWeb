@@ -48,9 +48,9 @@ const initMap = () => {
       props.zoom || defaultZoom
     );
 
-    // Ajouter les contrôles de zoom en haut à gauche
+    // Ajouter les contrôles de zoom en bas à gauche
     L.control.zoom({
-      position: 'topleft'
+      position: 'bottomleft'
     }).addTo(map);
 
     // Ajouter les tuiles OpenStreetMap
@@ -112,16 +112,19 @@ const updateMarkers = () => {
     return;
   }
   
+  // Supprimer d'abord tous les anciens marqueurs
+  markerLayers.forEach(marker => {
+    marker.off(); // Supprimer tous les event listeners
+    marker.remove();
+  });
+  markerLayers.length = 0;
+  
   if (!props.markers || props.markers.length === 0) {
     console.log('updateMarkers: aucun marqueur à afficher');
     return;
   }
 
   console.log('updateMarkers: affichage de', props.markers.length, 'marqueurs');
-
-  // Supprimer les anciens marqueurs
-  markerLayers.forEach(marker => marker.remove());
-  markerLayers.length = 0;
 
   // Ajouter les nouveaux marqueurs
   props.markers.forEach(markerData => {
@@ -179,10 +182,20 @@ const getCenter = (): [number, number] | null => {
   return null;
 };
 
+// Méthode pour forcer le rafraîchissement de la carte
+const invalidateSize = () => {
+  if (map) {
+    setTimeout(() => {
+      map?.invalidateSize();
+    }, 100);
+  }
+};
+
 // Exposer les méthodes publiques
 defineExpose({
   setView,
-  getCenter
+  getCenter,
+  invalidateSize
 });
 
 onMounted(() => {

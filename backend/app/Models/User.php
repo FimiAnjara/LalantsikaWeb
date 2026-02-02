@@ -12,7 +12,6 @@ class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
-    use \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $table = 'utilisateur';
     protected $primaryKey = 'id_utilisateur';
@@ -37,8 +36,6 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     public $timestamps = false;
-
-    protected $dates = ['deleted_at'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -77,7 +74,7 @@ class User extends Authenticatable implements JWTSubject
      */
     public function getAuthIdentifierName()
     {
-        return 'id_utilisateur';
+        return 'email';
     }
 
     /**
@@ -106,29 +103,5 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
-    }
-
-    /**
-     * Relation avec Sexe
-     */
-    public function sexe()
-    {
-        return $this->belongsTo(Sexe::class, 'id_sexe', 'id_sexe');
-    }
-
-    /**
-     * Relation avec TypeUtilisateur
-     */
-    public function typeUtilisateur()
-    {
-        return $this->belongsTo(TypeUtilisateur::class, 'id_type_utilisateur', 'id_type_utilisateur');
-    }
-
-    /**
-     * Relation avec StatutUtilisateur
-     */
-    public function statuts()
-    {
-        return $this->hasMany(StatutUtilisateur::class, 'id_utilisateur', 'id_utilisateur');
     }
 }

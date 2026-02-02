@@ -155,7 +155,7 @@ class AuthController extends Controller
                     'data' => null
                 ]);
             }
-            
+
             // Vérifier que c'est un Manager (id_type_utilisateur = 1)
             if ($user->id_type_utilisateur !== 1) {
                 Log::warning("❌ L'utilisateur {$email} n'est pas un Manager");

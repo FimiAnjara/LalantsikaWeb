@@ -279,8 +279,8 @@ class SyncController extends Controller
             'type_utilisateur' => $utilisateur->typeUtilisateur?->libelle,
             'adresse' => $utilisateur->adresse,
             'photo_profil' => $utilisateur->photo_profil,
-            'created_at' => $utilisateur->created_at->toIso8601String(),
-            'updated_at' => $utilisateur->updated_at->toIso8601String()
+            'created_at' => $utilisateur->created_at?->toIso8601String(),
+            'updated_at' => $utilisateur->updated_at?->toIso8601String()
         ];
     }
 }

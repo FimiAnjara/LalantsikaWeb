@@ -17,38 +17,30 @@ Route::group(['prefix' => 'auth'], function () {
     });
 });
 
-// Route de test (sans auth) pour vérifier Firebase REST API
+// Route de test (sans auth) pour vérifier Firestore REST API
 Route::get('test/firebase', function () {
     $startTime = microtime(true);
     
     try {
-        $databaseUrl = config('firebase.database_url');
-        
-        $testResults = [
-            'database_url' => $databaseUrl,
-            'database_url_configured' => !empty($databaseUrl),
-            'method' => 'REST API (no gRPC required)',
-        ];
-        
-        if (empty($databaseUrl)) {
-            return response()->json([
-                'code' => 500,
-                'success' => false,
-                'message' => 'FIREBASE_DATABASE_URL not configured in .env',
-                'data' => $testResults,
-                'execution_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
-            ]);
-        }
+        $projectId = config('firebase.project_id');
+        $apiKey = config('firebase.api_key');
         
         $firebaseService = app(FirebaseRestService::class);
-        $isAvailable = $firebaseService->testConnection();
+        $testResult = $firebaseService->testConnection();
         
-        $testResults['firebase_available'] = $isAvailable;
+        $testResults = [
+            'project_id' => $projectId,
+            'api_key_configured' => !empty($apiKey),
+            'api_key_preview' => $apiKey ? substr($apiKey, 0, 10) . '...' : null,
+            'firestore_url' => $firebaseService->getDatabaseUrl(),
+            'method' => 'Firestore REST API (no gRPC required)',
+            'connection_test' => $testResult,
+        ];
         
         return response()->json([
             'code' => 200,
-            'success' => $isAvailable,
-            'message' => $isAvailable ? 'Firebase REST API connected successfully' : 'Firebase connection failed',
+            'success' => $testResult['success'] ?? false,
+            'message' => $testResult['success'] ? 'Firestore REST API connected successfully' : 'Firestore connection failed',
             'data' => $testResults,
             'execution_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
         ]);

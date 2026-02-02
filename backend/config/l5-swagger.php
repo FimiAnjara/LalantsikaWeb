@@ -50,6 +50,14 @@ return [
         ],
         'securityDefinitions' => [
             'securitySchemes' => [
+                'bearerAuth' => [
+                    'type' => 'http',
+                    'description' => 'JWT Bearer Token',
+                    'name' => 'Authorization',
+                    'in' => 'header',
+                    'scheme' => 'bearer',
+                    'bearerFormat' => 'JWT',
+                ],
                /*
                 'passport' => [ // Unique name of security
                     'type' => 'oauth2', // The type of the security scheme. Valid values are "basic", "apiKey" or "oauth2".

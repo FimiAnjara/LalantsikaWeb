@@ -16,9 +16,16 @@ use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
+    protected $firebaseRestService;
+
+    public function __construct(FirebaseRestService $firebaseRestService)
+    {
+        $this->firebaseRestService = $firebaseRestService;
+    }
+
     /** 
      * Register a new user (Utilisateur uniquement - pas Manager)
-     * Enregistrement PostgreSQL uniquement
+     * Crée l'utilisateur dans PostgreSQL ET Firebase Auth
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -44,8 +51,18 @@ class AuthController extends Controller
             ]);
         }
 
+        DB::beginTransaction();
+
         try {
-            // Créer l'utilisateur dans PostgreSQL
+            // 1. Créer l'utilisateur dans Firebase Auth
+            $firebaseAuth = $this->firebaseRestService->createAuthUser(
+                $request->email,
+                $request->mdp // Mot de passe en clair
+            );
+
+            $firebaseUid = $firebaseAuth['uid'] ?? uniqid('user_');
+
+            // 2. Créer l'utilisateur dans PostgreSQL
             $user = User::create([
                 'identifiant' => $request->identifiant,
                 'mdp' => Hash::make($request->mdp),
@@ -55,16 +72,33 @@ class AuthController extends Controller
                 'email' => $request->email,
                 'id_sexe' => $request->id_sexe,
                 'id_type_utilisateur' => 2, 
+                'firebase_uid' => $firebaseUid,
+                'synchronized' => false, // Sera synchronisé ensuite
             ]);
 
-            // Créer le statut utilisateur (etat = 1 = actif)
+            // 3. Créer le statut utilisateur (etat = 1 = actif)
             StatutUtilisateur::create([
                 'id_utilisateur' => $user->id_utilisateur,
                 'etat' => 1,
                 'date_' => now(),
             ]);
 
-            Log::info("✅ Utilisateur créé avec succès: {$user->email}");
+            // 4. Synchroniser vers Firestore
+            $firestoreData = $this->prepareUserForFirestore($user);
+            $this->firebaseRestService->saveDocument(
+                'utilisateurs',
+                (string) $user->id_utilisateur,
+                $firestoreData
+            );
+
+            // 5. Marquer comme synchronisé
+            $user->synchronized = true;
+            $user->last_sync_at = now();
+            $user->save();
+
+            DB::commit();
+
+            Log::info("✅ Utilisateur créé avec succès: {$user->email}, Firebase UID: {$firebaseUid}");
 
             $token = JWTAuth::fromUser($user);
 
@@ -75,10 +109,12 @@ class AuthController extends Controller
                 'data' => [
                     'user' => $user,
                     'token' => $token,
+                    'firebase_uid' => $firebaseUid
                 ]
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error("❌ Erreur lors de la création de l'utilisateur: " . $e->getMessage());
             
             return response()->json([
@@ -88,6 +124,36 @@ class AuthController extends Controller
                 'data' => ['error' => $e->getMessage()]
             ]);
         }
+    }
+
+    /**
+     * Préparer les données utilisateur pour Firestore
+     */
+    private function prepareUserForFirestore(User $user): array
+    {
+        return [
+            'id_utilisateur' => $user->id_utilisateur,
+            'firebase_uid' => $user->firebase_uid,
+            'uid' => $user->firebase_uid,
+            'identifiant' => $user->identifiant,
+            'prenom' => $user->prenom,
+            'nom' => $user->nom,
+            'email' => $user->email,
+            'dtn' => $user->dtn,
+            'numero_telephone' => $user->numero_telephone,
+            'sexe' => $user->sexe ? [
+                'id_sexe' => $user->sexe->id_sexe,
+                'libelle' => $user->sexe->libelle
+            ] : null,
+            'type_utilisateur' => $user->typeUtilisateur ? [
+                'id_type_utilisateur' => $user->typeUtilisateur->id_type_utilisateur,
+                'libelle' => $user->typeUtilisateur->libelle
+            ] : null,
+            'adresse' => $user->adresse,
+            'photo_profil' => $user->photo_profil,
+            'last_sync_at' => now()->toIso8601String(),
+            'updatedAt' => now()->toIso8601String()
+        ];
     }
 
     /**

@@ -489,4 +489,228 @@ class FirebaseRestService
             return [];
         }
     }
+
+    /**
+     * Créer un utilisateur dans Firebase Auth via REST API
+     * 
+     * @param string $email Email de l'utilisateur
+     * @param string $password Mot de passe (en clair)
+     * @return array|null Retourne les infos utilisateur avec localId (UID) ou null si erreur
+     */
+    public function createAuthUser(string $email, string $password): ?array
+    {
+        try {
+            $url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={$this->apiKey}";
+            
+            $data = [
+                'email' => $email,
+                'password' => $password,
+                'returnSecureToken' => true
+            ];
+            
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => 'Content-Type: application/json',
+                    'content' => json_encode($data),
+                    'timeout' => 30,
+                    'ignore_errors' => true,
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
+            
+            $response = @file_get_contents($url, false, $context);
+            $statusCode = $this->getHttpStatusCode($http_response_header ?? []);
+            $result = json_decode($response, true);
+            
+            if ($statusCode === 200 && isset($result['localId'])) {
+                Log::info("✅ Firebase Auth user created: {$email} -> UID: {$result['localId']}");
+                return [
+                    'uid' => $result['localId'],
+                    'email' => $result['email'],
+                    'idToken' => $result['idToken'] ?? null,
+                    'refreshToken' => $result['refreshToken'] ?? null
+                ];
+            }
+            
+            // Vérifier si l'utilisateur existe déjà
+            if (isset($result['error']['message']) && $result['error']['message'] === 'EMAIL_EXISTS') {
+                Log::warning("⚠️ Firebase Auth user already exists: {$email} - Mot de passe inchangé!");
+                Log::warning("   Pour réinitialiser: supprimez l'utilisateur dans Firebase Console ou utilisez resetPassword()");
+                // Retourner un indicateur spécial
+                return [
+                    'exists' => true,
+                    'email' => $email,
+                    'uid' => null,
+                    'error' => 'EMAIL_EXISTS'
+                ];
+            }
+            
+            Log::error("❌ Firebase Auth create error: " . json_encode($result));
+            return null;
+            
+        } catch (\Exception $e) {
+            Log::error("Firebase Auth error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Connecter un utilisateur Firebase Auth pour obtenir son UID
+     * 
+     * @param string $email Email de l'utilisateur
+     * @param string $password Mot de passe
+     * @return array|null Retourne les infos utilisateur avec localId (UID) ou null si erreur
+     */
+    public function signInAuthUser(string $email, string $password): ?array
+    {
+        try {
+            $url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={$this->apiKey}";
+            
+            $data = [
+                'email' => $email,
+                'password' => $password,
+                'returnSecureToken' => true
+            ];
+            
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => 'Content-Type: application/json',
+                    'content' => json_encode($data),
+                    'timeout' => 30,
+                    'ignore_errors' => true,
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
+            
+            $response = @file_get_contents($url, false, $context);
+            $statusCode = $this->getHttpStatusCode($http_response_header ?? []);
+            $result = json_decode($response, true);
+            
+            if ($statusCode === 200 && isset($result['localId'])) {
+                return [
+                    'uid' => $result['localId'],
+                    'email' => $result['email'],
+                    'idToken' => $result['idToken'] ?? null,
+                    'refreshToken' => $result['refreshToken'] ?? null
+                ];
+            }
+            
+            Log::error("Firebase Auth sign-in error: " . json_encode($result));
+            return null;
+            
+        } catch (\Exception $e) {
+            Log::error("Firebase Auth sign-in error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Obtenir l'API Key
+     */
+    public function getApiKey(): ?string
+    {
+        return $this->apiKey;
+    }
+
+    /**
+     * Envoyer un email de réinitialisation de mot de passe
+     * 
+     * @param string $email Email de l'utilisateur
+     * @return bool True si l'email a été envoyé
+     */
+    public function sendPasswordResetEmail(string $email): bool
+    {
+        try {
+            $url = "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={$this->apiKey}";
+            
+            $data = [
+                'requestType' => 'PASSWORD_RESET',
+                'email' => $email
+            ];
+            
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => 'Content-Type: application/json',
+                    'content' => json_encode($data),
+                    'timeout' => 30,
+                    'ignore_errors' => true,
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
+            
+            $response = @file_get_contents($url, false, $context);
+            $statusCode = $this->getHttpStatusCode($http_response_header ?? []);
+            $result = json_decode($response, true);
+            
+            if ($statusCode === 200) {
+                Log::info("✅ Password reset email sent to: {$email}");
+                return true;
+            }
+            
+            Log::error("❌ Failed to send password reset: " . json_encode($result));
+            return false;
+            
+        } catch (\Exception $e) {
+            Log::error("Password reset error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Supprimer un utilisateur Firebase Auth (nécessite un idToken valide de l'utilisateur)
+     * Note: Cette méthode ne peut supprimer que l'utilisateur actuellement connecté
+     * Pour supprimer n'importe quel utilisateur, utilisez la Console Firebase ou l'Admin SDK
+     */
+    public function deleteAuthUser(string $idToken): bool
+    {
+        try {
+            $url = "https://identitytoolkit.googleapis.com/v1/accounts:delete?key={$this->apiKey}";
+            
+            $data = [
+                'idToken' => $idToken
+            ];
+            
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => 'Content-Type: application/json',
+                    'content' => json_encode($data),
+                    'timeout' => 30,
+                    'ignore_errors' => true,
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
+            
+            $response = @file_get_contents($url, false, $context);
+            $statusCode = $this->getHttpStatusCode($http_response_header ?? []);
+            
+            if ($statusCode === 200) {
+                Log::info("✅ Firebase Auth user deleted");
+                return true;
+            }
+            
+            $result = json_decode($response, true);
+            Log::error("❌ Failed to delete user: " . json_encode($result));
+            return false;
+            
+        } catch (\Exception $e) {
+            Log::error("Delete user error: " . $e->getMessage());
+            return false;
+        }
+    }
 }

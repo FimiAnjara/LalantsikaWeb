@@ -12,6 +12,7 @@ Route::get('/user', function (Request $request) {
 // Routes de synchronisation Firebase
 Route::prefix('sync')->group(function () {
     Route::get('/status', [SyncController::class, 'status']);
+    Route::get('/check-users', [SyncController::class, 'checkFirebaseUsers']);
     Route::post('/utilisateurs', [SyncController::class, 'synchroniserUtilisateurs']);
     Route::post('/utilisateurs/{id}', [SyncController::class, 'synchroniserUtilisateur']);
     Route::post('/force', [SyncController::class, 'forceSync']);
@@ -117,6 +118,137 @@ Route::prefix('firebase')->group(function () {
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la comparaison',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    /**
+     * Créer un utilisateur dans Firebase Auth (pour migration des utilisateurs existants)
+     * POST /api/firebase/create-auth-user
+     * Body: { "email": "...", "password": "..." }
+     */
+    Route::post('/create-auth-user', function (\Illuminate\Http\Request $request) {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required|min:6'
+            ]);
+
+            $firebaseService = app(FirebaseRestService::class);
+            
+            // Créer l'utilisateur dans Firebase Auth
+            $result = $firebaseService->createAuthUser($request->email, $request->password);
+            
+            if ($result) {
+                // Mettre à jour le firebase_uid dans PostgreSQL
+                $user = \App\Models\User::where('email', $request->email)->first();
+                if ($user) {
+                    $user->firebase_uid = $result['uid'];
+                    $user->save();
+                    
+                    // Mettre à jour dans Firestore aussi
+                    $firebaseService->saveDocument(
+                        'utilisateurs',
+                        (string) $user->id_utilisateur,
+                        [
+                            'firebase_uid' => $result['uid'],
+                            'uid' => $result['uid'],
+                            'updatedAt' => now()->toIso8601String()
+                        ]
+                    );
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Utilisateur créé dans Firebase Auth',
+                    'data' => [
+                        'uid' => $result['uid'],
+                        'email' => $result['email']
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Email déjà existant ou erreur lors de la création'
+            ], 400);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    /**
+     * Créer tous les utilisateurs existants dans Firebase Auth (migration batch)
+     * POST /api/firebase/migrate-all-users
+     * Body: { "default_password": "password123" }
+     * 
+     * ATTENTION: Tous les utilisateurs auront le même mot de passe temporaire !
+     */
+    Route::post('/migrate-all-users', function (\Illuminate\Http\Request $request) {
+        try {
+            $request->validate([
+                'default_password' => 'required|min:6'
+            ]);
+
+            $firebaseService = app(FirebaseRestService::class);
+            $users = \App\Models\User::whereNull('firebase_uid')
+                ->orWhere('firebase_uid', 'like', 'user_%')
+                ->get();
+            
+            $results = [
+                'total' => $users->count(),
+                'created' => 0,
+                'already_exists' => 0,
+                'errors' => []
+            ];
+            
+            foreach ($users as $user) {
+                try {
+                    $authResult = $firebaseService->createAuthUser($user->email, $request->default_password);
+                    
+                    if ($authResult) {
+                        $user->firebase_uid = $authResult['uid'];
+                        $user->save();
+                        
+                        // Mettre à jour dans Firestore
+                        $firebaseService->saveDocument(
+                            'utilisateurs',
+                            (string) $user->id_utilisateur,
+                            [
+                                'firebase_uid' => $authResult['uid'],
+                                'uid' => $authResult['uid'],
+                                'updatedAt' => now()->toIso8601String()
+                            ]
+                        );
+                        
+                        $results['created']++;
+                    } else {
+                        $results['already_exists']++;
+                    }
+                } catch (\Exception $e) {
+                    $results['errors'][] = [
+                        'email' => $user->email,
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Migration terminée',
+                'data' => $results
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur',
                 'error' => $e->getMessage()
             ], 500);
         }

@@ -1,3 +1,5 @@
 docker exec -it laravel_app_signalement composer require kreait/firebase-php
 
 docker exec -it laravel_app_signalement composer require kreait/firebase-php:^7.0 --ignore-platform-req=ext-grpc
+
+mdp123

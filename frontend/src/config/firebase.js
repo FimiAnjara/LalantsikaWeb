@@ -26,6 +26,7 @@ export async function firebaseSignIn(email, password) {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password)
         const idToken = await userCredential.user.getIdToken()
+
         return {
             success: true,
             idToken: idToken,

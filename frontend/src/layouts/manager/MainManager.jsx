@@ -239,15 +239,6 @@ export default function ManagerLayout() {
                             Parametres
                         </a>
                     </li>
-                    <li className="nav-item">
-                        <a
-                            href="/manager/synchro"
-                            className={`nav-link ${isActive('/manager/synchro') ? 'active' : ''}`}
-                        >
-                            <CIcon icon={cilCloudDownload} className="nav-icon" />
-                            Synchronisation
-                        </a>
-                    </li>
 
                 </ul>
                 <div className="sidebar-footer">

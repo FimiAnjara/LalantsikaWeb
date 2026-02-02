@@ -11,9 +11,8 @@ import AjoutUtilisateur from './pages/manager/utilisateurs/ajout/Home'
 import ListeUtilisateur from './pages/manager/utilisateurs/liste/Home'
 import ModifierUtilisateur from './pages/manager/utilisateurs/modifier/Home'
 import FicheUtilisateur from './pages/manager/utilisateurs/fiche/Home'
-import Parametres from './pages/manager/parametres/Parametres'
-import Synchro from './pages/manager/synchro/Synchro'
-import SignalementListe from './pages/manager/signalements/liste/Liste'
+import Parametres from './pages/manager/parametres/Home'
+import SignalementListe from './pages/manager/signalements/liste/Home'
 import SignalementCarte from './pages/manager/signalements/carte/Home'
 import SignalementFiche from './pages/manager/signalements/fiche/Home'
 import SignalementModifier from './pages/manager/signalements/modifier/Home'
@@ -64,11 +63,6 @@ function App() {
             <Route path="/manager/parametres" element={
               <ProtectedRoute>
                 <Parametres />
-              </ProtectedRoute>
-            } />
-            <Route path="/manager/synchro" element={
-              <ProtectedRoute>
-                <Synchro />
               </ProtectedRoute>
             } />
             <Route path="/manager/signalements/liste" element={

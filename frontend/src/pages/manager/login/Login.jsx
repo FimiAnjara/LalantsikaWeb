@@ -14,7 +14,7 @@ import {
     CInputGroupText,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilLockLocked, cilUser, cilCheckAlt, cilLowVision } from '@coreui/icons'
+import { cilLockLocked, cilUser, cilCheckAlt } from '@coreui/icons'
 import { firebaseSignIn } from '../../../config/firebase'
 import './Login.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -30,7 +30,6 @@ export default function ManagerLogin() {
     const [errors, setErrors] = useState({})
     const [isLoading, setIsLoading] = useState(false)
     const [apiError, setApiError] = useState('')
-    const [showPassword, setShowPassword] = useState(false)
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target
@@ -206,7 +205,7 @@ export default function ManagerLogin() {
                                             <CIcon icon={cilLockLocked} />
                                         </CInputGroupText>
                                         <CFormInput
-                                            type={showPassword ? "text" : "password"}
+                                            type="password"
                                             id="mdp"
                                             name="mdp"
                                             value={formData.mdp}
@@ -220,13 +219,6 @@ export default function ManagerLogin() {
                                                 borderColor: errors.mdp ? '#dc3545' : '',
                                             }}
                                         />
-                                        <CInputGroupText 
-                                            className="bg-light border-0 cursor-pointer"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            style={{ cursor: 'pointer' }}
-                                        >
-                                            <CIcon icon={cilLowVision} />
-                                        </CInputGroupText>
                                     </CInputGroup>
                                     {errors.mdp && (
                                         <div className="form-text text-danger mt-2">

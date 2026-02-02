@@ -3,8 +3,7 @@ import {
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
-  AuthError,
-  createUserWithEmailAndPassword
+  AuthError
 } from 'firebase/auth';
 import {
   collection,
@@ -17,8 +16,7 @@ import {
   addDoc,
   orderBy,
   limit,
-  serverTimestamp,
-  setDoc
+  serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { User, UserType, LoginResponse, getFullName } from '@/models/User';

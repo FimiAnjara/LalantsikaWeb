@@ -191,9 +191,6 @@ export default function SignalementListe() {
             'En attente': 'warning',
             'En cours': 'info',
             'Résolu': 'success',
-            'Terminé': 'success',
-            'Validé': 'primary',
-            'Non défini': 'secondary',
         }
         return badgeClass[statut] || 'secondary'
     }
@@ -321,7 +318,7 @@ export default function SignalementListe() {
                         <CTableDataCell>{sig.latitude ?? '-'}</CTableDataCell>
                         <CTableDataCell>{sig.longitude ?? '-'}</CTableDataCell>
                         <CTableDataCell>
-                            <CBadge color={getStatutBadge(sig.statut)} className="p-2 badge-statut">
+                            <CBadge color={getStatutBadge(sig.statut)} className="p-2">
                                 {sig.statut || 'Non défini'}
                             </CBadge>
                         </CTableDataCell>

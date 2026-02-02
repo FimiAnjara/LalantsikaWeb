@@ -129,8 +129,8 @@ export default function ListeUtilisateur() {
 
         const matchType = filterType === '' || user.type_utilisateur === filterType
         const matchStatus = filterStatus === '' || user.statut === filterStatus
-        const matchSync = filterSync === '' ||
-            (filterSync === 'oui' && user.synchronized) ||
+        const matchSync = filterSync === '' || 
+            (filterSync === 'oui' && user.synchronized) || 
             (filterSync === 'non' && !user.synchronized)
 
         return matchSearch && matchType && matchStatus && matchSync
@@ -317,92 +317,93 @@ export default function ListeUtilisateur() {
             {loading ? (
                 <div className="d-flex justify-content-center align-items-center py-5">
                     <CSpinner color="primary" />
+                    <span className="ms-2">Chargement des utilisateurs...</span>
                 </div>
             ) : (
-                <GenericTable
-                    title="Liste des utilisateurs"
-                    columns={[
-                        { key: 'identifiant', label: 'Identifiant' },
-                        { key: 'fullname', label: 'Nom complet' },
-                        { key: 'email', label: 'Email' },
-                        { key: 'type', label: 'Type' },
-                        { key: 'statut', label: 'Statut' },
-                        { key: 'sync', label: 'Synchronisé' },
-                        { key: 'actions', label: 'Actions' },
-                    ]}
-                    data={paginatedUtilisateurs}
-                    rowKey="id_utilisateur"
-                    renderRow={(user) => (
-                        <CTableRow key={user.id_utilisateur}>
-                            <CTableDataCell>
-                                <strong>{user.identifiant || '-'}</strong>
-                            </CTableDataCell>
-                            <CTableDataCell>
-                                <div className="d-flex align-items-center gap-2">
-                                    <div className="avatar-circle">
-                                        {user.prenom?.charAt(0) || ''}{user.nom?.charAt(0) || ''}
-                                    </div>
-                                    <div>
-                                        <div className="fw-medium">
-                                            {(user.prenom || '') + ' ' + (user.nom || '')}
-                                        </div>
+            <GenericTable
+                title="Liste des utilisateurs"
+                columns={[
+                    { key: 'identifiant', label: 'Identifiant' },
+                    { key: 'fullname', label: 'Nom complet' },
+                    { key: 'email', label: 'Email' },
+                    { key: 'type', label: 'Type' },
+                    { key: 'statut', label: 'Statut' },
+                    { key: 'sync', label: 'Synchronisé' },
+                    { key: 'actions', label: 'Actions' },
+                ]}
+                data={paginatedUtilisateurs}
+                rowKey="id_utilisateur"
+                renderRow={(user) => (
+                    <CTableRow key={user.id_utilisateur}>
+                        <CTableDataCell>
+                            <strong>{user.identifiant || '-'}</strong>
+                        </CTableDataCell>
+                        <CTableDataCell>
+                            <div className="d-flex align-items-center gap-2">
+                                <div className="avatar-circle">
+                                    {user.prenom?.charAt(0) || ''}{user.nom?.charAt(0) || ''}
+                                </div>
+                                <div>
+                                    <div className="fw-medium">
+                                        {(user.prenom || '') + ' ' + (user.nom || '')}
                                     </div>
                                 </div>
-                            </CTableDataCell>
-                            <CTableDataCell>{user.email || '-'}</CTableDataCell>
-                            <CTableDataCell>
-                                <CBadge color={getTypeColor(user.type_utilisateur)} className="p-2 badge-type">
-                                    {user.type_utilisateur || '-'}
-                                </CBadge>
-                            </CTableDataCell>
-                            <CTableDataCell>
-                                <CBadge color={getStatutColor(user.statut)} className="p-2 badge-statut">
-                                    {user.statut === 'actif' ? 'Actif' : user.statut === 'bloque' ? 'Bloqué' : '-'}
-                                </CBadge>
-                            </CTableDataCell>
-                            <CTableDataCell>
-                                <CBadge
-                                    color={user.synchronized ? 'success' : 'warning'}
-                                    className="p-2 d-flex align-items-center gap-1 badge-sync"
-                                    style={{ width: 'fit-content' }}
+                            </div>
+                        </CTableDataCell>
+                        <CTableDataCell>{user.email || '-'}</CTableDataCell>
+                        <CTableDataCell>
+                            <CBadge color={getTypeColor(user.type_utilisateur)} className="p-2">
+                                {user.type_utilisateur || '-'}
+                            </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell>
+                            <CBadge color={getStatutColor(user.statut)} className="p-2">
+                                {user.statut === 'actif' ? 'Actif' : user.statut === 'bloque' ? 'Bloqué' : '-'}
+                            </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell>
+                            <CBadge 
+                                color={user.synchronized ? 'success' : 'warning'} 
+                                className="p-2 d-flex align-items-center gap-1"
+                                style={{ width: 'fit-content' }}
+                            >
+                                <CIcon icon={user.synchronized ? cilSync : cilCloudDownload} size="sm" />
+                                {user.synchronized ? 'Oui' : 'Non'}
+                            </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell>
+                            {user.statut === 'bloque' ? (
+                                <CButton
+                                    color="success"
+                                    size="sm"
+                                    className="btn-action btn-unlock"
+                                    onClick={() => handleUnblock(user.id_utilisateur)}
+                                    title="Débloquer"
                                 >
-                                    <CIcon icon={user.synchronized ? cilSync : cilCloudDownload} size="sm" />
-                                    {user.synchronized ? 'Oui' : 'Non'}
-                                </CBadge>
-                            </CTableDataCell>
-                            <CTableDataCell>
-                                {user.statut === 'bloque' ? (
-                                    <CButton
-                                        color="success"
-                                        size="sm"
-                                        className="btn-action btn-unlock"
-                                        onClick={() => handleUnblock(user.id_utilisateur)}
-                                        title="Débloquer"
-                                    >
-                                        <CIcon icon={cilCheckAlt} className="me-1" />
-                                        Débloquer
-                                    </CButton>
-                                ) : (
-                                    <ActionButtons
-                                        id={user.id_utilisateur}
-                                        onView={() => navigate(`/manager/utilisateurs/fiche/${user.id_utilisateur}`)}
-                                        onEdit={() => navigate(`/manager/utilisateurs/modifier/${user.id_utilisateur}`)}
-                                        onDelete={handleDelete}
-                                    />
-                                )}
-                            </CTableDataCell>
-                        </CTableRow>
-                    )}
-                    emptyMessage="Aucun utilisateur trouvé"
-                />
+                                    <CIcon icon={cilCheckAlt} className="me-1" />
+                                    Débloquer
+                                </CButton>
+                            ) : (
+                                <ActionButtons
+                                    id={user.id_utilisateur}
+                                    onView={() => navigate(`/manager/utilisateurs/fiche/${user.id_utilisateur}`)}
+                                    onEdit={() => navigate(`/manager/utilisateurs/modifier/${user.id_utilisateur}`)}
+                                    onDelete={handleDelete}
+                                />
+                            )}
+                        </CTableDataCell>
+                    </CTableRow>
+                )}
+                emptyMessage="Aucun utilisateur trouvé"
+            />
             )}
 
             {/* Pagination */}
             {!loading && filteredUtilisateurs.length > 0 && (
                 <div className="d-flex justify-content-center mt-4">
                     <CPagination aria-label="Pagination des utilisateurs">
-                        <CPaginationItem
-                            aria-label="Précédent"
+                        <CPaginationItem 
+                            aria-label="Précédent" 
                             disabled={currentPage === 1}
                             onClick={() => handlePageChange(currentPage - 1)}
                         >
@@ -417,7 +418,7 @@ export default function ListeUtilisateur() {
                                 {page}
                             </CPaginationItem>
                         ))}
-                        <CPaginationItem
+                        <CPaginationItem 
                             aria-label="Suivant"
                             disabled={currentPage === totalPages}
                             onClick={() => handlePageChange(currentPage + 1)}
@@ -429,7 +430,7 @@ export default function ListeUtilisateur() {
             )}
 
             {/* Modal for success/unblock messages */}
-            <Modal
+            <Modal 
                 visible={modal.visible}
                 type={modal.type}
                 title={modal.title}

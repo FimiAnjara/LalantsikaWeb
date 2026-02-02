@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   frontend:
     build: ./frontend
@@ -11,8 +9,6 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_TILESERVER_URL=http://localhost:8088
-    stdin_open: true
-    tty: true
     depends_on:
       - tileserver
 

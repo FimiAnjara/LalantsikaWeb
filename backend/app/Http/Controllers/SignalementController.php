@@ -19,8 +19,9 @@ use OpenApi\Attributes as OA;
 class SignalementController extends Controller
 {
     /**
-     * Liste tous les signalements avec leurs relations
+     * Liste tous les signalements avec leurs relations (paginée et filtrable)
      *
+     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     #[OA\Get(
@@ -28,76 +29,114 @@ class SignalementController extends Controller
         summary: "Liste tous les signalements",
         tags: ["Signalements"],
         security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "page", in: "query", description: "Numéro de la page", required: false, schema: new OA\Schema(type: "integer", default: 1)),
+            new OA\Parameter(name: "per_page", in: "query", description: "Nombre d'éléments par page", required: false, schema: new OA\Schema(type: "integer", default: 15)),
+            new OA\Parameter(name: "statut", in: "query", description: "Filtrer par statut (libellé)", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "id_utilisateur", in: "query", description: "Filtrer par utilisateur", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "id_entreprise", in: "query", description: "Filtrer par entreprise assignée", required: false, schema: new OA\Schema(type: "integer"))
+        ],
         responses: [
             new OA\Response(response: 200, description: "Liste récupérée avec succès"),
             new OA\Response(response: 401, description: "Non authentifié")
         ]
     )]
-    public function index()
+    public function index(Request $request)
     {
         try {
+            $query = Signalement::with(['utilisateur', 'entreprise'])
+                ->orderBy('id_signalement', 'desc');
 
-            $signalements = Signalement::with(['utilisateur', 'entreprise'])
-                ->orderBy('id_signalement', 'desc')
-                ->get()
-                ->map(function ($signalement) {
-                    // Extraire latitude/longitude du champ geometry
-                    $coordinates = null;
-                    if ($signalement->point) {
-                        $lat = null;
-                        $lng = null;
-                        try {
-                            $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
-                            $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
-                        } catch (\Exception $e) {}
-                        if ($lat !== null && $lng !== null) {
-                            $coordinates = [
-                                'latitude' => $lat,
-                                'longitude' => $lng,
-                            ];
-                        }
+            // --- Filtrage SQL simple ---
+            if ($request->filled('id_utilisateur')) {
+                $query->where('id_utilisateur', $request->id_utilisateur);
+            }
+            if ($request->filled('id_entreprise')) {
+                $query->where('id_entreprise', $request->id_entreprise);
+            }
+
+            // --- Pagination ---
+            $perPage = $request->input('per_page', 15);
+            $page = $request->input('page', 1);
+            
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+            // --- Transformation des données ---
+            $data = $paginator->getCollection()->map(function ($signalement) {
+                // Extraire latitude/longitude du champ geometry
+                $coordinates = null;
+                if ($signalement->point) {
+                    $lat = null;
+                    $lng = null;
+                    try {
+                        $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
+                        $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
+                    } catch (\Exception $e) {}
+                    if ($lat !== null && $lng !== null) {
+                        $coordinates = [
+                            'latitude' => $lat,
+                            'longitude' => $lng,
+                        ];
                     }
+                }
 
-                    // Récupérer le dernier statut depuis histo_statut
-                    $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
-                        ->orderByDesc('daty')
-                        ->first();
-                    $statut = null;
-                    if ($lastHisto) {
-                        $statutObj = $lastHisto->statut;
-                        $statut = $statutObj ? $statutObj->libelle : null;
-                    }
+                // Récupérer le dernier statut depuis histo_statut
+                $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
+                    ->orderByDesc('daty')
+                    ->first();
+                $statut = null;
+                if ($lastHisto) {
+                    $statutObj = $lastHisto->statut;
+                    $statut = $statutObj ? $statutObj->libelle : null;
+                }
 
-                    return [
-                        'id_signalement' => $signalement->id_signalement,
-                        'daty' => $signalement->daty ? $signalement->daty->format('Y-m-d H:i') : null,
-                        'surface' => (float) $signalement->surface,
-                        'budget' => (float) $signalement->budget,
-                        'description' => $signalement->description,
-                        'photo' => $signalement->photo,
-                        'statut' => $statut,
-                        'utilisateur' => $signalement->utilisateur ? [
-                            'id' => $signalement->utilisateur->id_utilisateur,
-                            'nom' => $signalement->utilisateur->nom,
-                            'prenom' => $signalement->utilisateur->prenom,
-                            'nom_complet' => $signalement->utilisateur->prenom . ' ' . $signalement->utilisateur->nom,
-                        ] : null,
-                        'entreprise' => $signalement->entreprise ? [
-                            'id' => $signalement->entreprise->id_entreprise,
-                            'nom' => $signalement->entreprise->nom,
-                        ] : null,
-                        'coordinates' => $coordinates,
-                        'latitude' => $coordinates ? $coordinates['latitude'] : null,
-                        'longitude' => $coordinates ? $coordinates['longitude'] : null,
-                        'synchronized' => $signalement->synchronized ?? false,
-                    ];
-                });
+                return [
+                    'id_signalement' => $signalement->id_signalement,
+                    'daty' => $signalement->daty ? $signalement->daty->format('Y-m-d H:i') : null,
+                    'surface' => (float) $signalement->surface,
+                    'budget' => (float) $signalement->budget,
+                    'description' => $signalement->description,
+                    'photo' => $signalement->photo,
+                    'statut' => $statut,
+                    'utilisateur' => $signalement->utilisateur ? [
+                        'id' => $signalement->utilisateur->id_utilisateur,
+                        'nom' => $signalement->utilisateur->nom,
+                        'prenom' => $signalement->utilisateur->prenom,
+                        'nom_complet' => $signalement->utilisateur->prenom . ' ' . $signalement->utilisateur->nom,
+                    ] : null,
+                    'entreprise' => $signalement->entreprise ? [
+                        'id' => $signalement->entreprise->id_entreprise,
+                        'nom' => $signalement->entreprise->nom,
+                    ] : null,
+                    'coordinates' => $coordinates,
+                    'latitude' => $coordinates ? $coordinates['latitude'] : null,
+                    'longitude' => $coordinates ? $coordinates['longitude'] : null,
+                    'synchronized' => $signalement->synchronized ?? false,
+                ];
+            });
+
+            // --- Filtrage Post-Requete (Statut) ---
+            if ($request->filled('statut')) {
+                $statutVoulu = $request->statut;
+                $data = $data->filter(function ($item) use ($statutVoulu) {
+                    // Recherche approximative insensible à la casse
+                    return $item['statut'] && stripos($item['statut'], $statutVoulu) !== false;
+                })->values();
+            }
 
             return response()->json([
                 'code' => 200,
                 'success' => true,
                 'message' => 'Signalements récupérés avec succès',
-                'data' => $signalements
+                'data' => [
+                    'items' => $data,
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                        'last_page' => $paginator->lastPage(),
+                    ]
+                ]
             ]);
 
         } catch (\Exception $e) {

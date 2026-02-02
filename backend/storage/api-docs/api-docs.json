@@ -34,6 +34,84 @@
                 "summary": "Inscription d'un nouvel utilisateur",
                 "description": "Register a new user (Utilisateur uniquement - pas Manager)\nEnregistrement PostgreSQL uniquement",
                 "operationId": "ed42f392010c301892e640067141676e",
+                "parameters": [
+                    {
+                        "name": "identifiant",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "jdoe"
+                        }
+                    },
+                    {
+                        "name": "mdp",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "password",
+                            "example": "password123"
+                        }
+                    },
+                    {
+                        "name": "mdp_confirmation",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "password",
+                            "example": "password123"
+                        }
+                    },
+                    {
+                        "name": "nom",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Doe"
+                        }
+                    },
+                    {
+                        "name": "prenom",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "John"
+                        }
+                    },
+                    {
+                        "name": "dtn",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "1990-01-01"
+                        }
+                    },
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "email",
+                            "example": "john.doe@example.com"
+                        }
+                    },
+                    {
+                        "name": "id_sexe",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -110,11 +188,48 @@
                 "summary": "Connexion (Manager ou Firebase)",
                 "description": "Login Manager (Web uniquement)\nLogique : Firebase en priorité, sinon PostgreSQL local",
                 "operationId": "8cb7742ae98d0990acb2907c4e00bf24",
+                "parameters": [
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "description": "Email de l'utilisateur",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "email",
+                            "example": "manager@example.com"
+                        }
+                    },
+                    {
+                        "name": "mdp",
+                        "in": "query",
+                        "description": "Mot de passe",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "password",
+                            "example": "password"
+                        }
+                    },
+                    {
+                        "name": "firebase_token",
+                        "in": "query",
+                        "description": "Token Firebase ID (optionnel)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "email",
+                                    "mdp"
+                                ],
                                 "properties": {
                                     "email": {
                                         "type": "string",
@@ -226,6 +341,57 @@
                 "summary": "Authentification via Firebase",
                 "description": "Login or register user with Firebase token",
                 "operationId": "8a000af7b38c1ba184c654304634a32f",
+                "parameters": [
+                    {
+                        "name": "firebase_token",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "nom",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "prenom",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "dtn",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "id_sexe",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_type_utilisateur",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -279,8 +445,57 @@
                     "Signalements"
                 ],
                 "summary": "Liste tous les signalements",
-                "description": "Liste tous les signalements avec leurs relations",
+                "description": "Liste tous les signalements avec leurs relations (paginée et filtrable)",
                 "operationId": "0bc0c4872b152b2b9b2ad92ea69f5a88",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Numéro de la page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Nombre d'éléments par page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "description": "Filtrer par statut (libellé)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id_utilisateur",
+                        "in": "query",
+                        "description": "Filtrer par utilisateur",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_entreprise",
+                        "in": "query",
+                        "description": "Filtrer par entreprise assignée",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Liste récupérée avec succès"
@@ -526,8 +741,61 @@
                     "Utilisateurs"
                 ],
                 "summary": "Liste des utilisateurs",
-                "description": "Liste tous les utilisateurs avec leur statut",
+                "description": "Liste tous les utilisateurs avec leur statut (paginée et filtrable)",
                 "operationId": "7e2f5799553ec93c9c43e2a58490d447",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Numéro de la page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Nombre d'éléments par page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche par identifiant, nom, prénom ou email",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id_type_utilisateur",
+                        "in": "query",
+                        "description": "Filtrer par type d'utilisateur",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "description": "Filtrer par statut (actif/bloque)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "actif",
+                                "bloque"
+                            ]
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Liste récupérée avec succès"

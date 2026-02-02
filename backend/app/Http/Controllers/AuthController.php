@@ -29,10 +29,27 @@ class AuthController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
+    /** 
+     * Register a new user (Utilisateur uniquement - pas Manager)
+     * Enregistrement PostgreSQL uniquement
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     #[OA\Post(
         path: "/auth/register",
         summary: "Inscription d'un nouvel utilisateur",
         tags: ["Auth"],
+        parameters: [
+            new OA\Parameter(name: "identifiant", in: "query", required: false, schema: new OA\Schema(type: "string", example: "jdoe")),
+            new OA\Parameter(name: "mdp", in: "query", required: false, schema: new OA\Schema(type: "string", format: "password", example: "password123")),
+            new OA\Parameter(name: "mdp_confirmation", in: "query", required: false, schema: new OA\Schema(type: "string", format: "password", example: "password123")),
+            new OA\Parameter(name: "nom", in: "query", required: false, schema: new OA\Schema(type: "string", example: "Doe")),
+            new OA\Parameter(name: "prenom", in: "query", required: false, schema: new OA\Schema(type: "string", example: "John")),
+            new OA\Parameter(name: "dtn", in: "query", required: false, schema: new OA\Schema(type: "string", format: "date", example: "1990-01-01")),
+            new OA\Parameter(name: "email", in: "query", required: false, schema: new OA\Schema(type: "string", format: "email", example: "john.doe@example.com")),
+            new OA\Parameter(name: "id_sexe", in: "query", required: false, schema: new OA\Schema(type: "integer", example: 1))
+        ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
@@ -133,9 +150,15 @@ class AuthController extends Controller
         path: "/auth/login",
         summary: "Connexion (Manager ou Firebase)",
         tags: ["Auth"],
+        parameters: [
+            new OA\Parameter(name: "email", in: "query", description: "Email de l'utilisateur", required: false, schema: new OA\Schema(type: "string", format: "email", example: "manager@example.com")),
+            new OA\Parameter(name: "mdp", in: "query", description: "Mot de passe", required: false, schema: new OA\Schema(type: "string", format: "password", example: "password")),
+            new OA\Parameter(name: "firebase_token", in: "query", description: "Token Firebase ID (optionnel)", required: false, schema: new OA\Schema(type: "string"))
+        ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
+                required: ["email", "mdp"],
                 properties: [
                     new OA\Property(property: "email", type: "string", format: "email", example: "manager@example.com"),
                     new OA\Property(property: "mdp", type: "string", format: "password", example: "password"),
@@ -411,6 +434,14 @@ class AuthController extends Controller
         path: "/auth/firebase",
         summary: "Authentification via Firebase",
         tags: ["Auth"],
+        parameters: [
+            new OA\Parameter(name: "firebase_token", in: "query", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "nom", in: "query", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "prenom", in: "query", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "dtn", in: "query", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "id_sexe", in: "query", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "id_type_utilisateur", in: "query", required: false, schema: new OA\Schema(type: "integer"))
+        ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(

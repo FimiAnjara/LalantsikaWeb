@@ -2,21 +2,23 @@
 
 namespace App\Services;
 
-use Kreait\Firebase\Factory;
-use Kreait\Firebase\Database;
+use App\Services\Firebase\FirebaseRestService;
 
+/**
+ * @deprecated Use FirebaseRestService instead
+ * Cette classe est conservée pour la compatibilité mais délègue à FirebaseRestService
+ */
 class FirebaseService
 {
-    protected $database;
+    protected $firebaseRestService;
 
     public function __construct()
     {
-        $factory = (new Factory)->withServiceAccount(config('firebase.projects.lalantsika-project.credentials'));
-        $this->database = $factory->createDatabase(config('firebase.projects.lalantsika-project.database_url'));
+        $this->firebaseRestService = app(FirebaseRestService::class);
     }
 
-    public function getDatabase(): Database
+    public function getDatabase()
     {
-        return $this->database;
+        return $this->firebaseRestService;
     }
 }

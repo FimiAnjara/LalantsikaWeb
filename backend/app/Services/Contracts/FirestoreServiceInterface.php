@@ -3,43 +3,38 @@
 namespace App\Services\Contracts;
 
 /**
- * Interface pour les opérations Firestore
- * Définit le contrat que tous les services Firestore doivent respecter
+ * Interface pour les opérations Firebase REST API
+ * Définit le contrat que tous les services Firebase doivent respecter
  */
 interface FirestoreServiceInterface
 {
     /**
-     * Vérifier si Firestore est disponible
-     */
-    public function isAvailable(): bool;
-
-    /**
-     * Obtenir une référence à une collection
-     */
-    public function collection(string $name);
-
-    /**
      * Sauvegarder un document dans une collection
      */
-    public function saveToCollection(string $collection, $id, array $data): bool;
+    public function saveDocument(string $collection, string $docId, array $data): bool;
 
     /**
      * Récupérer un document d'une collection
      */
-    public function getFromCollection(string $collection, $id);
+    public function getDocument(string $collection, string $docId): ?array;
 
     /**
-     * Mettre à jour un document dans une collection
+     * Récupérer tous les documents d'une collection
      */
-    public function updateInCollection(string $collection, $id, array $data): bool;
+    public function getCollection(string $collection): array;
 
     /**
      * Supprimer un document d'une collection
      */
-    public function deleteFromCollection(string $collection, $id): bool;
+    public function deleteDocument(string $collection, string $docId): bool;
 
     /**
-     * Récupérer un document par champ
+     * Compter les documents dans une collection
      */
-    public function getFromCollectionByField(string $collection, string $field, $value);
+    public function countDocuments(string $collection): int;
+
+    /**
+     * Tester la connexion Firebase
+     */
+    public function testConnection(): bool;
 }

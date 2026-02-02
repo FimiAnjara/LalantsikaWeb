@@ -3,31 +3,38 @@
 namespace App\Services;
 
 use App\Services\Contracts\UtilisateurFirebaseServiceInterface;
-use App\Services\Firebase\FirestoreService;
+use App\Services\Firebase\FirebaseRestService;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * Service pour gérer les utilisateurs dans Firebase Realtime Database
+ * Utilise l'API REST (pas de gRPC requis)
+ */
 class UtilisateurFirebaseService implements UtilisateurFirebaseServiceInterface
 {
-    protected $firestoreService;
+    protected $firebaseRestService;
 
-    public function __construct(FirestoreService $firestoreService)
+    public function __construct(FirebaseRestService $firebaseRestService)
     {
-        $this->firestoreService = $firestoreService;
+        $this->firebaseRestService = $firebaseRestService;
     }
 
     /**
-     * Ajouter un utilisateur dans Firestore avec un ID généré
+     * Ajouter un utilisateur dans Firebase avec un ID généré
      */
     public function createUser(array $data): string
     {
-        $data['created_at'] = now()->toDateTimeString();
+        $data['created_at'] = now()->toIso8601String();
         $data['synced'] = true;
         
-        $collection = $this->firestoreService->collection('utilisateurs');
+        // Générer un ID unique
+        $userId = uniqid('user_');
         
-        $document = $collection->newDocument();
-        $document->set($data);
-
-        return $document->id();
+        $this->firebaseRestService->saveDocument('utilisateurs', $userId, $data);
+        
+        Log::info("✅ Utilisateur créé dans Firebase: {$userId}");
+        
+        return $userId;
     }
 
     /**
@@ -35,10 +42,12 @@ class UtilisateurFirebaseService implements UtilisateurFirebaseServiceInterface
      */
     public function createUserWithId(string $userId, array $data): void
     {
-        $data['created_at'] = $data['created_at'] ?? now()->toDateTimeString();
+        $data['created_at'] = $data['created_at'] ?? now()->toIso8601String();
         $data['synced'] = true;
         
-        $this->firestoreService->saveToCollection('utilisateurs', $userId, $data);
+        $this->firebaseRestService->saveDocument('utilisateurs', $userId, $data);
+        
+        Log::info("✅ Utilisateur créé avec ID: {$userId}");
     }
 
     /**
@@ -46,18 +55,24 @@ class UtilisateurFirebaseService implements UtilisateurFirebaseServiceInterface
      */
     public function getAllUsers(): array
     {
-        $collection = $this->firestoreService->collection('utilisateurs');
-        $documents = $collection->documents();
-
-        $users = [];
-        foreach ($documents as $document) {
-            $users[] = [
-                'id' => $document->id(),
-                ...$document->data()
-            ];
+        try {
+            $documents = $this->firebaseRestService->getCollection('utilisateurs');
+            
+            $users = [];
+            foreach ($documents as $id => $data) {
+                if (is_array($data)) {
+                    $users[] = [
+                        'id' => $id,
+                        ...$data
+                    ];
+                }
+            }
+            
+            return $users;
+        } catch (\Exception $e) {
+            Log::error("Erreur récupération utilisateurs: " . $e->getMessage());
+            return [];
         }
-
-        return $users;
     }
 
     /**
@@ -65,16 +80,21 @@ class UtilisateurFirebaseService implements UtilisateurFirebaseServiceInterface
      */
     public function getUserById(string $userId): ?array
     {
-        $data = $this->firestoreService->getFromCollection('utilisateurs', $userId);
+        try {
+            $data = $this->firebaseRestService->getDocument('utilisateurs', $userId);
 
-        if ($data) {
-            return [
-                'id' => $userId,
-                ...$data
-            ];
+            if ($data) {
+                return [
+                    'id' => $userId,
+                    ...$data
+                ];
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erreur récupération utilisateur {$userId}: " . $e->getMessage());
+            return null;
         }
-
-        return null;
     }
 
     /**
@@ -82,13 +102,33 @@ class UtilisateurFirebaseService implements UtilisateurFirebaseServiceInterface
      */
     public function getUsersByField(string $field, $value): array
     {
-        $data = $this->firestoreService->getFromCollectionByField('utilisateurs', $field, $value);
-
-        if ($data === null) {
+        try {
+            $allUsers = $this->firebaseRestService->getCollection('utilisateurs');
+            
+            $results = [];
+            foreach ($allUsers as $id => $data) {
+                if (is_array($data) && isset($data[$field]) && $data[$field] == $value) {
+                    $results[] = [
+                        'id' => $id,
+                        ...$data
+                    ];
+                }
+            }
+            
+            return $results;
+        } catch (\Exception $e) {
+            Log::error("Erreur recherche utilisateurs par {$field}: " . $e->getMessage());
             return [];
         }
+    }
 
-        return [$data];
+    /**
+     * Récupérer un utilisateur par email
+     */
+    public function getUserByEmail(string $email): ?array
+    {
+        $users = $this->getUsersByField('email', $email);
+        return !empty($users) ? $users[0] : null;
     }
 
     /**
@@ -96,8 +136,11 @@ class UtilisateurFirebaseService implements UtilisateurFirebaseServiceInterface
      */
     public function updateUser(string $userId, array $data): void
     {
-        $data['updated_at'] = now()->toDateTimeString();
-        $this->firestoreService->updateInCollection('utilisateurs', $userId, $data);
+        $data['updated_at'] = now()->toIso8601String();
+        
+        $this->firebaseRestService->saveDocument('utilisateurs', $userId, $data);
+        
+        Log::info("✅ Utilisateur mis à jour: {$userId}");
     }
 
     /**
@@ -105,27 +148,40 @@ class UtilisateurFirebaseService implements UtilisateurFirebaseServiceInterface
      */
     public function deleteUser(string $userId): void
     {
-        $this->firestoreService->deleteFromCollection('utilisateurs', $userId);
+        $this->firebaseRestService->deleteDocument('utilisateurs', $userId);
+        
+        Log::info("✅ Utilisateur supprimé: {$userId}");
     }
 
     /**
-     * Synchroniser un utilisateur PostgreSQL vers Firestore
+     * Synchroniser un utilisateur PostgreSQL vers Firebase
      */
     public function syncUserFromDatabase($utilisateur): void
     {
         $this->createUserWithId(
             (string) $utilisateur->id_utilisateur,
             [
+                'id_utilisateur' => $utilisateur->id_utilisateur,
                 'identifiant' => $utilisateur->identifiant,
                 'nom' => $utilisateur->nom,
                 'prenom' => $utilisateur->prenom,
                 'email' => $utilisateur->email,
-                'dtn' => $utilisateur->dtn,
+                'dtn' => $utilisateur->dtn ? $utilisateur->dtn->format('Y-m-d') : null,
                 'id_sexe' => $utilisateur->id_sexe,
-                'created_at' => $utilisateur->created_at->toDateTimeString(),
-                'updated_at' => $utilisateur->updated_at?->toDateTimeString(),
-                'synced_at' => now()->toDateTimeString()
+                'id_type_utilisateur' => $utilisateur->id_type_utilisateur,
+                'firebase_uid' => $utilisateur->firebase_uid,
+                'created_at' => $utilisateur->created_at?->toIso8601String(),
+                'updated_at' => $utilisateur->updated_at?->toIso8601String(),
+                'synced_at' => now()->toIso8601String()
             ]
         );
+    }
+
+    /**
+     * Vérifier si Firebase est disponible
+     */
+    public function isAvailable(): bool
+    {
+        return $this->firebaseRestService->testConnection();
     }
 }

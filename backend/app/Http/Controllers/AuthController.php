@@ -6,8 +6,7 @@ use App\Models\User;
 use App\Models\Sexe;
 use App\Models\TypeUtilisateur;
 use App\Models\StatutUtilisateur;
-use App\Services\Firebase\AuthService;
-use App\Services\Firebase\FirestoreService;
+use App\Services\Firebase\FirebaseRestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -90,83 +89,76 @@ class AuthController extends Controller
             ]);
         }
     }
-       
 
     /**
      * Login Manager (Web uniquement)
-     * Logique : Firebase en priorité, sinon PostgreSQL local
+     * Logique : Firebase token OU credentials PostgreSQL
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function login(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'firebase_token' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->loginPostgres($request);
+        // Si firebase_token est présent, extraire l'email du token JWT
+        if ($request->has('firebase_token') && !empty($request->firebase_token)) {
+            return $this->loginWithFirebaseToken($request);
         }
-
-        $firestoreService = new FirestoreService();
-        $firebaseAuthService = new AuthService();
         
+        // Sinon, authentification directe via PostgreSQL
+        return $this->loginPostgres($request);
+    }
+
+    /**
+     * Login avec Firebase Token (décoder le JWT pour obtenir l'email)
+     */
+    private function loginWithFirebaseToken(Request $request)
+    {
         try {
-            Log::info("🔥 Vérification du Firebase ID Token...");
+            $firebaseToken = $request->firebase_token;
             
-            // ÉTAPE 1 : Vérifier le token Firebase
-            $verifiedToken = $firebaseAuthService->verifyIdToken($request->firebase_token);
-            $firebaseUid = $verifiedToken->claims()->get('sub');
-            $email = $verifiedToken->claims()->get('email');
-            
-            Log::info("✅ Token vérifié - UID: {$firebaseUid}, Email: {$email}");
-            
-            // ÉTAPE 2 : Récupérer l'utilisateur depuis Firestore
-            $firestoreUser = $firestoreService->getFromCollectionByField('utilisateurs', 'email', $email);
-            
-            if (!$firestoreUser) {
-                Log::warning("⚠️ User not found in Firestore for email: {$email} - Trying PostgreSQL fallback...");
-                
-                // FALLBACK : Chercher dans PostgreSQL
-                $user = User::where('email', $email)->first();
-                
-                if (!$user) {
-                    Log::warning("❌ User not found in PostgreSQL either for email: {$email}");
-                    return response()->json([
-                        'code' => 401,
-                        'success' => false,
-                        'message' => 'Utilisateur non trouvé dans la base de données',
-                        'data' => null
-                    ]);
-                }
-                
-                // Vérifier que c'est un Manager (id_type_utilisateur = 1)
-                if ($user->id_type_utilisateur != 1) {
-                    Log::warning("❌ User is not a Manager (id_type_utilisateur: {$user->id_type_utilisateur})");
-                    return response()->json([
-                        'code' => 403,
-                        'success' => false,
-                        'message' => 'Accès refusé. Seuls les Managers peuvent se connecter sur le Web.',
-                        'data' => null
-                    ]);
-                }
-                
-                // Mettre à jour le firebase_uid si nécessaire
-                if (!$user->firebase_uid) {
-                    $user->firebase_uid = $firebaseUid;
-                    $user->save();
-                }
-                
-                $token = JWTAuth::fromUser($user);
-                Log::info("✅ Login successful via PostgreSQL fallback - Manager: {$user->email}");
-                
-                return $this->respondWithToken($token, $user);
+            // Décoder le JWT pour extraire l'email (sans vérification de signature)
+            $tokenParts = explode('.', $firebaseToken);
+            if (count($tokenParts) !== 3) {
+                Log::warning("❌ Token Firebase invalide (format incorrect)");
+                return response()->json([
+                    'code' => 401,
+                    'success' => false,
+                    'message' => 'Token Firebase invalide',
+                    'data' => null
+                ]);
             }
             
-            // ÉTAPE 3 : Vérifier que c'est un Manager (id_type_utilisateur = 1)
-            if (!isset($firestoreUser['type_utilisateur']['id_type_utilisateur']) || $firestoreUser['type_utilisateur']['id_type_utilisateur'] != 1) {
-                Log::warning("❌ User is not a Manager (id_type_utilisateur: " . ($firestoreUser['id_type_utilisateur'] ?? 'null') . ")");
+            $payload = json_decode(base64_decode(strtr($tokenParts[1], '-_', '+/')), true);
+            $email = $payload['email'] ?? null;
+            
+            if (!$email) {
+                Log::warning("❌ Email non trouvé dans le token Firebase");
+                return response()->json([
+                    'code' => 401,
+                    'success' => false,
+                    'message' => 'Email non trouvé dans le token',
+                    'data' => null
+                ]);
+            }
+            
+            Log::info("🔥 Login via Firebase Token - Email: {$email}");
+            
+            // Chercher l'utilisateur par email
+            $user = User::where('email', $email)->first();
+            
+            if (!$user) {
+                Log::warning("❌ Utilisateur non trouvé: {$email}");
+                return response()->json([
+                    'code' => 401,
+                    'success' => false,
+                    'message' => 'Utilisateur non trouvé',
+                    'data' => null
+                ]);
+            }
+            
+            // Vérifier que c'est un Manager (id_type_utilisateur = 1)
+            if ($user->id_type_utilisateur !== 1) {
+                Log::warning("❌ L'utilisateur {$email} n'est pas un Manager");
                 return response()->json([
                     'code' => 403,
                     'success' => false,
@@ -175,39 +167,28 @@ class AuthController extends Controller
                 ]);
             }
             
-            // ÉTAPE 4 : Chercher ou créer l'utilisateur dans PostgreSQL
-            $user = User::where('email', $email)->first();
-            
-            if (!$user) {
-                // Créer l'utilisateur dans PostgreSQL s'il n'existe pas
-                $user = User::create([
-                    'identifiant' => $firestoreUser['identifiant'] ?? $firebaseUid,
-                    'mdp' => Hash::make(uniqid()), // Mot de passe temporaire
-                    'nom' => $firestoreUser['nom'] ?? '',
-                    'prenom' => $firestoreUser['prenom'] ?? '',
-                    'dtn' => isset($firestoreUser['dtn']) ? $firestoreUser['dtn'] : now()->subYears(25),
-                    'email' => $email,
-                    'id_sexe' => $firestoreUser['sexe']['id_sexe'] ?? 1,
-                    'id_type_utilisateur' => $firestoreUser['type_utilisateur']['id_type_utilisateur'],
-                    'firebase_uid' => $firebaseUid,
-                ]);
-                Log::info("✅ User created in PostgreSQL from Firestore: {$user->email}");
-            } else {
-                // Mettre à jour le firebase_uid si nécessaire
-                if (!$user->firebase_uid) {
-                    $user->firebase_uid = $firebaseUid;
-                    $user->save();
-                }
+            // Mettre à jour le firebase_uid si nécessaire
+            $firebaseUid = $payload['sub'] ?? $payload['user_id'] ?? null;
+            if ($firebaseUid && !$user->firebase_uid) {
+                $user->firebase_uid = $firebaseUid;
+                $user->save();
             }
             
+            // Générer le token JWT
             $token = JWTAuth::fromUser($user);
-            Log::info("✅ Login successful via Firebase - Manager: {$user->email}");
+            
+            Log::info("✅ Login réussi via Firebase Token - Manager: {$user->email}");
             
             return $this->respondWithToken($token, $user);
             
         } catch (\Exception $e) {
-            Log::error("🔴 Firebase token verification failed: " . $e->getMessage());
-            return $this->loginPostgres($request);
+            Log::error("❌ Erreur Firebase Token: " . $e->getMessage());
+            return response()->json([
+                'code' => 500,
+                'success' => false,
+                'message' => 'Erreur de traitement du token',
+                'data' => ['error' => $e->getMessage()]
+            ]);
         }
     }
 
@@ -219,12 +200,32 @@ class AuthController extends Controller
      */
     private function loginPostgres(Request $request)
     {
-        Log::info("💾 Authentification via PostgreSQL local");
-         
-        // Chercher l'utilisateur par email
-        $user = User::where('email', $request->email)->first();
+        Log::info("💾 Authentification via PostgreSQL local", [
+            'email' => $request->email,
+            'identifiant' => $request->identifiant,
+            'all_data' => $request->all()
+        ]);
+        
+        // Chercher l'utilisateur par email OU identifiant
+        $user = User::where('email', $request->email)
+                    ->orWhere('identifiant', $request->email)
+                    ->orWhere('email', $request->identifiant)
+                    ->orWhere('identifiant', $request->identifiant)
+                    ->first();
 
-        if (!$user || !Hash::check($request->mdp, $user->mdp)) {
+        if (!$user) {
+            Log::warning("❌ Utilisateur non trouvé: email={$request->email}, identifiant={$request->identifiant}");
+            return response()->json([
+                'code' => 401,
+                'success' => false,
+                'message' => 'Identifiants invalides',
+                'data' => null
+            ]);
+        }
+
+        // Vérifier le mot de passe
+        if (!Hash::check($request->mdp, $user->mdp)) {
+            Log::warning("❌ Mot de passe incorrect pour: {$user->email}");
             return response()->json([
                 'code' => 401,
                 'success' => false,
@@ -239,6 +240,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$typeUtilisateur || $typeUtilisateur->id_type_utilisateur !== 1) {
+            Log::warning("❌ L'utilisateur {$user->email} n'est pas un Manager (type: {$user->id_type_utilisateur})");
             return response()->json([
                 'code' => 403,
                 'success' => false,
@@ -322,7 +324,8 @@ class AuthController extends Controller
     }
 
     /**
-     * Login or register user with Firebase token
+     * Login or register user with Firebase token (Mobile)
+     * Note: Cette méthode est pour l'app mobile qui utilise Firebase Auth
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -330,7 +333,8 @@ class AuthController extends Controller
     public function firebaseAuth(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'firebase_token' => 'required|string',
+            'firebase_uid' => 'required|string',
+            'email' => 'required|email',
             'nom' => 'nullable|string|max:50',
             'prenom' => 'nullable|string|max:50',
             'dtn' => 'nullable|date',
@@ -348,14 +352,13 @@ class AuthController extends Controller
         }
 
         try {
-            $firebaseService = new FirebaseService();
-            $verifiedToken = $firebaseService->verifyIdToken($request->firebase_token);
+            $firebaseUid = $request->firebase_uid;
+            $email = $request->email;
             
-            $firebaseUid = $verifiedToken->claims()->get('sub');
-            $email = $verifiedToken->claims()->get('email');
+            Log::info("🔥 Firebase Auth - UID: {$firebaseUid}, Email: {$email}");
             
-            // Chercher l'utilisateur par identifiant (Firebase UID) ou email
-            $user = User::where('identifiant', $firebaseUid)
+            // Chercher l'utilisateur par firebase_uid ou email
+            $user = User::where('firebase_uid', $firebaseUid)
                         ->orWhere('email', $email)
                         ->first();
 
@@ -363,18 +366,22 @@ class AuthController extends Controller
             if (!$user) {
                 $user = User::create([
                     'identifiant' => $firebaseUid,
-                    'mdp' => Hash::make(uniqid()), // Mot de passe aléatoire (non utilisé avec Firebase)
+                    'mdp' => Hash::make(uniqid()),
                     'nom' => $request->nom ?? 'User',
                     'prenom' => $request->prenom ?? '',
                     'dtn' => $request->dtn ?? now()->subYears(20),
                     'email' => $email,
                     'id_sexe' => $request->id_sexe ?? 1,
-                    'id_type_utilisateur' => $request->id_type_utilisateur ?? 1,
+                    'id_type_utilisateur' => $request->id_type_utilisateur ?? 2, // Utilisateur par défaut
+                    'firebase_uid' => $firebaseUid,
                 ]);
+                
+                Log::info("✅ Nouvel utilisateur créé via Firebase: {$email}");
             } else {
-                // Mettre à jour l'identifiant Firebase si nécessaire
-                if ($user->identifiant !== $firebaseUid) {
-                    $user->update(['identifiant' => $firebaseUid]);
+                // Mettre à jour le firebase_uid si nécessaire
+                if (!$user->firebase_uid) {
+                    $user->firebase_uid = $firebaseUid;
+                    $user->save();
                 }
             }
 
@@ -395,6 +402,7 @@ class AuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error("❌ Firebase Auth error: " . $e->getMessage());
             return response()->json([
                 'code' => 401,
                 'success' => false,

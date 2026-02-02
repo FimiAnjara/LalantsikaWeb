@@ -272,51 +272,51 @@ export default function SignalementFiche() {
     if (error) return <div className="fiche-signalement"><div className="alert alert-danger m-4">{error}</div></div>
     if (!signalement) return null
 
-    // Action Valider/Rejeter
-    const handleValidationRejet = async (action) => {
-        setModal({ visible: false })
-        try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-            const resStatut = await fetch('http://localhost:8000/api/statuses', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
-            })
-            const statutsResult = await resStatut.json();
-            if (!statutsResult.success || !statutsResult.data) throw new Error('Impossible de récupérer les statuts');
-            const statutObj = statutsResult.data.find(s => s.libelle === action);
-            if (!statutObj) throw new Error('Statut non trouvé');
-            const formData = new FormData();
-            formData.append('id_statut', statutObj.id_statut);
-            formData.append('description', action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté');
-            formData.append('daty', new Date().toISOString().slice(0, 16));
-            const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                },
-                body: formData
-            });
-            const result = await res.json();
-            if (!result.success) throw new Error(result.message || 'Erreur lors de la mise à jour du statut');
-            setModal({
-                visible: true,
-                type: 'success',
-                title: action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté',
-                message: action === 'Validé' ? 'Le signalement a été validé.' : 'Le signalement a été rejeté.'
-            });
-            setTimeout(() => window.location.reload(), 1200);
-        } catch (e) {
-            setModal({
-                visible: true,
-                type: 'danger',
-                title: 'Erreur',
-                message: e.message || 'Erreur lors de la validation/rejet.'
-            });
-        }
-    }
+    // // Action Valider/Rejeter
+    // const handleValidationRejet = async (action) => {
+    //     setModal({ visible: false })
+    //     try {
+    //         const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    //         const resStatut = await fetch('http://localhost:8000/api/statuses', {
+    //             headers: {
+    //                 'Authorization': `Bearer ${token}`,
+    //                 'Accept': 'application/json',
+    //             }
+    //         })
+    //         const statutsResult = await resStatut.json();
+    //         if (!statutsResult.success || !statutsResult.data) throw new Error('Impossible de récupérer les statuts');
+    //         const statutObj = statutsResult.data.find(s => s.libelle === action);
+    //         if (!statutObj) throw new Error('Statut non trouvé');
+    //         const formData = new FormData();
+    //         formData.append('id_statut', statutObj.id_statut);
+    //         formData.append('description', action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté');
+    //         formData.append('daty', new Date().toISOString().slice(0, 16));
+    //         const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Authorization': `Bearer ${token}`,
+    //                 'Accept': 'application/json',
+    //             },
+    //             body: formData
+    //         });
+    //         const result = await res.json();
+    //         if (!result.success) throw new Error(result.message || 'Erreur lors de la mise à jour du statut');
+    //         setModal({
+    //             visible: true,
+    //             type: 'success',
+    //             title: action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté',
+    //             message: action === 'Validé' ? 'Le signalement a été validé.' : 'Le signalement a été rejeté.'
+    //         });
+    //         setTimeout(() => window.location.reload(), 1200);
+    //     } catch (e) {
+    //         setModal({
+    //             visible: true,
+    //             type: 'danger',
+    //             title: 'Erreur',
+    //             message: e.message || 'Erreur lors de la validation/rejet.'
+    //         });
+    //     }
+    // }
 
     return (
         <div className="fiche-signalement">
@@ -336,8 +336,8 @@ export default function SignalementFiche() {
                         color="primary"
                         className="btn-theme"
                         onClick={handleEdit}
-                        disabled={signalement.statut !== 'Validé' && signalement.statut !== 'En cours' && signalement.statut !== 'Résolu'}
-                        title={signalement.statut !== 'Validé' && signalement.statut !== 'En cours' && signalement.statut !== 'Résolu' ? 'Impossible de modifier le statut tant que le signalement n\'est pas validé' : ''}
+                        // disabled={signalement.statut !== 'Validé' && signalement.statut !== 'En cours' && signalement.statut !== 'Résolu'}
+                        // title={signalement.statut !== 'Validé' && signalement.statut !== 'En cours' && signalement.statut !== 'Résolu' ? 'Impossible de modifier le statut tant que le signalement n\'est pas validé' : ''}
                     >
                         <CIcon icon={cilPencil} className="me-2" />
                         Modifier Status
@@ -346,7 +346,7 @@ export default function SignalementFiche() {
                         <CIcon icon={cilBuilding} className="me-2" />
                         Assigner
                     </CButton>
-                    {/* Boutons Valider/Rejeter si statut = En attente */}
+                    {/* Boutons Valider/Rejeter si statut = En attente
                     {signalement.statut === 'En attente' && (
                         <>
                             <CButton color="success" onClick={() => handleValidationRejet('Validé')}>
@@ -356,7 +356,7 @@ export default function SignalementFiche() {
                                 Rejeter
                             </CButton>
                         </>
-                    )}
+                    )} */}
                 </div>
             </div>
 

@@ -269,18 +269,25 @@ class SyncController extends Controller
         return [
             'id_utilisateur' => $utilisateur->id_utilisateur,
             'firebase_uid' => $firebaseUid,
+            'uid' => $firebaseUid,
             'identifiant' => $utilisateur->identifiant,
             'prenom' => $utilisateur->prenom,
             'nom' => $utilisateur->nom,
             'email' => $utilisateur->email,
             'dtn' => $utilisateur->dtn,
             'numero_telephone' => $utilisateur->numero_telephone,
-            'sexe' => $utilisateur->sexe?->libelle,
-            'type_utilisateur' => $utilisateur->typeUtilisateur?->libelle,
+            'sexe' => $utilisateur->sexe ? [
+                'id_sexe' => $utilisateur->sexe->id_sexe,
+                'libelle' => $utilisateur->sexe->libelle
+            ] : null,
+            'type_utilisateur' => $utilisateur->typeUtilisateur ? [
+                'id_type_utilisateur' => $utilisateur->typeUtilisateur->id_type_utilisateur,
+                'libelle' => $utilisateur->typeUtilisateur->libelle
+            ] : null,
             'adresse' => $utilisateur->adresse,
             'photo_profil' => $utilisateur->photo_profil,
-            'created_at' => $utilisateur->created_at?->toIso8601String(),
-            'updated_at' => $utilisateur->updated_at?->toIso8601String()
+            'last_sync_at' => now()->toIso8601String(),
+            'updatedAt' => now()->toIso8601String()
         ];
     }
 }

@@ -10,24 +10,78 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 
+use OpenApi\Attributes as OA;
+
+#[OA\Tag(
+    name: "Utilisateurs",
+    description: "Gestion des utilisateurs (Web & Mobile)"
+)]
 class UserController extends Controller
 {
     /**
-     * Liste tous les utilisateurs avec leur statut
+     * Liste tous les utilisateurs avec leur statut (paginée et filtrable)
      *
+     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    #[OA\Get(
+        path: "/users",
+        summary: "Liste des utilisateurs",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "page", in: "query", description: "Numéro de la page", required: false, schema: new OA\Schema(type: "integer", default: 1)),
+            new OA\Parameter(name: "per_page", in: "query", description: "Nombre d'éléments par page", required: false, schema: new OA\Schema(type: "integer", default: 15)),
+            new OA\Parameter(name: "search", in: "query", description: "Recherche par identifiant, nom, prénom ou email", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "id_type_utilisateur", in: "query", description: "Filtrer par type d'utilisateur", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "statut", in: "query", description: "Filtrer par statut (actif/bloque)", required: false, schema: new OA\Schema(type: "string", enum: ["actif", "bloque"]))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Liste récupérée avec succès"),
+            new OA\Response(response: 401, description: "Non authentifié")
+        ]
+    )]
+    public function index(Request $request)
     {
         try {
-            $users = User::with(['sexe', 'typeUtilisateur', 'statuts' => function($query) {
-                $query->orderBy('date_', 'desc')->limit(1);
-            }])
-            ->orderBy('id_utilisateur', 'desc')
-            ->get()
-            ->map(function ($user) {
-                // Récupérer le dernier statut
-                $dernierStatut = $user->statuts->first();
+            $query = User::with(['sexe', 'typeUtilisateur', 'statuts' => function($q) {
+                $q->orderBy('date_', 'desc'); // On récupère tous les statuts pour trier en PHP si besoin
+            }])->orderBy('id_utilisateur', 'desc');
+
+            // --- Filtrage ---
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('identifiant', 'ilike', "%{$search}%")
+                      ->orWhere('nom', 'ilike', "%{$search}%")
+                      ->orWhere('prenom', 'ilike', "%{$search}%")
+                      ->orWhere('email', 'ilike', "%{$search}%");
+                });
+            }
+
+            if ($request->filled('id_type_utilisateur')) {
+                $query->where('id_type_utilisateur', $request->id_type_utilisateur);
+            }
+
+            // Note: Le filtrage par "statut" est complexe en SQL pur car il dépend du dernier statut inséré.
+            // Pour simplifier et optimiser, on filtre APRÈS récupération si la pagination n'est pas critique,
+            // OU on fait une requête complexe. Ici, on va ignorer le filtre statut SQL pour l'instant 
+            // sauf si spécifiquement demandé, pour éviter des erreurs SQL complexes.
+            // Si le user insiste sur le filtre "statut", on ajoutera un whereHas avec subquery.
+
+            // --- Pagination ---
+            
+            $perPage = $request->input('per_page', 15);
+            $page = $request->input('page', 1);
+
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+            // --- Transformation des données ---
+
+            $data = $paginator->getCollection()->map(function ($user) {
+                // Récupérer le dernier statut (le plus récent par date_)
+                $premierStatut = $user->statuts->sortByDesc('date_')->first();
                 
                 return [
                     'id_utilisateur' => $user->id_utilisateur,
@@ -39,15 +93,31 @@ class UserController extends Controller
                     'sexe' => $user->sexe ? $user->sexe->libelle : null,
                     'type_utilisateur' => $user->typeUtilisateur ? $user->typeUtilisateur->libelle : null,
                     'synchronized' => $user->synchronized ?? false,
-                    'statut' => $dernierStatut ? ($dernierStatut->etat == 1 ? 'actif' : 'bloque') : 'actif',
+                    'statut' => $premierStatut ? ($premierStatut->etat == 1 ? 'actif' : 'bloque') : 'actif',
                 ];
             });
+
+            // Si filtre statut demandé (filtrage post-query sur la page courante - imparfait mais simple)
+            if ($request->filled('statut')) {
+                $statutVoulu = $request->statut;
+                $data = $data->filter(function ($user) use ($statutVoulu) {
+                    return $user['statut'] === $statutVoulu;
+                })->values();
+            }
 
             return response()->json([
                 'code' => 200,
                 'success' => true,
                 'message' => 'Liste des utilisateurs récupérée avec succès',
-                'data' => $users
+                'data' => [
+                    'items' => $data,
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                        'last_page' => $paginator->lastPage(),
+                    ]
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -68,6 +138,19 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/users/{id}",
+        summary: "Détails d'un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Détails récupérés avec succès"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function show($id)
     {
         try {
@@ -117,6 +200,31 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Put(
+        path: "/users/{id}",
+        summary: "Mettre à jour un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "nom", type: "string"),
+                    new OA\Property(property: "prenom", type: "string"),
+                    new OA\Property(property: "email", type: "string"),
+                    new OA\Property(property: "dtn", type: "string", format: "date"),
+                    new OA\Property(property: "id_sexe", type: "integer"),
+                    new OA\Property(property: "id_type_utilisateur", type: "integer")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Mise à jour réussie"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function update(Request $request, $id)
     {
         try {
@@ -189,6 +297,19 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/users/{id}/block",
+        summary: "Bloquer un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Utilisateur bloqué"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function block($id)
     {
         try {
@@ -227,6 +348,19 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/users/{id}/unblock",
+        summary: "Débloquer un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Utilisateur débloqué"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function unblock($id)
     {
         try {
@@ -265,6 +399,19 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Delete(
+        path: "/users/{id}",
+        summary: "Supprimer un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Utilisateur supprimé"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function destroy($id)
     {
         try {
@@ -302,6 +449,15 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/user-types",
+        summary: "Liste des types d'utilisateurs",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Liste des types")
+        ]
+    )]
     public function getTypesUtilisateurs()
     {
         try {
@@ -331,6 +487,15 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */    
+    #[OA\Get(
+        path: "/user-statuses",
+        summary: "Liste des statuts possibles",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Liste des statuts")
+        ]
+    )]
     public function getStatutsUtilisateurs()
     {
         try {

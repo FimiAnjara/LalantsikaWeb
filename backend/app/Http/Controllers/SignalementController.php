@@ -10,78 +10,133 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\HistoStatut;
 
+use OpenApi\Attributes as OA;
+
+#[OA\Tag(
+    name: "Signalements",
+    description: "Gestion des signalements, leur état et leur historique"
+)]
 class SignalementController extends Controller
 {
     /**
-     * Liste tous les signalements avec leurs relations
+     * Liste tous les signalements avec leurs relations (paginée et filtrable)
      *
+     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    #[OA\Get(
+        path: "/reports",
+        summary: "Liste tous les signalements",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "page", in: "query", description: "Numéro de la page", required: false, schema: new OA\Schema(type: "integer", default: 1)),
+            new OA\Parameter(name: "per_page", in: "query", description: "Nombre d'éléments par page", required: false, schema: new OA\Schema(type: "integer", default: 15)),
+            new OA\Parameter(name: "statut", in: "query", description: "Filtrer par statut (libellé)", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "id_utilisateur", in: "query", description: "Filtrer par utilisateur", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "id_entreprise", in: "query", description: "Filtrer par entreprise assignée", required: false, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Liste récupérée avec succès"),
+            new OA\Response(response: 401, description: "Non authentifié")
+        ]
+    )]
+    public function index(Request $request)
     {
         try {
+            $query = Signalement::with(['utilisateur', 'entreprise'])
+                ->orderBy('id_signalement', 'desc');
 
-            $signalements = Signalement::with(['utilisateur', 'entreprise'])
-                ->orderBy('id_signalement', 'desc')
-                ->get()
-                ->map(function ($signalement) {
-                    // Extraire latitude/longitude du champ geometry
-                    $coordinates = null;
-                    if ($signalement->point) {
-                        $lat = null;
-                        $lng = null;
-                        try {
-                            $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
-                            $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
-                        } catch (\Exception $e) {}
-                        if ($lat !== null && $lng !== null) {
-                            $coordinates = [
-                                'latitude' => $lat,
-                                'longitude' => $lng,
-                            ];
-                        }
+            // --- Filtrage SQL simple ---
+            if ($request->filled('id_utilisateur')) {
+                $query->where('id_utilisateur', $request->id_utilisateur);
+            }
+            if ($request->filled('id_entreprise')) {
+                $query->where('id_entreprise', $request->id_entreprise);
+            }
+
+            // --- Pagination ---
+            $perPage = $request->input('per_page', 15);
+            $page = $request->input('page', 1);
+            
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+            // --- Transformation des données ---
+            $data = $paginator->getCollection()->map(function ($signalement) {
+                // Extraire latitude/longitude du champ geometry
+                $coordinates = null;
+                if ($signalement->point) {
+                    $lat = null;
+                    $lng = null;
+                    try {
+                        $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
+                        $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
+                    } catch (\Exception $e) {}
+                    if ($lat !== null && $lng !== null) {
+                        $coordinates = [
+                            'latitude' => $lat,
+                            'longitude' => $lng,
+                        ];
                     }
+                }
 
-                    // Récupérer le dernier statut depuis histo_statut
-                    $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
-                        ->orderByDesc('daty')
-                        ->first();
-                    $statut = null;
-                    if ($lastHisto) {
-                        $statutObj = $lastHisto->statut;
-                        $statut = $statutObj ? $statutObj->libelle : null;
-                    }
+                // Récupérer le dernier statut depuis histo_statut
+                $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
+                    ->orderByDesc('daty')
+                    ->first();
+                $statut = null;
+                if ($lastHisto) {
+                    $statutObj = $lastHisto->statut;
+                    $statut = $statutObj ? $statutObj->libelle : null;
+                }
 
-                    return [
-                        'id_signalement' => $signalement->id_signalement,
-                        'daty' => $signalement->daty ? $signalement->daty->format('Y-m-d H:i') : null,
-                        'surface' => (float) $signalement->surface,
-                        'budget' => (float) $signalement->budget,
-                        'description' => $signalement->description,
-                        'photo' => $signalement->photo,
-                        'statut' => $statut,
-                        'utilisateur' => $signalement->utilisateur ? [
-                            'id' => $signalement->utilisateur->id_utilisateur,
-                            'nom' => $signalement->utilisateur->nom,
-                            'prenom' => $signalement->utilisateur->prenom,
-                            'nom_complet' => $signalement->utilisateur->prenom . ' ' . $signalement->utilisateur->nom,
-                        ] : null,
-                        'entreprise' => $signalement->entreprise ? [
-                            'id' => $signalement->entreprise->id_entreprise,
-                            'nom' => $signalement->entreprise->nom,
-                        ] : null,
-                        'coordinates' => $coordinates,
-                        'latitude' => $coordinates ? $coordinates['latitude'] : null,
-                        'longitude' => $coordinates ? $coordinates['longitude'] : null,
-                        'synchronized' => $signalement->synchronized ?? false,
-                    ];
-                });
+                return [
+                    'id_signalement' => $signalement->id_signalement,
+                    'daty' => $signalement->daty ? $signalement->daty->format('Y-m-d H:i') : null,
+                    'surface' => (float) $signalement->surface,
+                    'budget' => (float) $signalement->budget,
+                    'description' => $signalement->description,
+                    'photo' => $signalement->photo,
+                    'statut' => $statut,
+                    'utilisateur' => $signalement->utilisateur ? [
+                        'id' => $signalement->utilisateur->id_utilisateur,
+                        'nom' => $signalement->utilisateur->nom,
+                        'prenom' => $signalement->utilisateur->prenom,
+                        'nom_complet' => $signalement->utilisateur->prenom . ' ' . $signalement->utilisateur->nom,
+                    ] : null,
+                    'entreprise' => $signalement->entreprise ? [
+                        'id' => $signalement->entreprise->id_entreprise,
+                        'nom' => $signalement->entreprise->nom,
+                    ] : null,
+                    'coordinates' => $coordinates,
+                    'latitude' => $coordinates ? $coordinates['latitude'] : null,
+                    'longitude' => $coordinates ? $coordinates['longitude'] : null,
+                    'synchronized' => $signalement->synchronized ?? false,
+                ];
+            });
+
+            // --- Filtrage Post-Requete (Statut) ---
+            if ($request->filled('statut')) {
+                $statutVoulu = $request->statut;
+                $data = $data->filter(function ($item) use ($statutVoulu) {
+                    // Recherche approximative insensible à la casse
+                    return $item['statut'] && stripos($item['statut'], $statutVoulu) !== false;
+                })->values();
+            }
 
             return response()->json([
                 'code' => 200,
                 'success' => true,
                 'message' => 'Signalements récupérés avec succès',
-                'data' => $signalements
+                'data' => [
+                    'items' => $data,
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                        'last_page' => $paginator->lastPage(),
+                    ]
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -105,6 +160,27 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Put(
+        path: "/reports/{id}",
+        summary: "Mettre à jour un signalement (budget, entreprise)",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "id_entreprise", type: "integer"),
+                    new OA\Property(property: "budget", type: "number")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Mise à jour réussie"),
+            new OA\Response(response: 404, description: "Signalement non trouvé")
+        ]
+    )]
     public function update(Request $request, $id)
     {
         try {
@@ -153,6 +229,19 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/reports/{id}",
+        summary: "Détails d'un signalement",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Détails récupérés avec succès"),
+            new OA\Response(response: 404, description: "Signalement non trouvé")
+        ]
+    )]
     public function show($id)
     {
         try {
@@ -225,6 +314,34 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/reports/{id}/histostatut",
+        summary: "Ajouter une étape d'historique (changement de statut)",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "multipart/form-data",
+                schema: new OA\Schema(
+                    required: ["id_statut", "description", "daty"],
+                    properties: [
+                        new OA\Property(property: "id_statut", type: "integer"),
+                        new OA\Property(property: "description", type: "string"),
+                        new OA\Property(property: "daty", type: "string", format: "date"),
+                        new OA\Property(property: "photo", type: "string", format: "binary")
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "Historique ajouté avec succès"),
+            new OA\Response(response: 404, description: "Signalement non trouvé")
+        ]
+    )]
     public function addHistoStatut(Request $request, $id)
     {
         try {
@@ -282,6 +399,18 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/reports/{id}/histostatut",
+        summary: "Récupérer l'historique des statuts",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Historique récupéré")
+        ]
+    )]
     public function getHistoStatuts($id)
     {
         try {
@@ -316,6 +445,19 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Delete(
+        path: "/reports/{id}",
+        summary: "Supprimer un signalement",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Signalement supprimé"),
+            new OA\Response(response: 404, description: "Signalement non trouvé")
+        ]
+    )]
     public function destroy($id)
     {
         try {
@@ -346,6 +488,15 @@ class SignalementController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/statuses",
+        summary: "Liste des statuts de signalement possibles",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Liste des statuts")
+        ]
+    )]
     public function getStatuts()
     {
         try {

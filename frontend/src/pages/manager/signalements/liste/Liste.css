@@ -250,3 +250,42 @@
         gap: 1rem;
     }
 }
+/* Badge Styles - Statuts Signalements */
+.signalement-liste .badge-statut {
+    border-radius: 6px;
+    font-weight: 600 !important;
+    padding: 0.5rem 0.75rem !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* En attente - Jaune */
+.signalement-liste .badge-statut.bg-warning {
+    background-color: #ffc107 !important;
+    color: #333 !important;
+}
+
+/* En cours - Bleu */
+.signalement-liste .badge-statut.bg-info {
+    background-color: #17a2b8 !important;
+    color: white !important;
+}
+
+/* Résolu / Terminé - Vert */
+.signalement-liste .badge-statut.bg-success {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+/* Validé - Bleu foncé */
+.signalement-liste .badge-statut.bg-primary {
+    background-color: #0f3460 !important;
+    color: white !important;
+}
+
+/* Non défini - Gris */
+.signalement-liste .badge-statut.bg-secondary {
+    background-color: #6c757d !important;
+    color: white !important;
+}

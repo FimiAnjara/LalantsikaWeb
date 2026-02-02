@@ -1,59 +1,47 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Services\Firebase\FirestoreService;
+use App\Services\Firebase\FirebaseRestService;
 
 Route::get('/test/firestore-connection', function () {
-    $firestoreService = new FirestoreService();
+    $firebaseService = app(FirebaseRestService::class);
     
     $logs = [];
     
-    // Test 1 : Vérification de l'initialisation
-    try {
-        $reflection = new ReflectionClass($firestoreService);
-        $property = $reflection->getProperty('isAvailable');
-        $property->setAccessible(true);
-        $isInitialized = $property->getValue($firestoreService);
-        $logs[] = "Firestore initialized: " . ($isInitialized ? 'YES' : 'NO');
-    } catch (\Exception $e) {
-        $logs[] = "Error checking initialization: " . $e->getMessage();
-    }
+    // Test 1 : Vérification de la connexion
+    $logs[] = "Testing Firebase REST API connection...";
+    $isAvailable = $firebaseService->testConnection();
+    $logs[] = "Connection test result: " . ($isAvailable ? 'TRUE' : 'FALSE');
     
-    // Test 2 : Vérification isAvailable()
-    $logs[] = "Testing isAvailable()...";
-    $isAvailable = $firestoreService->isAvailable();
-    $logs[] = "isAvailable() result: " . ($isAvailable ? 'TRUE' : 'FALSE');
-    
-    // Test 3 : Tentative d'écriture
+    // Test 2 : Tentative d'écriture
     if ($isAvailable) {
         try {
-            $logs[] = "Testing write to Firestore...";
+            $logs[] = "Testing write to Firebase...";
             $testData = [
                 'test' => true,
                 'timestamp' => now()->toIso8601String(),
-                'message' => 'Test from Laravel'
+                'message' => 'Test from Laravel REST API'
             ];
             
-            $result = $firestoreService->saveToCollection('_test_collection', 'test_doc', $testData);
+            $result = $firebaseService->saveDocument('_test_collection', 'test_doc', $testData);
             $logs[] = "Write test result: " . ($result ? 'SUCCESS' : 'FAILED');
             
-            // Test 4 : Lecture
+            // Test 3 : Lecture
             if ($result) {
-                $logs[] = "Testing read from Firestore...";
-                $readData = $firestoreService->getFromCollection('_test_collection', 'test_doc');
+                $logs[] = "Testing read from Firebase...";
+                $readData = $firebaseService->getDocument('_test_collection', 'test_doc');
                 $logs[] = "Read test result: " . ($readData ? 'SUCCESS' : 'FAILED');
                 $logs[] = "Read data: " . json_encode($readData);
             }
         } catch (\Exception $e) {
             $logs[] = "Error during write/read test: " . $e->getMessage();
-            $logs[] = "Stack trace: " . $e->getTraceAsString();
         }
     }
     
     return response()->json([
-        'firestore_available' => $isAvailable,
+        'firebase_available' => $isAvailable,
         'logs' => $logs,
-        'service_account_exists' => file_exists(storage_path('app/firebase/service-account.json')),
-        'service_account_path' => storage_path('app/firebase/service-account.json')
+        'database_url' => config('firebase.database_url'),
+        'method' => 'REST API (no gRPC required)'
     ]);
 });

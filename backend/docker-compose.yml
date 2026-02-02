@@ -11,7 +11,7 @@ services:
 
   web:
     image: nginx:1.25
-    container_name: laravel_nginx
+    container_name: laravel_signalement
     ports:
       - "8000:80"
     volumes:

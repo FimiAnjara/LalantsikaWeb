@@ -237,24 +237,6 @@ export default function Synchro() {
                         </CButton>
 
                         <CButton
-                            onClick={handleForceSync}
-                            className="btn-force-sync"
-                            disabled={syncing || forceSyncing}
-                        >
-                            {forceSyncing ? (
-                                <>
-                                    <CSpinner size="sm" className="me-2" />
-                                    Re-synchronisation...
-                                </>
-                            ) : (
-                                <>
-                                    <CIcon icon={cilReload} className="me-2" />
-                                    Forcer tout
-                                </>
-                            )}
-                        </CButton>
-
-                        <CButton
                             onClick={fetchSyncStatus}
                             color="light"
                             disabled={statusLoading}

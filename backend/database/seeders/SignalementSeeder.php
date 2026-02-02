@@ -21,7 +21,7 @@ class SignalementSeeder extends Seeder
                 'photo' => 'signalement_1.jpg',
                 'id_entreprise' => null,
                 'id_utilisateur' => 3,
-                'point' =>  ['lat' => -18.9101, 'lng' => 47.5256],
+                'point' => DB::raw("ST_GeogFromText('POINT(47.5256 -18.9101)')"),
             ],
             [
                 'daty' => '2025-01-16 10:15:00',
@@ -31,7 +31,7 @@ class SignalementSeeder extends Seeder
                 'photo' => 'signalement_2.jpg',
                 'id_entreprise' => 1,
                 'id_utilisateur' => 4,
-                'point' =>   ['lat' => -18.9150, 'lng' => 47.5230],
+                'point' => DB::raw("ST_GeogFromText('POINT(47.5230 -18.9150)')"),
             ],
             [
                 'daty' => '2025-01-17 14:00:00',
@@ -41,7 +41,7 @@ class SignalementSeeder extends Seeder
                 'photo' => 'signalement_3.jpg',
                 'id_entreprise' => null,
                 'id_utilisateur' => 5,
-                'point' =>  ['lat' => -18.9147, 'lng' => 47.5250],
+                'point' => DB::raw("ST_GeogFromText('POINT(47.5250 -18.9147)')"),
             ],
             [
                 'daty' => '2025-01-18 09:45:00',
@@ -51,7 +51,7 @@ class SignalementSeeder extends Seeder
                 'photo' => 'signalement_4.jpg',
                 'id_entreprise' => 2,
                 'id_utilisateur' => 3,
-                'point' =>   ['lat' => -18.8890, 'lng' => 47.5375],
+                'point' => DB::raw("ST_GeogFromText('POINT(47.5375 -18.8890)')"),
             ],
             [
                 'daty' => '2025-01-19 16:30:00',
@@ -61,7 +61,7 @@ class SignalementSeeder extends Seeder
                 'photo' => 'signalement_5.jpg',
                 'id_entreprise' => 1,
                 'id_utilisateur' => 4,
-                'point' =>  ['lat' => -18.8995, 'lng' => 47.5268],
+                'point' => DB::raw("ST_GeogFromText('POINT(47.5268 -18.8995)')"),
             ],
             [
                 'daty' => '2025-01-20 11:00:00',
@@ -71,7 +71,7 @@ class SignalementSeeder extends Seeder
                 'photo' => 'signalement_6.jpg',
                 'id_entreprise' => null,
                 'id_utilisateur' => 5,
-                'point' =>   ['lat' => -18.9032, 'lng' => 47.5237],
+                'point' => DB::raw("ST_GeogFromText('POINT(47.5237 -18.9032)')"),
             ],
         ]);
     }

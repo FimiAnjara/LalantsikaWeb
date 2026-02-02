@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             SexeSeeder::class,
             TypeUtilisateurSeeder::class,
             StatutSeeder::class,
-            PointSeeder::class,
             EntrepriseSeeder::class,
             ParametreSeeder::class,
         ]);

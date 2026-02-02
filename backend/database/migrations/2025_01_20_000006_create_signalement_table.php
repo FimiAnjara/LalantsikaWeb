@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -20,7 +21,7 @@ return new class extends Migration
             $table->string('photo', 150)->nullable();
             $table->unsignedBigInteger('id_entreprise')->nullable();
             $table->unsignedBigInteger('id_utilisateur');
-            $table->geography('point', 4326)->nullable();
+            $table->unsignedBigInteger('id_statut')->nullable();
 
             $table->foreign('id_entreprise')
                 ->references('id_entreprise')
@@ -30,6 +31,9 @@ return new class extends Migration
                 ->references('id_utilisateur')
                 ->on('utilisateur');
         });
+
+        // Ajouter la colonne geography avec la syntaxe PostGIS correcte
+        DB::statement('ALTER TABLE signalement ADD COLUMN point geography(Point, 4326) NULL');
     }
 
     /**

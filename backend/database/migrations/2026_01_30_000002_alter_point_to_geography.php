@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         // Changer la colonne coordonnee en geography si elle existe déjà
-        // DB::statement('ALTER TABLE point ALTER COLUMN coordonnee TYPE geography(POINT, 4326) USING coordonnee::geography');
+        DB::statement('ALTER TABLE point ALTER COLUMN coordonnee TYPE geography(POINT, 4326) USING coordonnee::geography');
     }
 
     /**

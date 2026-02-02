@@ -21,8 +21,8 @@ class SignalementSeeder extends Seeder
                 'photo' => 'signalement_1.jpg',
                 'id_entreprise' => null,
                 'id_utilisateur' => 3,
-                'id_statut' => 1,
-                'point' => DB::raw("ST_GeogFromText('POINT(47.5256 -18.9101)')"),
+                'synchronized'=>true,
+                'point' =>  ['lat' => -18.9101, 'lng' => 47.5256],
             ],
             [
                 'daty' => '2025-01-16 10:15:00',

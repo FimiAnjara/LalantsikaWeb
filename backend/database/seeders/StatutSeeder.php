@@ -15,8 +15,6 @@ class StatutSeeder extends Seeder
         DB::table('statut')->insert([
             ['libelle' => 'En attente'],
             ['libelle' => 'En cours'],
-            ['libelle' => 'Validé'],
-            ['libelle' => 'Rejeté'],
             ['libelle' => 'Terminé'],
         ]);
     }

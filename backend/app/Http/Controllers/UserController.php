@@ -10,6 +10,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 
+use OpenApi\Attributes as OA;
+
+#[OA\Tag(
+    name: "Utilisateurs",
+    description: "Gestion des utilisateurs (Web & Mobile)"
+)]
 class UserController extends Controller
 {
     /**
@@ -17,6 +23,16 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/users",
+        summary: "Liste des utilisateurs",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Liste récupérée avec succès"),
+            new OA\Response(response: 401, description: "Non authentifié")
+        ]
+    )]
     public function index()
     {
         try {
@@ -68,6 +84,19 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/users/{id}",
+        summary: "Détails d'un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Détails récupérés avec succès"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function show($id)
     {
         try {
@@ -117,6 +146,31 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Put(
+        path: "/users/{id}",
+        summary: "Mettre à jour un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "nom", type: "string"),
+                    new OA\Property(property: "prenom", type: "string"),
+                    new OA\Property(property: "email", type: "string"),
+                    new OA\Property(property: "dtn", type: "string", format: "date"),
+                    new OA\Property(property: "id_sexe", type: "integer"),
+                    new OA\Property(property: "id_type_utilisateur", type: "integer")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Mise à jour réussie"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function update(Request $request, $id)
     {
         try {
@@ -189,6 +243,19 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/users/{id}/block",
+        summary: "Bloquer un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Utilisateur bloqué"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function block($id)
     {
         try {
@@ -227,6 +294,19 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/users/{id}/unblock",
+        summary: "Débloquer un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Utilisateur débloqué"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function unblock($id)
     {
         try {
@@ -265,6 +345,19 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Delete(
+        path: "/users/{id}",
+        summary: "Supprimer un utilisateur",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Utilisateur supprimé"),
+            new OA\Response(response: 404, description: "Utilisateur non trouvé")
+        ]
+    )]
     public function destroy($id)
     {
         try {
@@ -302,6 +395,15 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/user-types",
+        summary: "Liste des types d'utilisateurs",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Liste des types")
+        ]
+    )]
     public function getTypesUtilisateurs()
     {
         try {
@@ -331,6 +433,15 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */    
+    #[OA\Get(
+        path: "/user-statuses",
+        summary: "Liste des statuts possibles",
+        tags: ["Utilisateurs"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Liste des statuts")
+        ]
+    )]
     public function getStatutsUtilisateurs()
     {
         try {

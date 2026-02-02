@@ -14,7 +14,12 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(
+    name: "Auth",
+    description: "Authentification et gestion de session"
+)]
 class AuthController extends Controller
 {
     /** 
@@ -24,6 +29,31 @@ class AuthController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/auth/register",
+        summary: "Inscription d'un nouvel utilisateur",
+        tags: ["Auth"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["identifiant", "mdp", "mdp_confirmation", "nom", "prenom", "dtn", "email", "id_sexe"],
+                properties: [
+                    new OA\Property(property: "identifiant", type: "string", example: "jdoe"),
+                    new OA\Property(property: "mdp", type: "string", format: "password", example: "password123"),
+                    new OA\Property(property: "mdp_confirmation", type: "string", format: "password", example: "password123"),
+                    new OA\Property(property: "nom", type: "string", example: "Doe"),
+                    new OA\Property(property: "prenom", type: "string", example: "John"),
+                    new OA\Property(property: "dtn", type: "string", format: "date", example: "1990-01-01"),
+                    new OA\Property(property: "email", type: "string", format: "email", example: "john.doe@example.com"),
+                    new OA\Property(property: "id_sexe", type: "integer", example: 1)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "Utilisateur créé avec succès"),
+            new OA\Response(response: 422, description: "Erreur de validation")
+        ]
+    )]
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -99,6 +129,26 @@ class AuthController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/auth/login",
+        summary: "Connexion (Manager ou Firebase)",
+        tags: ["Auth"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email", example: "manager@example.com"),
+                    new OA\Property(property: "mdp", type: "string", format: "password", example: "password"),
+                    new OA\Property(property: "firebase_token", type: "string", description: "Token Firebase ID (optionnel)")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Connexion réussie"),
+            new OA\Response(response: 401, description: "Identifiants invalides"),
+            new OA\Response(response: 403, description: "Accès refusé")
+        ]
+    )]
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -260,6 +310,16 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/auth/me",
+        summary: "Récupérer l'utilisateur connecté",
+        tags: ["Auth"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Détails de l'utilisateur"),
+            new OA\Response(response: 401, description: "Non authentifié")
+        ]
+    )]
     public function me()
     {
         return response()->json([
@@ -275,6 +335,16 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/auth/logout",
+        summary: "Déconnexion",
+        tags: ["Auth"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Déconnexion réussie"),
+            new OA\Response(response: 401, description: "Non authentifié")
+        ]
+    )]
     public function logout()
     {
         auth('api')->logout();
@@ -292,6 +362,16 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/auth/refresh",
+        summary: "Rafraîchir le token",
+        tags: ["Auth"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Nouveau token généré"),
+            new OA\Response(response: 401, description: "Non authentifié")
+        ]
+    )]
     public function refresh()
     {
         $token = auth('api')->refresh();
@@ -327,6 +407,30 @@ class AuthController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/auth/firebase",
+        summary: "Authentification via Firebase",
+        tags: ["Auth"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["firebase_token"],
+                properties: [
+                    new OA\Property(property: "firebase_token", type: "string"),
+                    new OA\Property(property: "nom", type: "string"),
+                    new OA\Property(property: "prenom", type: "string"),
+                    new OA\Property(property: "dtn", type: "string", format: "date"),
+                    new OA\Property(property: "id_sexe", type: "integer"),
+                    new OA\Property(property: "id_type_utilisateur", type: "integer")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Authentification réussie"),
+            new OA\Response(response: 401, description: "Token invalide"),
+            new OA\Response(response: 422, description: "Erreur de validation")
+        ]
+    )]
     public function firebaseAuth(Request $request)
     {
         $validator = Validator::make($request->all(), [

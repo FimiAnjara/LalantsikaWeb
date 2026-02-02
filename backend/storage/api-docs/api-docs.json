@@ -1,165 +1,805 @@
 {
-  "openapi": "3.0.0",
-  "info": {
-    "title": "API Signalement Lalantsika",
-    "version": "1.0.0",
-    "description": "Documentation de l'API pour la gestion des signalements et entreprises."
-  },
-  "servers": [
-    {
-      "url": "http://localhost:8000/api",
-      "description": "Serveur local"
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API Signalement Lalantsika",
+        "description": "Documentation de l'API pour la gestion des signalements et entreprises.",
+        "version": "1.0.0"
     },
-    {
-      "url": "/api",
-      "description": "API principale"
-    }
-  ],
-  "paths": {
-    "/api/health": {
-      "get": {
-        "tags": ["Health"],
-        "summary": "Vérifier l'état de l'API",
-        "description": "Endpoint de vérification de santé",
-        "operationId": "healthCheck",
-        "responses": {
-          "200": {
-            "description": "API fonctionnelle",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "ok"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "API Signalement Lalantsika fonctionnelle"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
-                }
-              }
-            }
-          }
+    "servers": [
+        {
+            "url": "http://localhost:8000/api",
+            "description": "API principale"
         }
-      }
-    },
-    "/api/signalements": {
-      "get": {
-        "tags": ["Signalements"],
-        "summary": "Liste des signalements",
-        "description": "Récupérer la liste de tous les signalements",
-        "operationId": "getSignalements",
-        "responses": {
-          "200": {
-            "description": "Liste des signalements",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id_signalement": { "type": "integer" },
-                      "daty": { "type": "string", "format": "date-time" },
-                      "surface": { "type": "number" },
-                      "budget": { "type": "number" },
-                      "description": { "type": "string" },
-                      "photo": { "type": "string", "nullable": true },
-                      "statut": { "type": "string", "nullable": true }
+    ],
+    "paths": {
+        "/api/health": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Check API status",
+                "operationId": "08a8e1871a64c2d73de24c34eb1b8a26",
+                "responses": {
+                    "200": {
+                        "description": "API is running"
                     }
-                  }
                 }
-              }
             }
-          }
-        }
-      }
-    },
-    "/api/entreprises": {
-      "get": {
-        "tags": ["Entreprises"],
-        "summary": "Liste des entreprises",
-        "description": "Récupérer la liste de toutes les entreprises",
-        "operationId": "getEntreprises",
-        "responses": {
-          "200": {
-            "description": "Liste des entreprises",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id_entreprise": { "type": "integer" },
-                      "nom": { "type": "string" },
-                      "synchronized": { "type": "boolean" }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": ["Entreprises"],
-        "summary": "Créer une entreprise",
-        "description": "Créer une nouvelle entreprise",
-        "operationId": "createEntreprise",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["nom"],
-                "properties": {
-                  "nom": {
-                    "type": "string",
-                    "example": "Entreprise X"
-                  }
-                }
-              }
-            }
-          }
         },
-        "responses": {
-          "201": {
-            "description": "Entreprise créée",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": { "type": "string" },
-                    "entreprise": { "type": "object" }
-                  }
+        "/auth/register": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Inscription d'un nouvel utilisateur",
+                "description": "Register a new user (Utilisateur uniquement - pas Manager)\nEnregistrement PostgreSQL uniquement",
+                "operationId": "ed42f392010c301892e640067141676e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "identifiant",
+                                    "mdp",
+                                    "mdp_confirmation",
+                                    "nom",
+                                    "prenom",
+                                    "dtn",
+                                    "email",
+                                    "id_sexe"
+                                ],
+                                "properties": {
+                                    "identifiant": {
+                                        "type": "string",
+                                        "example": "jdoe"
+                                    },
+                                    "mdp": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    },
+                                    "mdp_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    },
+                                    "nom": {
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "prenom": {
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "dtn": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "1990-01-01"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john.doe@example.com"
+                                    },
+                                    "id_sexe": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Utilisateur créé avec succès"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
                 }
-              }
             }
-          },
-          "422": {
-            "description": "Erreur de validation"
-          }
+        },
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Connexion (Manager ou Firebase)",
+                "description": "Login Manager (Web uniquement)\nLogique : Firebase en priorité, sinon PostgreSQL local",
+                "operationId": "8cb7742ae98d0990acb2907c4e00bf24",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "manager@example.com"
+                                    },
+                                    "mdp": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    },
+                                    "firebase_token": {
+                                        "description": "Token Firebase ID (optionnel)",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie"
+                    },
+                    "401": {
+                        "description": "Identifiants invalides"
+                    },
+                    "403": {
+                        "description": "Accès refusé"
+                    }
+                }
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Récupérer l'utilisateur connecté",
+                "description": "Get authenticated user",
+                "operationId": "a9c495788506b114956e3f509e5d90a2",
+                "responses": {
+                    "200": {
+                        "description": "Détails de l'utilisateur"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Déconnexion",
+                "description": "Logout user (invalidate token)",
+                "operationId": "0d29c740dc06d77602af8095bf4654cc",
+                "responses": {
+                    "200": {
+                        "description": "Déconnexion réussie"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Rafraîchir le token",
+                "description": "Refresh JWT token",
+                "operationId": "f6c9683ed975ace7d035a09e6e2a9332",
+                "responses": {
+                    "200": {
+                        "description": "Nouveau token généré"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/auth/firebase": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Authentification via Firebase",
+                "description": "Login or register user with Firebase token",
+                "operationId": "8a000af7b38c1ba184c654304634a32f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "firebase_token"
+                                ],
+                                "properties": {
+                                    "firebase_token": {
+                                        "type": "string"
+                                    },
+                                    "nom": {
+                                        "type": "string"
+                                    },
+                                    "prenom": {
+                                        "type": "string"
+                                    },
+                                    "dtn": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "id_sexe": {
+                                        "type": "integer"
+                                    },
+                                    "id_type_utilisateur": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authentification réussie"
+                    },
+                    "401": {
+                        "description": "Token invalide"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                }
+            }
+        },
+        "/reports": {
+            "get": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Liste tous les signalements",
+                "description": "Liste tous les signalements avec leurs relations",
+                "operationId": "0bc0c4872b152b2b9b2ad92ea69f5a88",
+                "responses": {
+                    "200": {
+                        "description": "Liste récupérée avec succès"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/reports/{id}": {
+            "get": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Détails d'un signalement",
+                "description": "Récupère un signalement par son ID",
+                "operationId": "d5ed27e574097430c99794f504d8d151",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détails récupérés avec succès"
+                    },
+                    "404": {
+                        "description": "Signalement non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Mettre à jour un signalement (budget, entreprise)",
+                "description": "Met à jour un signalement (budget, entreprise, etc.)",
+                "operationId": "00adfff7b6301d610073660350d33538",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "id_entreprise": {
+                                        "type": "integer"
+                                    },
+                                    "budget": {
+                                        "type": "number"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Mise à jour réussie"
+                    },
+                    "404": {
+                        "description": "Signalement non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Supprimer un signalement",
+                "description": "Supprime un signalement",
+                "operationId": "de9f82153c925777d11ecb19839a836f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Signalement supprimé"
+                    },
+                    "404": {
+                        "description": "Signalement non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/reports/{id}/histostatut": {
+            "get": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Récupérer l'historique des statuts",
+                "description": "Récupère l'historique des statuts d'un signalement",
+                "operationId": "6ecfb4e06fb56e952916e93c44e79dda",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Historique récupéré"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Ajouter une étape d'historique (changement de statut)",
+                "description": "Ajoute un historique de statut (histostatut) pour un signalement",
+                "operationId": "c0b5895cee1a4ff5707930bb4d202df7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "id_statut",
+                                    "description",
+                                    "daty"
+                                ],
+                                "properties": {
+                                    "id_statut": {
+                                        "type": "integer"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "daty": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "photo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Historique ajouté avec succès"
+                    },
+                    "404": {
+                        "description": "Signalement non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/statuses": {
+            "get": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Liste des statuts de signalement possibles",
+                "description": "Liste tous les statuts disponibles",
+                "operationId": "85119adaf6ac9a1f5990f9645fda494f",
+                "responses": {
+                    "200": {
+                        "description": "Liste des statuts"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/users": {
+            "get": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Liste des utilisateurs",
+                "description": "Liste tous les utilisateurs avec leur statut",
+                "operationId": "7e2f5799553ec93c9c43e2a58490d447",
+                "responses": {
+                    "200": {
+                        "description": "Liste récupérée avec succès"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/users/{id}": {
+            "get": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Détails d'un utilisateur",
+                "description": "Récupère un utilisateur par son ID",
+                "operationId": "910a0c7cf580e1c605648d82a4e57f46",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détails récupérés avec succès"
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Mettre à jour un utilisateur",
+                "description": "Met à jour un utilisateur",
+                "operationId": "ddfe232db1870b82493bf8bd25596d37",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nom": {
+                                        "type": "string"
+                                    },
+                                    "prenom": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "dtn": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "id_sexe": {
+                                        "type": "integer"
+                                    },
+                                    "id_type_utilisateur": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Mise à jour réussie"
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Supprimer un utilisateur",
+                "description": "Supprimer un utilisateur",
+                "operationId": "43dd20becb1f47444e484cbb18ce345c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Utilisateur supprimé"
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/users/{id}/block": {
+            "post": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Bloquer un utilisateur",
+                "description": "Bloquer un utilisateur (créer un statut avec etat = 0)",
+                "operationId": "a810079bcb74a31932225bfa16f71662",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Utilisateur bloqué"
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/users/{id}/unblock": {
+            "post": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Débloquer un utilisateur",
+                "description": "Débloquer un utilisateur (créer un statut avec etat = 1)",
+                "operationId": "998859db6070fa05fd0f9c840230b052",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Utilisateur débloqué"
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/user-types": {
+            "get": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Liste des types d'utilisateurs",
+                "description": "Liste tous les types d'utilisateurs",
+                "operationId": "1c2db3e6c00f7eb2b118fc291a266952",
+                "responses": {
+                    "200": {
+                        "description": "Liste des types"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/user-statuses": {
+            "get": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Liste des statuts possibles",
+                "description": "Liste tous les statuts d'utilisateurs",
+                "operationId": "c227c7c1c884a4cb32aa70e17fe507a3",
+                "responses": {
+                    "200": {
+                        "description": "Liste des statuts"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
-      }
-    }
-  },
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    }
-  }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Authentification et gestion de session"
+        },
+        {
+            "name": "Signalements",
+            "description": "Gestion des signalements, leur état et leur historique"
+        },
+        {
+            "name": "Utilisateurs",
+            "description": "Gestion des utilisateurs (Web & Mobile)"
+        },
+        {
+            "name": "Health",
+            "description": "Health"
+        }
+    ]
 }

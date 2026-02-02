@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\HistoStatut;
 
+use OpenApi\Attributes as OA;
+
+#[OA\Tag(
+    name: "Signalements",
+    description: "Gestion des signalements, leur état et leur historique"
+)]
 class SignalementController extends Controller
 {
     /**
@@ -17,6 +23,16 @@ class SignalementController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/reports",
+        summary: "Liste tous les signalements",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Liste récupérée avec succès"),
+            new OA\Response(response: 401, description: "Non authentifié")
+        ]
+    )]
     public function index()
     {
         try {
@@ -105,6 +121,27 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Put(
+        path: "/reports/{id}",
+        summary: "Mettre à jour un signalement (budget, entreprise)",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "id_entreprise", type: "integer"),
+                    new OA\Property(property: "budget", type: "number")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Mise à jour réussie"),
+            new OA\Response(response: 404, description: "Signalement non trouvé")
+        ]
+    )]
     public function update(Request $request, $id)
     {
         try {
@@ -153,6 +190,19 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/reports/{id}",
+        summary: "Détails d'un signalement",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Détails récupérés avec succès"),
+            new OA\Response(response: 404, description: "Signalement non trouvé")
+        ]
+    )]
     public function show($id)
     {
         try {
@@ -225,6 +275,34 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Post(
+        path: "/reports/{id}/histostatut",
+        summary: "Ajouter une étape d'historique (changement de statut)",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "multipart/form-data",
+                schema: new OA\Schema(
+                    required: ["id_statut", "description", "daty"],
+                    properties: [
+                        new OA\Property(property: "id_statut", type: "integer"),
+                        new OA\Property(property: "description", type: "string"),
+                        new OA\Property(property: "daty", type: "string", format: "date"),
+                        new OA\Property(property: "photo", type: "string", format: "binary")
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "Historique ajouté avec succès"),
+            new OA\Response(response: 404, description: "Signalement non trouvé")
+        ]
+    )]
     public function addHistoStatut(Request $request, $id)
     {
         try {
@@ -282,6 +360,18 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/reports/{id}/histostatut",
+        summary: "Récupérer l'historique des statuts",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Historique récupéré")
+        ]
+    )]
     public function getHistoStatuts($id)
     {
         try {
@@ -316,6 +406,19 @@ class SignalementController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Delete(
+        path: "/reports/{id}",
+        summary: "Supprimer un signalement",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Signalement supprimé"),
+            new OA\Response(response: 404, description: "Signalement non trouvé")
+        ]
+    )]
     public function destroy($id)
     {
         try {
@@ -346,6 +449,15 @@ class SignalementController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    #[OA\Get(
+        path: "/statuses",
+        summary: "Liste des statuts de signalement possibles",
+        tags: ["Signalements"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Liste des statuts")
+        ]
+    )]
     public function getStatuts()
     {
         try {

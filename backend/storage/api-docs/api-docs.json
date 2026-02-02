@@ -439,6 +439,218 @@
                 }
             }
         },
+        "/entreprises": {
+            "get": {
+                "tags": [
+                    "Entreprises"
+                ],
+                "summary": "Liste toutes les entreprises",
+                "description": "Liste toutes les entreprises",
+                "operationId": "64e8921cb8632484929a7e7421093145",
+                "responses": {
+                    "200": {
+                        "description": "Liste des entreprises récupérée avec succès"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Entreprises"
+                ],
+                "summary": "Créer une nouvelle entreprise",
+                "description": "Créer une entreprise (PostgreSQL + Firebase)",
+                "operationId": "5093d3d8805196063d678d8782624bc8",
+                "requestBody": {
+                    "description": "Données de l'entreprise",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nom_entreprise",
+                                    "id_utilisateur"
+                                ],
+                                "properties": {
+                                    "nom_entreprise": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Entreprise ABC"
+                                    },
+                                    "adresse": {
+                                        "type": "string",
+                                        "example": "123 rue de la Paix",
+                                        "nullable": true
+                                    },
+                                    "tel": {
+                                        "type": "string",
+                                        "maxLength": 20,
+                                        "example": "+261341234567",
+                                        "nullable": true
+                                    },
+                                    "id_utilisateur": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Entreprise créée avec succès"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/entreprises/{id}": {
+            "put": {
+                "tags": [
+                    "Entreprises"
+                ],
+                "summary": "Mettre à jour une entreprise",
+                "description": "Mettre à jour une entreprise",
+                "operationId": "43e816e4ba618878bc99b35de76c45be",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Données à mettre à jour",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nom_entreprise": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Nouveau nom"
+                                    },
+                                    "adresse": {
+                                        "type": "string",
+                                        "example": "Nouvelle adresse",
+                                        "nullable": true
+                                    },
+                                    "tel": {
+                                        "type": "string",
+                                        "maxLength": 20,
+                                        "example": "+261341234567",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Entreprise mise à jour avec succès"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Entreprise non trouvée"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Entreprises"
+                ],
+                "summary": "Supprimer une entreprise",
+                "description": "Supprimer une entreprise",
+                "operationId": "fe33fa1738a70a07597dda0a21ea0876",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Entreprise supprimée avec succès"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Entreprise non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/sexes": {
+            "get": {
+                "tags": [
+                    "Sexes"
+                ],
+                "summary": "Liste de tous les sexes",
+                "description": "Get all sexes",
+                "operationId": "3871df98b32c52c3e19236bde9ae9322",
+                "responses": {
+                    "200": {
+                        "description": "Liste des sexes récupérée avec succès"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "500": {
+                        "description": "Erreur serveur"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/reports": {
             "get": {
                 "tags": [
@@ -1047,8 +1259,11 @@
         "securitySchemes": {
             "bearerAuth": {
                 "type": "http",
-                "bearerFormat": "JWT",
-                "scheme": "bearer"
+                "description": "JWT Bearer Token",
+                "name": "Authorization",
+                "in": "header",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
             }
         }
     },
@@ -1056,6 +1271,14 @@
         {
             "name": "Auth",
             "description": "Authentification et gestion de session"
+        },
+        {
+            "name": "Entreprises",
+            "description": "Gestion des entreprises"
+        },
+        {
+            "name": "Sexes",
+            "description": "Gestion des types de sexe"
         },
         {
             "name": "Signalements",

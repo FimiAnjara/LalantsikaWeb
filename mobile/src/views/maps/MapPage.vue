@@ -2,6 +2,31 @@
   <ion-page>
     <ion-content :fullscreen="true" class="map-page">
       
+      <!-- Spinner Fullscreen pour recherche de ville et suppression -->
+      <SpinnerLoader 
+        v-if="isSearching || isDeleting" 
+        :fullscreen="true" 
+        :message="loadingMessage" 
+      />
+      
+      <!-- Filtre de la carte (Tous / Mes signalements) -->
+      <div v-if="!reportMode" class="map-filter">
+        <button 
+          class="filter-btn" 
+          :class="{ active: mapFilter === 'all' }"
+          @click="mapFilter = 'all'"
+        >
+          Tous
+        </button>
+        <button 
+          class="filter-btn" 
+          :class="{ active: mapFilter === 'mine' }"
+          @click="mapFilter = 'mine'"
+        >
+          Mes signalements
+        </button>
+      </div>
+      
       <!-- Header avec recherche et profil alignés -->
       <div class="map-header">
         <div class="search-header">
@@ -59,14 +84,15 @@
 
       <!-- Boutons de validation/annulation (en mode signalement) -->
       <div v-if="reportMode" class="action-buttons">
-        <button class="cancel-btn" @click="cancelReportMode">
+        <button class="cancel-btn" @click="cancelReportMode" :disabled="isValidating">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
-        <button class="validate-btn" @click="validateReport">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+        <button class="validate-btn" @click="validateReport" :disabled="isValidating">
+          <span v-if="isValidating" class="btn-spinner"></span>
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </button>
@@ -85,9 +111,18 @@
         </div>
 
         <div class="card-body">
+          <!-- Spinner de chargement de la liste -->
+          <SpinnerLoader 
+            v-if="isLoadingList" 
+            :fullscreen="false" 
+            message="Chargement des signalements..." 
+          />
+          
+          <!-- Contenu de la liste -->
+          <template v-else>
           <!-- Mes signalements -->
           <div class="reports-section">
-            <h3 class="section-title">Mes signalements</h3>
+            <h3 class="section-title">Mes signalements ({{ myReports.length }})</h3>
             <div v-if="myReports.length === 0" class="empty-state-small">
               <p>Aucun signalement pour le moment</p>
             </div>
@@ -140,11 +175,18 @@
                 </div>
               </div>
             </div>
+            <button 
+              v-if="myReports.length > itemsPerPage"
+              @click="showAllMyReports = !showAllMyReports"
+              class="show-more-btn"
+            >
+              {{ showAllMyReports ? 'Voir moins' : `Voir plus (${myReports.length - itemsPerPage} autres)` }}
+            </button>
           </div>
 
           <!-- Tous les signalements -->
           <div class="reports-section">
-            <h3 class="section-title">Tous les signalements</h3>
+            <h3 class="section-title">Tous les signalements ({{ allReports.length }})</h3>
             <div v-if="allReports.length === 0" class="empty-state-small">
               <p>Aucun signalement disponible</p>
             </div>
@@ -179,13 +221,14 @@
               </div>
             </div>
             <button 
-              v-if="allReports.length > itemsPerPage.all"
+              v-if="allReports.length > itemsPerPage"
               @click="showAllReports = !showAllReports"
               class="show-more-btn"
             >
-              {{ showAllReports ? 'Afficher moins' : 'Afficher plus' }}
+              {{ showAllReports ? 'Voir moins' : `Voir plus (${allReports.length - itemsPerPage} autres)` }}
             </button>
           </div>
+          </template>
         </div>
       </div>
 
@@ -206,7 +249,7 @@
         <button 
           class="menu-item" 
           :class="{ active: activeMenu === 'saved' }"
-          @click="activeMenu = 'saved'"
+          @click="openSignalementsList"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
@@ -238,6 +281,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { IonPage, IonContent, toastController, loadingController, alertController, onIonViewWillEnter } from '@ionic/vue';
 import MapComponent from '@/components/MapComponent.vue';
+import SpinnerLoader from '@/components/SpinnerLoader.vue';
 import router from '@/router';
 import { signalementService } from '@/services/signalement';
 import { Signalement, getStatutLibelle, getStatutType } from '@/models';
@@ -249,12 +293,14 @@ const savedCount = ref(0);
 const reportMode = ref(false);
 const showAllMyReports = ref(false);
 const showAllReports = ref(false);
-const isLoading = ref(false);
+const isLoadingList = ref(false); // Pour la liste des signalements seulement
+const isSearching = ref(false);
+const isDeleting = ref(false);
+const isValidating = ref(false); // Pour le bouton de validation
+const loadingMessage = ref('Chargement...');
+const mapFilter = ref<'all' | 'mine'>('all'); // Filtre pour la carte
 
-const itemsPerPage = {
-  my: 3,
-  all: 5
-};
+const itemsPerPage = 3; // Nombre d'éléments affichés par défaut
 
 // Données de signalements depuis Firestore
 const allSignalements = ref<Signalement[]>([]);
@@ -294,18 +340,24 @@ const allReports = computed(() => {
 });
 
 const displayedMyReports = computed(() => {
-  // Afficher tous les signalements de l'utilisateur
-  return myReports.value;
+  if (showAllMyReports.value) {
+    return myReports.value;
+  }
+  return myReports.value.slice(0, itemsPerPage);
 });
 
 const displayedAllReports = computed(() => {
   if (showAllReports.value) {
     return allReports.value;
   }
-  return allReports.value.slice(0, itemsPerPage.all);
+  return allReports.value.slice(0, itemsPerPage);
 });
 
+// Marqueurs filtrés pour la carte
 const currentMarkers = computed(() => {
+  if (mapFilter.value === 'mine') {
+    return mySignalements.value.map(sig => signalementService.signalementToMarker(sig));
+  }
   return markers.value;
 });
 
@@ -321,8 +373,12 @@ onIonViewWillEnter(async () => {
 });
 
 // Charger tous les signalements
-const loadSignalements = async () => {
-  isLoading.value = true;
+const loadSignalements = async (showLoader = false) => {
+  // Afficher le loader seulement si demandé (pour la liste)
+  if (showLoader) {
+    isLoadingList.value = true;
+  }
+  
   try {
     // Charger tous les signalements
     allSignalements.value = await signalementService.getAllSignalements();
@@ -331,21 +387,22 @@ const loadSignalements = async () => {
     
     // Charger mes signalements
     try {
+      console.log('🔄 Tentative de chargement de mes signalements...');
       mySignalements.value = await signalementService.getMySignalements();
       savedCount.value = mySignalements.value.length;
       console.log('✅ Mes signalements chargés:', mySignalements.value.length);
     } catch (error) {
       // Si erreur (utilisateur non connecté), on ignore
-      console.log('Impossible de charger mes signalements:', error);
+      console.error('❌ Impossible de charger mes signalements:', error);
       mySignalements.value = [];
     }
     
-    console.log('Signalements chargés:', allSignalements.value.length);
+    console.log('📊 Résumé: Total =', allSignalements.value.length, ', Mes signalements =', mySignalements.value.length);
   } catch (error) {
-    console.error('Erreur lors du chargement des signalements:', error);
+    console.error('❌ Erreur lors du chargement des signalements:', error);
     showToast('Erreur lors du chargement des signalements', 'danger');
   } finally {
-    isLoading.value = false;
+    isLoadingList.value = false;
   }
 };
 
@@ -362,6 +419,9 @@ const onMapReady = (map: any) => {
 const searchCity = async () => {
   if (!searchQuery.value.trim()) return;
 
+  isSearching.value = true;
+  loadingMessage.value = 'Recherche en cours...';
+  
   try {
     // Utiliser l'API Nominatim d'OpenStreetMap pour la recherche
     const response = await fetch(
@@ -372,12 +432,15 @@ const searchCity = async () => {
     if (data && data.length > 0) {
       const { lat, lon } = data[0];
       mapComponent.value?.setView([parseFloat(lat), parseFloat(lon)], 13);
+      showToast(`Localisation: ${data[0].display_name.split(',')[0]}`, 'success');
     } else {
-      alert('Ville non trouvée');
+      showToast('Ville non trouvée', 'warning');
     }
   } catch (error) {
     console.error('Erreur de recherche:', error);
-    alert('Erreur lors de la recherche');
+    showToast('Erreur lors de la recherche', 'danger');
+  } finally {
+    isSearching.value = false;
   }
 };
 
@@ -394,20 +457,60 @@ const goToProfile = () => {
 // Obtenir le nom de la ville depuis les coordonnées (reverse geocoding)
 const getCityName = async (lat: number, lng: number): Promise<string> => {
   try {
+    console.log('📍 Reverse geocoding pour:', lat, lng);
+    
+    // Zoom 18 pour obtenir le niveau de détail le plus précis (quartier, rue)
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
     );
     const data = await response.json();
     
     if (data && data.address) {
-      // Essayer de récupérer la ville, sinon le village, sinon la région
-      const city = data.address.city || 
-                   data.address.town || 
-                   data.address.village || 
-                   data.address.county || 
-                   data.address.state ||
-                   'Localisation inconnue';
-      return city;
+      // Afficher tous les champs disponibles pour le diagnostic
+      console.log('📍 ===== DONNÉES DE LOCALISATION =====');
+      console.log('📍 Adresse complète:', data.address);
+      console.log('📍 neighbourhood (quartier):', data.address.neighbourhood);
+      console.log('📍 suburb (banlieue):', data.address.suburb);
+      console.log('📍 hamlet (hameau):', data.address.hamlet);
+      console.log('📍 village:', data.address.village);
+      console.log('📍 town (petite ville):', data.address.town);
+      console.log('📍 city_district:', data.address.city_district);
+      console.log('📍 city (ville):', data.address.city);
+      console.log('📍 municipality:', data.address.municipality);
+      console.log('📍 county:', data.address.county);
+      console.log('📍 state:', data.address.state);
+      console.log('📍 road (rue):', data.address.road);
+      console.log('📍 display_name:', data.display_name);
+      console.log('📍 =====================================');
+      
+      // Priorité à suburb (banlieue) + city pour avoir le format "Mahamasina, Antananarivo"
+      const suburb = data.address.suburb || 
+                     data.address.neighbourhood || 
+                     data.address.hamlet || 
+                     data.address.village;
+      
+      const mainCity = data.address.city || 
+                       data.address.town || 
+                       data.address.municipality ||
+                       data.address.county;
+      
+      let locationName: string;
+      
+      if (suburb && mainCity) {
+        // Format complet: "Mahamasina, Antananarivo"
+        locationName = `${suburb}, ${mainCity}`;
+      } else if (suburb) {
+        // Seulement le quartier
+        locationName = suburb;
+      } else if (mainCity) {
+        // Seulement la ville
+        locationName = mainCity;
+      } else {
+        locationName = data.address.state || 'Localisation inconnue';
+      }
+      
+      console.log('📍 Localisation sélectionnée:', locationName);
+      return locationName;
     }
     return 'Localisation inconnue';
   } catch (error) {
@@ -443,6 +546,8 @@ const deleteReport = async (reportId: string) => {
         text: 'Supprimer',
         role: 'destructive',
         handler: async () => {
+          isDeleting.value = true;
+          loadingMessage.value = 'Suppression en cours...';
           try {
             await signalementService.deleteSignalement(reportId);
             await loadSignalements(); // Recharger la liste
@@ -450,6 +555,8 @@ const deleteReport = async (reportId: string) => {
           } catch (error) {
             console.error('Erreur lors de la suppression:', error);
             await showToast('Erreur lors de la suppression', 'danger');
+          } finally {
+            isDeleting.value = false;
           }
         }
       }
@@ -466,6 +573,13 @@ const startReportMode = () => {
 
 const cancelReportMode = () => {
   reportMode.value = false;
+};
+
+// Ouvrir la liste des signalements avec chargement
+const openSignalementsList = async () => {
+  activeMenu.value = 'saved';
+  // Recharger les données avec le spinner
+  await loadSignalements(true);
 };
 
 // Obtenir le label du statut
@@ -485,32 +599,44 @@ const getStatusLabel = (type: string, statut?: any) => {
 const validateReport = async () => {
   const center = mapComponent.value?.getCenter();
   if (center) {
-    // Obtenir le nom de la ville
-    const cityName = await getCityName(center[0], center[1]);
+    // Activer le spinner sur le bouton
+    isValidating.value = true;
     
-    // Créer un rapport temporaire
-    const tempReport = {
-      id: `temp-${Date.now()}`,
-      lat: center[0],
-      lng: center[1],
-      type: 'danger',
-      title: `Signalement - ${new Date().toLocaleString()}`,
-      city: cityName
-    };
-    
-    // Arrêter le mode signalement
-    reportMode.value = false;
-    
-    // Naviguer directement vers le formulaire de détails
-    router.push({
-      name: 'ReportForm',
-      query: {
-        lat: tempReport.lat,
-        lng: tempReport.lng,
-        title: tempReport.title,
-        city: tempReport.city
-      }
-    });
+    try {
+      // Obtenir le nom de la ville
+      const cityName = await getCityName(center[0], center[1]);
+      
+      // Créer un rapport temporaire
+      const tempReport = {
+        id: `temp-${Date.now()}`,
+        lat: center[0],
+        lng: center[1],
+        type: 'danger',
+        title: `Signalement - ${new Date().toLocaleString()}`,
+        city: cityName
+      };
+      
+      // Arrêter le mode signalement
+      reportMode.value = false;
+      
+      // Naviguer directement vers le formulaire de détails
+      router.push({
+        name: 'ReportForm',
+        query: {
+          lat: tempReport.lat,
+          lng: tempReport.lng,
+          title: tempReport.title,
+          city: tempReport.city
+        }
+      });
+    } catch (error) {
+      console.error('Erreur lors de la validation:', error);
+      showToast('Erreur lors de la validation', 'danger');
+    } finally {
+      isValidating.value = false;
+    }
+  } else {
+    showToast('Impossible de récupérer la position', 'danger');
   }
 };
 
@@ -561,6 +687,45 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
 .profile-btn:hover {
   background: #1a3a5f;
   transform: scale(1.05);
+}
+
+/* Filtre de la carte */
+.map-filter {
+  position: absolute;
+  top: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  background: white;
+  border-radius: 25px;
+  padding: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  gap: 4px;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: #666;
+  white-space: nowrap;
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #0a1e37 0%, #1a3a5f 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(10, 30, 55, 0.3);
+}
+
+.filter-btn:not(.active):hover {
+  background: #f0f0f0;
+  color: #0a1e37;
 }
 
 /* Barre de recherche */
@@ -697,9 +862,30 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
   background: #28a745;
 }
 
-.validate-btn:hover {
+.validate-btn:hover:not(:disabled) {
   background: #218838;
   transform: scale(1.1);
+}
+
+.validate-btn:disabled,
+.cancel-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spinner dans les boutons */
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Map */

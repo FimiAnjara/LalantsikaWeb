@@ -9,6 +9,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { IonPage, IonContent } from '@ionic/vue'
 import lottie from 'lottie-web'
 import animationData from '@/assets/lottie/logo.json'
 

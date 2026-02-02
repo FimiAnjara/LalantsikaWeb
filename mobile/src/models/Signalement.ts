@@ -61,6 +61,7 @@ export interface CreateSignalementData {
   description: string;
   surface?: number;
   photo?: string;
+  city?: string; // Nom de la ville/localité (reverse geocoding)
 }
 
 /**

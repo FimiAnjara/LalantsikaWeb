@@ -1,5 +1,12 @@
 <template>
   <ion-page>
+    <!-- Spinner de chargement -->
+    <SpinnerLoader 
+      v-if="isSubmitting" 
+      :fullscreen="true" 
+      :message="loadingMessage" 
+    />
+    
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
@@ -27,8 +34,21 @@
             Localisation
           </h3>
           <div class="location-info">
-            <p><strong>Latitude:</strong> {{ latitude }}</p>
-            <p><strong>Longitude:</strong> {{ longitude }}</p>
+            <p v-if="cityName" class="city-display">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a1e37" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              Près de <strong>{{ cityName }}</strong>
+            </p>
+            <p v-else-if="isLoadingCity" class="city-loading">
+              <span class="mini-spinner"></span>
+              Recherche de la localisation...
+            </p>
+            <p class="coordinates-display">
+              <span><strong>Lat:</strong> {{ latitude }}</span>
+              <span><strong>Lng:</strong> {{ longitude }}</span>
+            </p>
           </div>
         </div>
 
@@ -124,13 +144,17 @@ import {
 import { useRoute, useRouter } from 'vue-router';
 import { signalementService } from '@/services/signalement';
 import { photoService } from '@/services/photo';
+import SpinnerLoader from '@/components/SpinnerLoader.vue';
 
 const route = useRoute();
 const router = useRouter();
 
 const latitude = ref('');
 const longitude = ref('');
+const cityName = ref('');
 const isSubmitting = ref(false);
+const isLoadingCity = ref(false);
+const loadingMessage = ref('Enregistrement en cours...');
 
 const formData = ref({
   description: '',
@@ -138,11 +162,69 @@ const formData = ref({
   photoUrl: ''
 });
 
-onMounted(() => {
+onMounted(async () => {
   // Récupérer les coordonnées
   latitude.value = route.query.lat as string || '';
   longitude.value = route.query.lng as string || '';
+  
+  // Récupérer le nom de la ville passé en paramètre ou le chercher
+  if (route.query.city) {
+    cityName.value = route.query.city as string;
+  } else if (latitude.value && longitude.value) {
+    await fetchCityName();
+  }
 });
+
+// Récupérer le nom de la ville via reverse geocoding
+const fetchCityName = async () => {
+  if (!latitude.value || !longitude.value) return;
+  
+  isLoadingCity.value = true;
+  try {
+    // Zoom 18 pour obtenir le niveau de détail le plus précis (quartier, rue)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude.value}&lon=${longitude.value}&zoom=18&addressdetails=1`
+    );
+    const data = await response.json();
+    
+    if (data && data.address) {
+      // Afficher tous les champs disponibles pour le diagnostic
+      console.log('📍 ===== DONNÉES DE LOCALISATION =====');
+      console.log('📍 Adresse complète:', data.address);
+      console.log('📍 neighbourhood (quartier):', data.address.neighbourhood);
+      console.log('📍 suburb (banlieue):', data.address.suburb);
+      console.log('📍 hamlet (hameau):', data.address.hamlet);
+      console.log('📍 village:', data.address.village);
+      console.log('📍 town (petite ville):', data.address.town);
+      console.log('📍 city_district:', data.address.city_district);
+      console.log('📍 city (ville):', data.address.city);
+      console.log('📍 municipality:', data.address.municipality);
+      console.log('📍 county:', data.address.county);
+      console.log('📍 state:', data.address.state);
+      console.log('📍 road (rue):', data.address.road);
+      console.log('📍 display_name:', data.display_name);
+      console.log('📍 =====================================');
+      
+      // Priorité aux noms de quartiers/lieux précis
+      cityName.value = data.address.neighbourhood ||  // Quartier (Ankadifotsy, etc.)
+                       data.address.suburb ||          // Banlieue
+                       data.address.hamlet ||          // Hameau
+                       data.address.village ||         // Village (Ilafy, etc.)
+                       data.address.town ||            // Petite ville
+                       data.address.city_district ||   // District de ville
+                       data.address.city ||            // Ville
+                       data.address.municipality ||    // Municipalité
+                       data.address.county ||          // Région
+                       data.address.state ||           // État/Province
+                       'Localisation inconnue';
+    }
+  } catch (error) {
+    console.error('Erreur lors du reverse geocoding:', error);
+    cityName.value = '';
+  } finally {
+    isLoadingCity.value = false;
+  }
+};
 
 const isFormValid = computed(() => {
   return formData.value.description.trim() !== '' &&
@@ -241,29 +323,24 @@ const saveReport = async () => {
   if (!isFormValid.value || isSubmitting.value) return;
 
   isSubmitting.value = true;
-
-  // Afficher le loader
-  const loading = await loadingController.create({
-    message: 'Enregistrement en cours...',
-    spinner: 'crescent'
-  });
-  await loading.present();
+  loadingMessage.value = 'Enregistrement en cours...';
 
   try {
     // Utiliser le service pour créer le signalement
-    // Champs utilisateur uniquement: point, description, surface, photo
+    // Champs utilisateur uniquement: point, description, surface, photo, city
     // daty et utilisateur sont ajoutés automatiquement
     const signalement = await signalementService.createSignalement({
       latitude: parseFloat(latitude.value),
       longitude: parseFloat(longitude.value),
       description: formData.value.description,
       surface: formData.value.surface || undefined,
-      photo: formData.value.photoUrl || undefined
+      photo: formData.value.photoUrl || undefined,
+      city: cityName.value || undefined
     });
 
     console.log('Signalement créé:', signalement);
 
-    await loading.dismiss();
+    isSubmitting.value = false;
 
     const toast = await toastController.create({
       message: 'Signalement enregistré avec succès !',
@@ -282,7 +359,7 @@ const saveReport = async () => {
     console.error('Message:', error.message);
     console.error('Stack:', error.stack);
     
-    await loading.dismiss();
+    isSubmitting.value = false;
 
     let errorMessage = 'Erreur lors de l\'enregistrement';
     
@@ -361,6 +438,56 @@ ion-button {
   margin: 0.5rem 0;
   color: #666;
   font-size: 0.9rem;
+}
+
+.city-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem !important;
+  color: #0a1e37 !important;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 0.75rem !important;
+}
+
+.city-display strong {
+  color: #2e7d32;
+}
+
+.city-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}
+
+.mini-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #cfb824;
+  border-radius: 50%;
+  animation: mini-spin 0.8s linear infinite;
+}
+
+@keyframes mini-spin {
+  to { transform: rotate(360deg); }
+}
+
+.coordinates-display {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.85rem !important;
+  color: #999 !important;
+}
+
+.coordinates-display span {
+  display: flex;
+  gap: 0.25rem;
 }
 
 /* Formulaire */

@@ -62,8 +62,14 @@ class SignalementService {
       }
 
       if (snapshot.empty) {
-        console.warn('❌ Utilisateur non trouvé dans Firestore pour UID:', firebaseUser.uid);
-        return null;
+        console.warn('⚠️ Utilisateur non trouvé dans Firestore, utilisation des données Firebase Auth');
+        // Retourner un utilisateur basé uniquement sur Firebase Auth
+        return {
+          firebase_uid: firebaseUser.uid,
+          identifiant: firebaseUser.email || 'Utilisateur',
+          nom: firebaseUser.displayName?.split(' ')[1] || '',
+          prenom: firebaseUser.displayName?.split(' ')[0] || '',
+        };
       }
 
       const userData = snapshot.docs[0].data();
@@ -126,10 +132,15 @@ class SignalementService {
       if (data.photo) {
         signalement.photo = data.photo;
       }
+      if (data.city) {
+        signalement.city = data.city;
+      }
 
       // Ajouter le signalement à Firestore
       const docRef = await addDoc(this.getCollectionRef(), signalement);
       console.log('✅ Signalement créé avec ID:', docRef.id);
+      console.log('📝 Utilisateur stocké dans le signalement:', JSON.stringify(currentUser, null, 2));
+      console.log('📝 Firebase UID stocké:', currentUser.firebase_uid);
 
       // historique
       const histoStatutRef = collection(db, 'histo_statuts');
@@ -154,7 +165,8 @@ class SignalementService {
         synchronized: false,
         last_sync_at: now,
         ...(data.surface !== undefined && data.surface !== null && { surface: data.surface }),
-        ...(data.photo && { photo: data.photo })
+        ...(data.photo && { photo: data.photo }),
+        ...(data.city && { city: data.city })
       };
 
       return result;
@@ -223,7 +235,23 @@ class SignalementService {
       }
 
       console.log('🔍 Recherche des signalements pour firebase_uid:', firebaseUser.uid);
+      console.log('🔍 Email de l\'utilisateur:', firebaseUser.email);
 
+      // D'abord récupérer TOUS les signalements pour voir leur structure
+      const allSnapshot = await getDocs(this.getCollectionRef());
+      console.log('📊 TOUS les signalements dans Firestore:', allSnapshot.size);
+      
+      allSnapshot.docs.forEach((doc, index) => {
+        const data = doc.data();
+        console.log(`📄 Signalement #${index + 1}:`, {
+          id: doc.id,
+          utilisateur: data.utilisateur,
+          firebase_uid_present: !!data.utilisateur?.firebase_uid,
+          firebase_uid_value: data.utilisateur?.firebase_uid
+        });
+      });
+
+      // Maintenant chercher avec le filtre
       const q = query(
         this.getCollectionRef(),
         where('utilisateur.firebase_uid', '==', firebaseUser.uid),
@@ -231,14 +259,19 @@ class SignalementService {
       );
 
       const snapshot = await getDocs(q);
-      console.log('📊 Mes signalements trouvés:', snapshot.size);
+      console.log('📊 Mes signalements trouvés avec le filtre:', snapshot.size);
+
+      if (snapshot.size === 0) {
+        console.warn('⚠️ Aucun signalement trouvé pour cet utilisateur');
+        console.warn('⚠️ Vérifiez que firebase_uid dans Firestore correspond à:', firebaseUser.uid);
+      }
 
       return snapshot.docs.map(doc => ({
         ...doc.data() as Signalement,
         firebase_id: doc.id
       }));
     } catch (error) {
-      console.error('Erreur lors de la récupération de mes signalements:', error);
+      console.error('❌ Erreur lors de la récupération de mes signalements:', error);
       throw error;
     }
   }

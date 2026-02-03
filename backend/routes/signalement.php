@@ -9,16 +9,13 @@ use App\Http\Controllers\SignalementController;
 |--------------------------------------------------------------------------
 */
 
+// Routes publiques (sans authentification)
+Route::get('/reports', [SignalementController::class, 'index']);
+Route::get('/reports/{id}', [SignalementController::class, 'show']);
+Route::get('/statuses', [SignalementController::class, 'getStatuts']);
+
+// Routes protégées (avec authentification)
 Route::middleware('auth:api')->group(function () {
-    // List of reports
-    Route::get('/reports', [SignalementController::class, 'index']);
-
-    // Report details
-    Route::get('/reports/{id}', [SignalementController::class, 'show']);
-
-
-
-
     // Ajouter un historique de statut (histostatut)
     Route::post('/reports/{id}/histostatut', [SignalementController::class, 'addHistoStatut']);
     // Récupérer l'historique des statuts d'un signalement
@@ -32,7 +29,4 @@ Route::middleware('auth:api')->group(function () {
 
     // Delete a report
     Route::delete('/reports/{id}', [SignalementController::class, 'destroy']);
-
-    // List of available statuses
-    Route::get('/statuses', [SignalementController::class, 'getStatuts']);
 });

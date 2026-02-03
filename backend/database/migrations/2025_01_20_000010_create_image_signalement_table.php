@@ -11,13 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('parametre', function (Blueprint $table) {
-            $table->id('id_parametre');
-            $table->integer('tentative_max');
+        Schema::create('image_signalement', function (Blueprint $table) {
+            $table->id('id_image_signalement');
+            $table->string('image', 350);
+            $table->unsignedBigInteger('id_histo_statut');
             
             // Colonnes de synchronisation
             $table->boolean('synchronized')->default(false);
             $table->timestamp('last_sync_at')->nullable();
+            
+            $table->foreign('id_histo_statut')
+                ->references('id_histo_statut')
+                ->on('histo_statut');
         });
     }
 
@@ -26,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('parametre');
+        Schema::dropIfExists('image_signalement');
     }
 };

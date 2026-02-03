@@ -22,6 +22,7 @@ import {
 } from '@coreui/icons'
 import '@coreui/coreui/dist/css/coreui.min.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import { ENDPOINTS, getAuthHeaders } from '../../config/api'
 import './MainManager.css'
 
 export default function ManagerLayout() {
@@ -101,7 +102,7 @@ export default function ManagerLayout() {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
             
             // Appeler l'API de déconnexion
-            await fetch('http://localhost:8000/api/auth/logout', {
+            await fetch(ENDPOINTS.LOGOUT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -41,6 +41,7 @@ import {
     LineElement,
 } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
+import { ENDPOINTS, getAuthHeaders } from '../../../config/api'
 import './Home.css'
 
 // Register ChartJS components
@@ -104,22 +105,23 @@ export default function ManagerHome() {
         setLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+            console.log('Token utilisé:', token ? 'Token présent' : 'Token ABSENT')
+            
+            if (!token) {
+                console.error('Pas de token! Redirection vers login...')
+                navigate('/manager/login')
+                return
+            }
             
             // Récupérer les signalements
-            const sigResponse = await fetch('http://localhost:8000/api/reports', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
+            const sigResponse = await fetch(ENDPOINTS.REPORTS, {
+                headers: getAuthHeaders()
             })
             const sigResult = await sigResponse.json()
             
             // Récupérer les utilisateurs
-            const userResponse = await fetch('http://localhost:8000/api/users', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
+            const userResponse = await fetch(ENDPOINTS.USERS, {
+                headers: getAuthHeaders()
             })
             const userResult = await userResponse.json()
 

@@ -26,6 +26,7 @@ import {
     cilChevronRight,
     cilChevronLeft,
 } from '@coreui/icons'
+import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Ajout.css'
 
 export default function AjoutUtilisateur() {
@@ -60,16 +61,9 @@ export default function AjoutUtilisateur() {
     useEffect(() => {
         const fetchSexes = async () => {
             try {
-                // Récupérer le token du localStorage ou sessionStorage
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                
-                const response = await fetch('http://localhost:8000/api/sexes', {
+                const response = await fetch(ENDPOINTS.SEXES, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: getAuthHeaders()
                 })
 
                 if (response.ok) {
@@ -171,13 +165,9 @@ export default function AjoutUtilisateur() {
                 return
             }
             
-            const response = await fetch('http://localhost:8000/api/auth/register', {
+            const response = await fetch(ENDPOINTS.REGISTER, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     identifiant: formData.identifiant,
                     mdp: formData.mdp,

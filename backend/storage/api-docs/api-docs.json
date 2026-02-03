@@ -185,8 +185,8 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Connexion (Manager ou Firebase)",
-                "description": "Login Manager (Web uniquement)\nLogique : Firebase en priorité, sinon PostgreSQL local",
+                "summary": "Connexion Manager",
+                "description": "Login Manager (Web uniquement)\nAuthentification via PostgreSQL",
                 "operationId": "8cb7742ae98d0990acb2907c4e00bf24",
                 "parameters": [
                     {
@@ -210,15 +210,6 @@
                             "format": "password",
                             "example": "password"
                         }
-                    },
-                    {
-                        "name": "firebase_token",
-                        "in": "query",
-                        "description": "Token Firebase ID (optionnel)",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "requestBody": {
@@ -240,10 +231,6 @@
                                         "type": "string",
                                         "format": "password",
                                         "example": "password"
-                                    },
-                                    "firebase_token": {
-                                        "description": "Token Firebase ID (optionnel)",
-                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -324,298 +311,6 @@
                     },
                     "401": {
                         "description": "Non authentifié"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/auth/firebase": {
-            "post": {
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Authentification via Firebase",
-                "description": "Login or register user with Firebase token",
-                "operationId": "8a000af7b38c1ba184c654304634a32f",
-                "parameters": [
-                    {
-                        "name": "firebase_token",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "nom",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "prenom",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "dtn",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "format": "date"
-                        }
-                    },
-                    {
-                        "name": "id_sexe",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "id_type_utilisateur",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "firebase_token"
-                                ],
-                                "properties": {
-                                    "firebase_token": {
-                                        "type": "string"
-                                    },
-                                    "nom": {
-                                        "type": "string"
-                                    },
-                                    "prenom": {
-                                        "type": "string"
-                                    },
-                                    "dtn": {
-                                        "type": "string",
-                                        "format": "date"
-                                    },
-                                    "id_sexe": {
-                                        "type": "integer"
-                                    },
-                                    "id_type_utilisateur": {
-                                        "type": "integer"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Authentification réussie"
-                    },
-                    "401": {
-                        "description": "Token invalide"
-                    },
-                    "422": {
-                        "description": "Erreur de validation"
-                    }
-                }
-            }
-        },
-        "/entreprises": {
-            "get": {
-                "tags": [
-                    "Entreprises"
-                ],
-                "summary": "Liste toutes les entreprises",
-                "description": "Liste toutes les entreprises",
-                "operationId": "64e8921cb8632484929a7e7421093145",
-                "responses": {
-                    "200": {
-                        "description": "Liste des entreprises récupérée avec succès"
-                    },
-                    "401": {
-                        "description": "Non authentifié"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
-            "post": {
-                "tags": [
-                    "Entreprises"
-                ],
-                "summary": "Créer une nouvelle entreprise",
-                "description": "Créer une entreprise (PostgreSQL + Firebase)",
-                "operationId": "5093d3d8805196063d678d8782624bc8",
-                "requestBody": {
-                    "description": "Données de l'entreprise",
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "nom_entreprise",
-                                    "id_utilisateur"
-                                ],
-                                "properties": {
-                                    "nom_entreprise": {
-                                        "type": "string",
-                                        "maxLength": 255,
-                                        "example": "Entreprise ABC"
-                                    },
-                                    "adresse": {
-                                        "type": "string",
-                                        "example": "123 rue de la Paix",
-                                        "nullable": true
-                                    },
-                                    "tel": {
-                                        "type": "string",
-                                        "maxLength": 20,
-                                        "example": "+261341234567",
-                                        "nullable": true
-                                    },
-                                    "id_utilisateur": {
-                                        "type": "integer",
-                                        "example": 1
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Entreprise créée avec succès"
-                    },
-                    "401": {
-                        "description": "Non authentifié"
-                    },
-                    "422": {
-                        "description": "Erreur de validation"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/entreprises/{id}": {
-            "put": {
-                "tags": [
-                    "Entreprises"
-                ],
-                "summary": "Mettre à jour une entreprise",
-                "description": "Mettre à jour une entreprise",
-                "operationId": "43e816e4ba618878bc99b35de76c45be",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "description": "Données à mettre à jour",
-                    "required": false,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "nom_entreprise": {
-                                        "type": "string",
-                                        "maxLength": 255,
-                                        "example": "Nouveau nom"
-                                    },
-                                    "adresse": {
-                                        "type": "string",
-                                        "example": "Nouvelle adresse",
-                                        "nullable": true
-                                    },
-                                    "tel": {
-                                        "type": "string",
-                                        "maxLength": 20,
-                                        "example": "+261341234567",
-                                        "nullable": true
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Entreprise mise à jour avec succès"
-                    },
-                    "401": {
-                        "description": "Non authentifié"
-                    },
-                    "404": {
-                        "description": "Entreprise non trouvée"
-                    },
-                    "422": {
-                        "description": "Erreur de validation"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
-            "delete": {
-                "tags": [
-                    "Entreprises"
-                ],
-                "summary": "Supprimer une entreprise",
-                "description": "Supprimer une entreprise",
-                "operationId": "fe33fa1738a70a07597dda0a21ea0876",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Entreprise supprimée avec succès"
-                    },
-                    "401": {
-                        "description": "Non authentifié"
-                    },
-                    "404": {
-                        "description": "Entreprise non trouvée"
                     }
                 },
                 "security": [
@@ -760,7 +455,7 @@
                     "Signalements"
                 ],
                 "summary": "Mettre à jour un signalement (budget, entreprise)",
-                "description": "Met à jour un signalement (budget, entreprise, etc.)",
+                "description": "Met à jour un signalement (budget, entreprise, photo, etc.)",
                 "operationId": "00adfff7b6301d610073660350d33538",
                 "parameters": [
                     {
@@ -1271,10 +966,6 @@
         {
             "name": "Auth",
             "description": "Authentification et gestion de session"
-        },
-        {
-            "name": "Entreprises",
-            "description": "Gestion des entreprises"
         },
         {
             "name": "Sexes",

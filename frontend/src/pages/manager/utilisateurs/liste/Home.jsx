@@ -19,6 +19,7 @@ import { cilList, cilSearch, cilPeople, cilCheckAlt, cilSync, cilCloudDownload }
 import ActionButtons from '../../../../components/ActionButtons'
 import GenericTable from '../../../../components/GenericTable'
 import Modal from '../../../../components/Modal'
+import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import '../../../../styles/ListStyles.css'
 import './Liste.css'
 
@@ -46,14 +47,9 @@ export default function ListeUtilisateur() {
 
     const fetchTypesUtilisateur = async () => {
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-            const response = await fetch('http://localhost:8000/api/user-types', {
+            const response = await fetch(ENDPOINTS.USER_TYPES, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getAuthHeaders()
             });
             const data = await response.json();
             if (data.success) {
@@ -67,14 +63,9 @@ export default function ListeUtilisateur() {
     const fetchUtilisateurs = async () => {
         setLoading(true)
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch('http://localhost:8000/api/users', {
+            const response = await fetch(ENDPOINTS.USERS, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getAuthHeaders()
             })
             const data = await response.json()
             console.log(data)
@@ -156,14 +147,9 @@ export default function ListeUtilisateur() {
     const confirmDelete = async () => {
         if (deleteModal.id) {
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const response = await fetch(`http://localhost:8000/api/users/${deleteModal.id}`, {
+                const response = await fetch(ENDPOINTS.USER(deleteModal.id), {
                     method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: getAuthHeaders()
                 })
 
                 const data = await response.json()
@@ -203,14 +189,9 @@ export default function ListeUtilisateur() {
     const confirmUnblock = async () => {
         if (unblockModal.id) {
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const response = await fetch(`http://localhost:8000/api/users/${unblockModal.id}/unblock`, {
+                const response = await fetch(ENDPOINTS.USER_UNBLOCK(unblockModal.id), {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: getAuthHeaders()
                 })
 
                 const data = await response.json()

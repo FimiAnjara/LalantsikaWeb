@@ -15,7 +15,7 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser, cilCheckAlt } from '@coreui/icons'
-import { firebaseSignIn } from '../../../config/firebase'
+import { ENDPOINTS } from '../../../config/api'
 import './Login.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
@@ -74,32 +74,13 @@ export default function ManagerLogin() {
         setApiError('')
 
         try {
-            // ÉTAPE 1 : Tenter l'authentification Firebase (côté client)
-            let firebaseToken = null
-            try {
-                const firebaseResult = await firebaseSignIn(formData.email, formData.mdp)
-                if (firebaseResult.success) {
-                    firebaseToken = firebaseResult.idToken
-                    console.log('✅ Firebase auth réussie')
-                } else {
-                    console.log('⚠️ Firebase auth échouée, fallback PostgreSQL')
-                }
-            } catch (firebaseError) {
-                console.log('⚠️ Firebase indisponible, fallback PostgreSQL:', firebaseError.message)
-            }
-
-            // ÉTAPE 2 : Envoyer au backend (avec token Firebase ou credentials pour fallback)
-            const requestBody = firebaseToken 
-                ? { firebase_token: firebaseToken }
-                : { email: formData.email, mdp: formData.mdp }
-
-            const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+            const response = await fetch(ENDPOINTS.LOGIN, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify({ email: formData.email, mdp: formData.mdp })
             })
 
             const data = await response.json()

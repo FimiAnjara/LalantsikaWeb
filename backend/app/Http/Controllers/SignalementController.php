@@ -52,7 +52,6 @@ class SignalementController extends Controller
                     'surface',
                     'budget',
                     'description',
-                    'photo',
                     'id_entreprise',
                     'id_utilisateur',
                     DB::raw('ST_Y(point::geometry) as latitude'),
@@ -78,7 +77,6 @@ class SignalementController extends Controller
                         'surface' => (float) $signalement->surface,
                         'budget' => (float) $signalement->budget,
                         'description' => $signalement->description,
-                        'photo' => $signalement->photo ? url('storage/' . $signalement->photo) : null,
                         'statut' => $statut,
                         'utilisateur' => $signalement->utilisateur ? [
                             'id' => $signalement->utilisateur->id_utilisateur,
@@ -100,15 +98,7 @@ class SignalementController extends Controller
                 'code' => 200,
                 'success' => true,
                 'message' => 'Signalements récupérés avec succès',
-                'data' => [
-                    'items' => $data,
-                    'pagination' => [
-                        'current_page' => $paginator->currentPage(),
-                        'per_page' => $paginator->perPage(),
-                        'total' => $paginator->total(),
-                        'last_page' => $paginator->lastPage(),
-                    ]
-                ]
+                'data' => $signalements
             ]);
 
         } catch (\Exception $e) {

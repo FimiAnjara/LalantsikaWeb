@@ -57,7 +57,7 @@ export default function SignalementListe() {
             const result = await response.json()
 
             if (result.success && result.data) {
-                setSignalements(result.data)
+                setSignalements(result.data.items)
             } else {
                 setModal({
                     visible: true,
@@ -92,7 +92,7 @@ export default function SignalementListe() {
             const result = await response.json()
 
             if (result.success && result.data) {
-                setStatuts(result.data)
+                setStatuts(result.data.items)
             }
         } catch (error) {
             console.error('Erreur lors du chargement des statuts:', error)
@@ -326,8 +326,8 @@ export default function SignalementListe() {
                             <ActionButtons
                                 id={sig.id_signalement}
                                 onView={handleView}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
+                                // onEdit={handleEdit}
+                                // onDelete={handleDelete}
                             />
                         </CTableDataCell>
                     </CTableRow>

@@ -77,8 +77,10 @@ export default function ListeUtilisateur() {
                 }
             })
             const data = await response.json()
+            console.log(data)
             if (data.success) {
-                setUtilisateurs(data.data || [])
+                setUtilisateurs(data.data.items || [])
+                console.log(utilisateurs)
             } else {
                 console.error('Erreur:', data.message)
                 setModal({
@@ -120,7 +122,7 @@ export default function ListeUtilisateur() {
         return statut === 'actif' ? 'success' : 'danger'
     }
 
-    const filteredUtilisateurs = utilisateurs.filter((user) => {
+    const filteredUtilisateurs = Array.isArray(utilisateurs) ? utilisateurs.filter((user) => {
         const matchSearch =
             (user.identifiant?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (user.nom?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -134,7 +136,7 @@ export default function ListeUtilisateur() {
             (filterSync === 'non' && !user.synchronized)
 
         return matchSearch && matchType && matchStatus && matchSync
-    })
+    }) : []
 
     const totalPages = Math.ceil(filteredUtilisateurs.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage

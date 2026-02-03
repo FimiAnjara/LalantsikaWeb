@@ -71,11 +71,11 @@ export default function SignalementCarte() {
                 const result = await response.json()
                 console.log('API result', result)
                 if (result.success && result.data) {
-                    console.log('Signalements reçus de l\'API:', result.data)
-                    if (result.data.length > 0) {
-                        console.log('Exemple signalement:', result.data[0])
+                    console.log('Signalements reçus de l\'API:', result.data.items)
+                    if (result.data.items.length > 0) {
+                        console.log('Exemple signalement:', result.data.items[0])
                     }
-                    setSignalements(result.data)
+                    setSignalements(result.data.items)
                 } else {
                     setError(result.message || 'Erreur lors du chargement des signalements')
                 }

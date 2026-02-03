@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Models\HistoStatut;
 
 use OpenApi\Attributes as OA;
@@ -77,7 +78,7 @@ class SignalementController extends Controller
                         'surface' => (float) $signalement->surface,
                         'budget' => (float) $signalement->budget,
                         'description' => $signalement->description,
-                        'photo' => $signalement->photo,
+                        'photo' => $signalement->photo ? url('storage/' . $signalement->photo) : null,
                         'statut' => $statut,
                         'utilisateur' => $signalement->utilisateur ? [
                             'id' => $signalement->utilisateur->id_utilisateur,
@@ -122,10 +123,97 @@ class SignalementController extends Controller
         }
     }
 
+    /**
+     * Créer un nouveau signalement avec photo
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function store(Request $request)
+    {
+        try {
+            $request->validate([
+                'description' => 'required|string',
+                'surface' => 'required|numeric|min:0',
+                'latitude' => 'required|numeric',
+                'longitude' => 'required|numeric',
+                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // Max 5MB
+                'id_utilisateur' => 'required|exists:utilisateur,id_utilisateur',
+                'budget' => 'nullable|numeric|min:0',
+                'id_entreprise' => 'nullable|exists:entreprise,id_entreprise',
+            ]);
 
+            // Gestion de la photo
+            $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('signalements', 'public');
+            }
 
-        /**
-     * Met à jour un signalement (budget, entreprise, etc.)
+            // Créer le signalement
+            $signalement = new Signalement();
+            $signalement->description = $request->description;
+            $signalement->surface = $request->surface;
+            $signalement->daty = now();
+            $signalement->photo = $photoPath;
+            $signalement->id_utilisateur = $request->id_utilisateur;
+            $signalement->budget = $request->budget ?? 0;
+            $signalement->id_entreprise = $request->id_entreprise;
+            $signalement->synchronized = false;
+
+            // Créer le point PostGIS
+            $latitude = $request->latitude;
+            $longitude = $request->longitude;
+            $signalement->point = DB::raw("ST_SetSRID(ST_MakePoint($longitude, $latitude), 4326)::geography");
+
+            $signalement->save();
+
+            // Créer l'historique initial avec statut "Nouveau"
+            $statutNouveau = Statut::where('libelle', 'Nouveau')->first();
+            if ($statutNouveau) {
+                $histo = new HistoStatut();
+                $histo->id_signalement = $signalement->id_signalement;
+                $histo->id_statut = $statutNouveau->id_statut;
+                $histo->description = 'Signalement créé';
+                $histo->daty = now();
+                $histo->save();
+            }
+
+            return response()->json([
+                'code' => 201,
+                'success' => true,
+                'message' => 'Signalement créé avec succès',
+                'data' => [
+                    'id_signalement' => $signalement->id_signalement,
+                    'description' => $signalement->description,
+                    'surface' => $signalement->surface,
+                    'photo' => $photoPath ? url('storage/' . $photoPath) : null,
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
+                ]
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'code' => 422,
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors(),
+                'data' => null
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la création du signalement: " . $e->getMessage());
+            return response()->json([
+                'code' => 500,
+                'success' => false,
+                'message' => 'Erreur lors de la création du signalement',
+                'error' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * Met à jour un signalement (budget, entreprise, photo, etc.)
      *
      * @param Request $request
      * @param int $id
@@ -157,15 +245,51 @@ class SignalementController extends Controller
         try {
             $signalement = Signalement::findOrFail($id);
 
-            $data = $request->only(['id_entreprise', 'budget']);
+            $request->validate([
+                'description' => 'nullable|string',
+                'surface' => 'nullable|numeric|min:0',
+                'budget' => 'nullable|numeric|min:0',
+                'id_entreprise' => 'nullable|exists:entreprise,id_entreprise',
+                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+                'latitude' => 'nullable|numeric',
+                'longitude' => 'nullable|numeric',
+            ]);
+
             $updated = false;
 
-            if (isset($data['id_entreprise'])) {
-                $signalement->id_entreprise = $data['id_entreprise'];
+            // Mise à jour des champs
+            if ($request->has('description')) {
+                $signalement->description = $request->description;
                 $updated = true;
             }
-            if (isset($data['budget'])) {
-                $signalement->budget = $data['budget'];
+            if ($request->has('surface')) {
+                $signalement->surface = $request->surface;
+                $updated = true;
+            }
+            if ($request->has('id_entreprise')) {
+                $signalement->id_entreprise = $request->id_entreprise;
+                $updated = true;
+            }
+            if ($request->has('budget')) {
+                $signalement->budget = $request->budget;
+                $updated = true;
+            }
+
+            // Gestion de la photo
+            if ($request->hasFile('photo')) {
+                // Supprimer l'ancienne photo si elle existe
+                if ($signalement->photo && Storage::disk('public')->exists($signalement->photo)) {
+                    Storage::disk('public')->delete($signalement->photo);
+                }
+                $signalement->photo = $request->file('photo')->store('signalements', 'public');
+                $updated = true;
+            }
+
+            // Mise à jour des coordonnées
+            if ($request->has('latitude') && $request->has('longitude')) {
+                $latitude = $request->latitude;
+                $longitude = $request->longitude;
+                $signalement->point = DB::raw("ST_SetSRID(ST_MakePoint($longitude, $latitude), 4326)::geography");
                 $updated = true;
             }
 
@@ -174,14 +298,29 @@ class SignalementController extends Controller
             }
 
             // Charger les relations pour la réponse
-            $signalement->load(['utilisateur', 'statut', 'entreprise']);
+            $signalement->load(['utilisateur', 'entreprise']);
 
             return response()->json([
                 'code' => 200,
                 'success' => true,
                 'message' => 'Signalement mis à jour avec succès',
-                'data' => $signalement
+                'data' => [
+                    'id_signalement' => $signalement->id_signalement,
+                    'description' => $signalement->description,
+                    'surface' => $signalement->surface,
+                    'budget' => $signalement->budget,
+                    'photo' => $signalement->photo ? url('storage/' . $signalement->photo) : null,
+                    'entreprise' => $signalement->entreprise,
+                ]
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'code' => 422,
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors(),
+                'data' => null
+            ], 422);
         } catch (\Exception $e) {
             Log::error("Erreur lors de la mise à jour du signalement: " . $e->getMessage());
             return response()->json([
@@ -253,7 +392,7 @@ class SignalementController extends Controller
                     'surface' => (float) $signalement->surface,
                     'budget' => (float) $signalement->budget,
                     'description' => $signalement->description,
-                    'photo' => $signalement->photo,
+                    'photo' => $signalement->photo ? url('storage/' . $signalement->photo) : null,
                     'statut' => $statut,
                     'utilisateur' => $signalement->utilisateur,
                     'entreprise' => $signalement->entreprise,
@@ -385,7 +524,18 @@ class SignalementController extends Controller
             $histos = HistoStatut::with('statut')
                 ->where('id_signalement', $id)
                 ->orderBy('daty', 'desc')
-                ->get();
+                ->get()
+                ->map(function ($histo) {
+                    return [
+                        'id_histo_statut' => $histo->id_histo_statut,
+                        'daty' => $histo->daty,
+                        'image' => $histo->image ? url('storage/' . $histo->image) : null,
+                        'description' => $histo->description,
+                        'id_statut' => $histo->id_statut,
+                        'id_signalement' => $histo->id_signalement,
+                        'statut' => $histo->statut,
+                    ];
+                });
 
             return response()->json([
                 'code' => 200,

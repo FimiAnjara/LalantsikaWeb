@@ -1,8 +1,12 @@
-/* Dashboard Page */
+/* Dashboard Page - Style amélioré avec couleurs */
+
+.dashboard-page {
+    padding: 0.5rem;
+}
 
 .dashboard-page .page-header {
     padding-bottom: 1rem;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 2px solid #e0e0e0;
 }
 
 .dashboard-page .header-icon {
@@ -18,17 +22,33 @@
 
 .dashboard-page h2 {
     color: #1a1a2e;
+    font-weight: 700;
 }
 
-/* Stat Cards */
+/* Stat Cards avec bordures colorées */
 .stat-card {
     border-radius: 16px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .stat-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Bordure colorée pour chaque carte */
+.stat-card:nth-child(1) .card-body {
+    border-left: 4px solid #0f3460;
+}
+.stat-card:nth-child(2) .card-body {
+    border-left: 4px solid #6c757d;
+}
+.stat-card:nth-child(3) .card-body {
+    border-left: 4px solid #0f3460;
+}
+.stat-card:nth-child(4) .card-body {
+    border-left: 4px solid #28a745;
 }
 
 .stat-icon {
@@ -44,16 +64,20 @@
     background-color: rgba(15, 52, 96, 0.1);
 }
 
+.bg-secondary-light {
+    background-color: rgba(108, 117, 125, 0.1);
+}
+
 .bg-warning-light {
-    background-color: rgba(255, 152, 0, 0.1);
+    background-color: rgba(253, 126, 20, 0.1);
 }
 
 .bg-success-light {
-    background-color: rgba(76, 175, 80, 0.1);
+    background-color: rgba(40, 167, 69, 0.1);
 }
 
 .bg-info-light {
-    background-color: rgba(33, 150, 243, 0.1);
+    background-color: rgba(23, 162, 184, 0.1);
 }
 
 .text-primary {
@@ -61,21 +85,23 @@
 }
 
 .stat-value {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #1a1a2e;
     line-height: 1;
 }
 
 .stat-label {
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: #6c757d;
     margin-top: 0.25rem;
+    font-weight: 500;
 }
 
 /* Cards */
 .dashboard-page .card {
     border-radius: 16px;
+    overflow: hidden;
 }
 
 .dashboard-page .card-header {
@@ -84,19 +110,24 @@
 
 .dashboard-page .card-header h5 {
     color: #1a1a2e;
+    font-weight: 600;
 }
 
-/* Table */
+/* Table avec lignes alternées colorées */
 .dashboard-page .table {
     margin-bottom: 0;
 }
 
+.dashboard-page .table thead {
+    background-color: #f8f9fa;
+}
+
 .dashboard-page .table thead th {
-    border-bottom: none;
+    border-bottom: 2px solid #e0e0e0;
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
-    color: #6c757d;
+    color: #0f3460;
     padding: 1rem;
 }
 
@@ -107,21 +138,27 @@
 }
 
 .dashboard-page .table tbody tr {
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+}
+
+.dashboard-page .table tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
 }
 
 .dashboard-page .table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: rgba(15, 52, 96, 0.05);
+    transform: scale(1.005);
 }
 
 .cursor-pointer {
     cursor: pointer;
 }
 
-/* Progress bars */
+/* Progress bars colorées */
 .dashboard-page .progress {
     height: 10px;
     border-radius: 5px;
+    background-color: #e9ecef;
 }
 
 .progress-bar-animated {
@@ -130,23 +167,97 @@
 
 /* Navy Background Card */
 .bg-navy {
+    background-color: #0f3460 !important;
+}
+
+/* Badge de statut colorés */
+.badge-secondary {
+    background-color: #6c757d !important;
+}
+.badge-primary {
+    background-color: #0f3460 !important;
+}
+.badge-success {
+    background-color: #28a745 !important;
+}
+.badge-info {
+    background-color: #17a2b8 !important;
+}
+.badge-warning {
+    background-color: #fd7e14 !important;
+    color: white !important;
+}
+.badge-danger {
+    background-color: #dc3545 !important;
+}
+
+/* Barre de progression avec couleurs */
+.progress-row {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+}
+
+.progress-row:hover {
+    background-color: #f8f9fa;
+}
+
+/* Card avancement global */
+.avancement-card {
+    background: #0f3460 !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.avancement-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 200%;
+    background: rgba(255,255,255,0.03);
+    transform: rotate(30deg);
+}
+
+/* Statistiques card */
+.stats-card .stat-item {
+    padding: 1rem;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s;
+}
+
+.stats-card .stat-item:hover {
+    background-color: #e9ecef;
+    transform: translateX(5px);
+}
+
+/* Couleurs des barres selon état */
+.progress-nouveau {
+    background-color: #6c757d;
+}
+
+.progress-encours {
     background-color: #0f3460;
 }
 
-.budget-icon {
-    width: 60px;
-    height: 60px;
-    background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.progress-termine {
+    background-color: #28a745;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .stat-value {
         font-size: 1.5rem;
+    }
+    
+    .dashboard-page .page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 1rem;
     }
     
     .stat-icon {

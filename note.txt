@@ -1,0 +1,7 @@
+docker exec -it laravel_app_signalement composer require kreait/firebase-php
+
+docker exec -it laravel_app_signalement composer require kreait/firebase-php:^7.0 --ignore-platform-req=ext-grpc
+
+mdp123
+
+mkdir -p /home/evil/Bureau/BOSSY/ROJO/Lalantsika/backend/storage/app/public/signalements /home/evil/Bureau/BOSSY/ROJO/Lalantsika/backend/storage/app/public/histostatut && chmod -R 775 /home/evil/Bureau/BOSSY/ROJO/Lalantsika/backend/storage/app/public

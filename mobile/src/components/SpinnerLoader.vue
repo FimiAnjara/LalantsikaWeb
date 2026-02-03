@@ -60,25 +60,8 @@ defineProps<{
   right: 0;
   bottom: 0;
   border-radius: 50%;
-  border: 4px solid transparent;
+  border: 4px solid rgba(207, 184, 36, 0.15);
   border-top-color: #cfb824;
-  border-right-color: rgba(207, 184, 36, 0.6);
-  border-bottom-color: rgba(207, 184, 36, 0.2);
-  border-left-color: transparent;
-}
-
-/* Effet de tête plus grande */
-.spinner-arc::after {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 10px;
-  background: #cfb824;
-  border-radius: 50%;
-  box-shadow: 0 0 10px rgba(207, 184, 36, 0.8);
 }
 
 @keyframes spin {

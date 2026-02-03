@@ -304,6 +304,53 @@ class AuthService {
   }
 
   /**
+   * Mettre à jour la photo de profil de l'utilisateur
+   */
+  async updateProfilePhoto(photoUrl: string): Promise<void> {
+    const firebaseUser = auth.currentUser;
+    
+    if (!firebaseUser) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    try {
+      // Trouver le document utilisateur dans Firestore
+      const usersRef = collection(db, 'utilisateurs');
+      const q = query(usersRef, where('uid', '==', firebaseUser.uid));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        // Essayer par email
+        const emailQuery = query(usersRef, where('email', '==', firebaseUser.email!));
+        const emailSnapshot = await getDocs(emailQuery);
+        
+        if (emailSnapshot.empty) {
+          throw new Error('Profil utilisateur non trouvé');
+        }
+        
+        // Mettre à jour le document trouvé par email
+        const docId = emailSnapshot.docs[0].id;
+        await updateDoc(doc(db, 'utilisateurs', docId), {
+          photoUrl: photoUrl,
+          last_sync_at: new Date().toISOString()
+        });
+      } else {
+        // Mettre à jour le document trouvé par UID
+        const docId = querySnapshot.docs[0].id;
+        await updateDoc(doc(db, 'utilisateurs', docId), {
+          photoUrl: photoUrl,
+          last_sync_at: new Date().toISOString()
+        });
+      }
+
+      console.log('✅ Photo de profil mise à jour');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la photo de profil:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Gestion des erreurs Firebase Auth
    */
   private handleAuthError(error: AuthError): Error {

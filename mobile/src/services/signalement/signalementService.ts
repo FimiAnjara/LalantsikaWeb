@@ -24,6 +24,7 @@ import {
 import { STATUT_OPTIONS, Statut } from '@/models/Statut';
 import { Point } from '@/models/Point';
 import { auth } from '../firebase/config';
+import { storageService } from '../storage';
 
 const COLLECTION_NAME = 'signalements';
 
@@ -129,9 +130,15 @@ class SignalementService {
       if (data.surface !== undefined && data.surface !== null) {
         signalement.surface = data.surface;
       }
+      
+      // Upload de la photo vers Firebase Storage si c'est du base64
       if (data.photo) {
-        signalement.photo = data.photo;
+        console.log('📸 Traitement de la photo...');
+        const photoUrl = await storageService.ensureImageUrl(data.photo, 'signalements');
+        signalement.photo = photoUrl;
+        console.log('📸 Photo URL:', photoUrl);
       }
+      
       if (data.city) {
         signalement.city = data.city;
       }
@@ -343,6 +350,14 @@ class SignalementService {
         }
       }
 
+      // Upload de la photo vers Firebase Storage si c'est du base64
+      if (data.photo && storageService.isBase64(data.photo)) {
+        console.log('📸 Upload de la nouvelle photo...');
+        const photoUrl = await storageService.uploadBase64Image(data.photo, 'signalements');
+        updateData.photo = photoUrl;
+        console.log('📸 Nouvelle photo URL:', photoUrl);
+      }
+
       await updateDoc(docRef, updateData);
       console.log('Signalement mis à jour:', firebaseId);
     } catch (error) {
@@ -356,6 +371,18 @@ class SignalementService {
    */
   async deleteSignalement(firebaseId: string): Promise<void> {
     try {
+      // Récupérer le signalement pour obtenir l'URL de la photo
+      const signalement = await this.getSignalementById(firebaseId);
+      
+      // Supprimer la photo de Storage si elle existe
+      if (signalement?.photo && storageService.isUrl(signalement.photo)) {
+        try {
+          await storageService.deleteImage(signalement.photo);
+        } catch (e) {
+          console.warn('⚠️ Impossible de supprimer la photo:', e);
+        }
+      }
+      
       const docRef = doc(db, COLLECTION_NAME, firebaseId);
       await deleteDoc(docRef);
       console.log('Signalement supprimé:', firebaseId);

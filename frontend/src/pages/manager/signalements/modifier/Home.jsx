@@ -15,6 +15,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import { cilArrowLeft, cilSave, cilCheckCircle } from '@coreui/icons'
 import Modal from '../../../../components/Modal'
+import { uploadFile } from '../../../../config/firebase'
 import './Modifier.css'
 
 
@@ -148,13 +149,34 @@ export default function SignalementModifier() {
         setSaving(true);
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            
+            // Upload de l'image vers Firebase Storage si sélectionnée
+            let photoUrl = null;
+            if (selectedImage) {
+                try {
+                    console.log('📤 Upload de l\'image vers Firebase Storage...');
+                    photoUrl = await uploadFile(selectedImage, 'histostatut');
+                    console.log('✅ Image uploadée:', photoUrl);
+                } catch (uploadError) {
+                    console.error('❌ Erreur upload Firebase:', uploadError);
+                    // Fallback: envoyer l'image directement au backend
+                    console.log('⚠️ Fallback: envoi direct au backend');
+                }
+            }
+            
             const formData = new FormData();
             formData.append('id_statut', selectedStatut);
             formData.append('description', description);
             formData.append('daty', statutDate);
-            if (selectedImage) {
+            
+            // Si on a une URL Firebase, l'envoyer comme string
+            // Sinon, envoyer le fichier au backend (fallback)
+            if (photoUrl) {
+                formData.append('photo_url', photoUrl);
+            } else if (selectedImage) {
                 formData.append('photo', selectedImage);
             }
+            
             // Ajout dans l'historique uniquement
             const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
                 method: 'POST',

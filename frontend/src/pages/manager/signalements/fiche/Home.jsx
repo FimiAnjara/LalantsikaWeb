@@ -18,6 +18,8 @@ import {
     cilTrash,
     cilUser,
     cilCalendar,
+    cilClock,
+    cilCheckCircle,
     cilLocationPin,
     cilMoney,
     cilLayers,
@@ -171,6 +173,66 @@ export default function SignalementFiche() {
         setAssignBudget('')
     }
 
+    const handleFinish = () => {
+        setModal({ visible: false })
+        handleUpdateStatut('Terminé')
+    }
+
+    const handleUpdateStatut = async (newStatutLibelle) => {
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+            const resStatut = await fetch('http://localhost:8000/api/statuses', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                }
+            })
+            const statutsResult = await resStatut.json()
+            if (!statutsResult.success || !statutsResult.data) {
+                throw new Error('Impossible de récupérer les statuts')
+            }
+            const statutObj = statutsResult.data.find(s => s.libelle === newStatutLibelle)
+            if (!statutObj) {
+                throw new Error(`Statut "${newStatutLibelle}" non trouvé`)
+            }
+
+            const formData = new FormData()
+            formData.append('id_statut', statutObj.id_statut)
+            formData.append('description', `Statut changé à ${newStatutLibelle}`)
+            formData.append('daty', new Date().toISOString().slice(0, 16))
+
+            const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+                body: formData
+            })
+            const result = await res.json()
+            if (!result.success) {
+                throw new Error(result.message || 'Erreur lors de la mise à jour du statut')
+            }
+
+            setModal({
+                visible: true,
+                type: 'success',
+                title: 'Succès',
+                message: `Signalement marqué comme ${newStatutLibelle.toLowerCase()}`
+            })
+            setTimeout(() => {
+                window.location.reload()
+            }, 800)
+        } catch (e) {
+            setModal({
+                visible: true,
+                type: 'danger',
+                title: 'Erreur',
+                message: e.message || 'Erreur lors de la mise à jour du statut'
+            })
+        }
+    }
+
     const confirmAssign = async () => {
         if (!selectedEntreprise) {
             setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez sélectionner une entreprise." })
@@ -183,6 +245,8 @@ export default function SignalementFiche() {
         setAssignLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+            
+            // 1. Mettre à jour le signalement (id_entreprise et budget)
             const res = await fetch(`http://localhost:8000/api/reports/${id}`, {
                 method: 'PUT',
                 headers: {
@@ -196,18 +260,58 @@ export default function SignalementFiche() {
                 })
             })
             const result = await res.json()
-            if (result.success) {
-                setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement mis à jour avec succès.' })
-                setAssignModal({ visible: false })
-                // Optionnel : recharger le signalement
-                setTimeout(() => {
-                    window.location.reload();
-                }, 800);
-            } else {
+            
+            if (!result.success) {
                 throw new Error(result.message || 'Erreur lors de la mise à jour')
             }
+
+            // 2. Récupérer l'id du statut "En cours"
+            const resStatut = await fetch('http://localhost:8000/api/statuses', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                }
+            })
+            const statutsResult = await resStatut.json()
+            if (!statutsResult.success || !statutsResult.data) {
+                throw new Error('Impossible de récupérer les statuts')
+            }
+            const statutEnCours = statutsResult.data.find(s => s.libelle === 'En cours')
+            if (!statutEnCours) {
+                throw new Error('Statut "En cours" non trouvé')
+            }
+
+            // 3. Créer un histo_statut avec le statut "En cours"
+            const entrepriseObj = entreprises.find(e => (e.id_entreprise || e.id) == selectedEntreprise)
+            const entrepriseNom = entrepriseObj ? (entrepriseObj.nom_entreprise || entrepriseObj.nom) : 'une entreprise'
+            
+            const formData = new FormData()
+            formData.append('id_statut', statutEnCours.id_statut)
+            formData.append('description', `Assigné à ${entrepriseNom} - Budget: ${Number(assignBudget).toLocaleString()} Ar`)
+            formData.append('daty', new Date().toISOString().slice(0, 16))
+
+            const resHisto = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+                body: formData
+            })
+            const histoResult = await resHisto.json()
+            
+            if (!histoResult.success) {
+                console.warn('Avertissement: Historique non créé', histoResult.message)
+            }
+
+            setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement assigné avec succès. Statut mis à jour en "En cours".' })
+            setAssignModal({ visible: false })
+            // Recharger le signalement
+            setTimeout(() => {
+                window.location.reload();
+            }, 800);
         } catch (e) {
-            setModal({ visible: true, type: 'danger', title: 'Erreur', message: e.message || "Erreur lors de la mise à jour." })
+            setModal({ visible: true, type: 'danger', title: 'Erreur', message: e.message || "Erreur lors de l'assignation." })
         } finally {
             setAssignLoading(false)
         }
@@ -342,10 +446,23 @@ export default function SignalementFiche() {
                         <CIcon icon={cilPencil} className="me-2" />
                         Modifier Status
                     </CButton>
-                    <CButton color="info" onClick={handleAssign}>
-                        <CIcon icon={cilBuilding} className="me-2" />
-                        Assigner
-                    </CButton>
+                    
+                    {/* Bouton Assigner - visible seulement si statut = Nouveau */}
+                    {signalement.statut === 'Nouveau' && (
+                        <CButton color="info" onClick={handleAssign}>
+                            <CIcon icon={cilBuilding} className="me-2" />
+                            Assigner à une entreprise
+                        </CButton>
+                    )}
+
+                    {/* Bouton Terminer - visible seulement si statut = En cours */}
+                    {signalement.statut === 'En cours' && (
+                        <CButton color="success" onClick={handleFinish}>
+                            <CIcon icon={cilCheckCircle} className="me-2" />
+                            Marquer comme Terminé
+                        </CButton>
+                    )}
+                    
                     {/* Boutons Valider/Rejeter si statut = En attente */}
                     {signalement.statut === 'En attente' && (
                         <>
@@ -375,7 +492,11 @@ export default function SignalementFiche() {
 
                             <div className="signalement-photo-container rounded-4 overflow-hidden mb-4 shadow-sm">
                                 {signalement.photo ? (
-                                    <CImage src={signalement.photo} alt="Photo du signalement" style={{ width: '100%', height: '300px', objectFit: 'cover' }} />
+                                    <CImage 
+                                        src={signalement.photo.startsWith('http') ? signalement.photo : `http://localhost:8000${signalement.photo}`} 
+                                        alt="Photo du signalement" 
+                                        style={{ width: '100%', height: '300px', objectFit: 'cover' }} 
+                                    />
                                 ) : (
                                     <div className="photo-placeholder d-flex align-items-center justify-content-center bg-light text-muted" style={{ height: '300px' }}>
                                         <div className="text-center">
@@ -451,12 +572,12 @@ export default function SignalementFiche() {
                             </CButton>
                         </CCardBody>
                     </CCard>
-                    {/* Historique des statuts (Timeline) */}
-                    <CCard className="mb-4 border-0 shadow-sm card-gradient-purple">
-                        <CCardHeader className="bg-transparent p-3 border-0">
-                            <h5 className="mb-0 fw-bold text-white">📋 Historique des statuts</h5>
+                    {/* Historique des statuts (en bas) */}
+                    <CCard className="mb-4 border-0 shadow-sm histo-card">
+                        <CCardHeader className="bg-navy text-white p-3 border-0">
+                            <h5 className="mb-0 fw-bold">Historique des statuts</h5>
                         </CCardHeader>
-                        <CCardBody className="p-4 bg-white" style={{ borderRadius: '0 0 16px 16px' }}>
+                        <CCardBody className="p-4">
                             {loadingHisto ? (
                                 <div className="text-center text-muted py-4">
                                     <div className="spinner-border text-primary" role="status"></div>
@@ -464,20 +585,21 @@ export default function SignalementFiche() {
                                 </div>
                             ) : histoStatuts.length === 0 ? (
                                 <div className="text-center text-muted py-4">
-                                    <div className="empty-history-icon mb-2">📭</div>
-                                    <p className="mb-0">Aucun historique de statut</p>
+                                    <CIcon icon={cilClock} size="xl" className="mb-2" />
+                                    <p className="mb-0">Aucun historique de statut.</p>
                                 </div>
                             ) : (
-                                <div className="timeline-container">
-                                    {histoStatuts.map((histo, index) => {
+                                <div className="timeline">
+                                    {[...histoStatuts].reverse().map((histo, index) => {
                                         const statutLibelle = histo.statut && histo.statut.libelle ? histo.statut.libelle : 'Inconnu'
                                         const getTimelineColor = (statut) => {
                                             switch(statut) {
                                                 case 'Nouveau': return 'timeline-gray'
                                                 case 'En cours': return 'timeline-blue'
                                                 case 'Terminé': return 'timeline-green'
-                                                case 'Validé': return 'timeline-purple'
+                                                case 'Validé': return 'timeline-teal'
                                                 case 'Rejeté': return 'timeline-red'
+                                                case 'En attente': return 'timeline-orange'
                                                 default: return 'timeline-gray'
                                             }
                                         }
@@ -490,20 +612,30 @@ export default function SignalementFiche() {
                                             }
                                         }
                                         return (
-                                            <div key={histo.id_histo_statut} className={`timeline-item ${getTimelineColor(statutLibelle)} ${index === 0 ? 'timeline-first' : ''}`}>
-                                                <div className="timeline-dot"></div>
+                                            <div key={histo.id_histo_statut} className={`timeline-item ${getTimelineColor(statutLibelle)}`}>
+                                                <div className="timeline-marker"></div>
                                                 <div className="timeline-content">
-                                                    <div className="d-flex justify-content-between align-items-center mb-2">
-                                                        <span className={`badge-statut badge-${statutLibelle.toLowerCase().replace(' ', '-')}`}>
+                                                    <div className="d-flex align-items-center justify-content-between mb-2">
+                                                        <CBadge className={`badge-${statutLibelle.toLowerCase().replace(' ', '-')}`}>
                                                             {statutLibelle}
+                                                        </CBadge>
+                                                        <span className="badge bg-light text-dark">
+                                                            Avancement: {getAvancement(statutLibelle)}
                                                         </span>
-                                                        <span className="badge-avancement">{getAvancement(statutLibelle)}</span>
                                                     </div>
                                                     <div className="timeline-date">
-                                                        📅 {histo.daty ? new Date(histo.daty).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                                        <CIcon icon={cilCalendar} size="sm" className="me-1" />
+                                                        {histo.daty ? new Date(histo.daty).toLocaleDateString('fr-FR', { 
+                                                            weekday: 'long', 
+                                                            year: 'numeric', 
+                                                            month: 'long', 
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        }) : 'Date non définie'}
                                                     </div>
                                                     {histo.description && (
-                                                        <div className="timeline-description mt-2">
+                                                        <div className="timeline-description">
                                                             {histo.description}
                                                         </div>
                                                     )}
@@ -512,8 +644,8 @@ export default function SignalementFiche() {
                                                             <CImage
                                                                 src={histo.image.startsWith('http') ? histo.image : `http://localhost:8000/storage/${histo.image}`}
                                                                 alt="Preuve"
-                                                                className="rounded shadow-sm"
-                                                                style={{ maxWidth: '100%', maxHeight: 100, objectFit: 'cover' }}
+                                                                className="img-thumbnail"
+                                                                style={{ maxWidth: 150, maxHeight: 100, cursor: 'pointer' }}
                                                             />
                                                         </div>
                                                     )}
@@ -583,7 +715,7 @@ export default function SignalementFiche() {
                                             <option value="">Sélectionner une entreprise...</option>
                                             {entreprises.map(ent => (
                                                 <option key={ent.id_entreprise || ent.id} value={ent.id_entreprise || ent.id}>
-                                                    {ent.nom}
+                                                    {ent.nom_entreprise || ent.nom}
                                                 </option>
                                             ))}
                                         </select>

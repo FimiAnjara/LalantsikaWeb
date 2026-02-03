@@ -3,32 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Models\Entreprise;
-use App\Services\Sync\DatabaseSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class EntrepriseController extends Controller
 {
-    protected $syncService;
-
-    public function __construct(DatabaseSyncService $syncService)
-    {
-        $this->syncService = $syncService;
-    }
-
+    /**
+     * Liste toutes les entreprises depuis PostgreSQL
+     */
     public function index()
     {
-        $entreprises = Entreprise::all();
-        return response()->json([
-            'data' => $entreprises,
-            'success' => true,
-            'message' => 'Entreprises retrieved successfully',
-            'code' => 200
-        ]);
+        try {
+            $entreprises = Entreprise::all();
+            return response()->json([
+                'data' => $entreprises,
+                'success' => true,
+                'message' => 'Entreprises récupérées avec succès',
+                'code' => 200
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la récupération des entreprises: " . $e->getMessage());
+            return response()->json([
+                'data' => [],
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des entreprises',
+                'error' => $e->getMessage(),
+                'code' => 500
+            ], 500);
+        }
     }
 
     /**
-     * Créer une entreprise (PostgreSQL + Firebase)
+     * Créer une entreprise dans PostgreSQL
      */
     public function store(Request $request)
     {
@@ -36,25 +43,56 @@ class EntrepriseController extends Controller
             'nom_entreprise' => 'required|string|max:255',
             'adresse' => 'nullable|string',
             'tel' => 'nullable|string|max:20',
-            'id_utilisateur' => 'required|exists:utilisateur,id_utilisateur'
+            'id_utilisateur' => 'nullable|exists:utilisateur,id_utilisateur',
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'code' => 422
+            ], 422);
         }
 
-        // Utiliser le service universel de sync
-        $entreprise = $this->syncService->create(
-            new Entreprise(),
-            'entreprises', // Nom collection Firebase
-            $validator->validated()
-        );
+        try {
+            $entreprise = Entreprise::create($validator->validated());
 
-        return response()->json([
-            'message' => 'Entreprise créée avec succès',
-            'entreprise' => $entreprise,
-            'synchronized' => $entreprise->synchronized
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Entreprise créée avec succès',
+                'data' => $entreprise,
+                'code' => 201
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la création de l'entreprise: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la création',
+                'error' => $e->getMessage(),
+                'code' => 500
+            ], 500);
+        }
+    }
+
+    /**
+     * Afficher une entreprise
+     */
+    public function show($id)
+    {
+        try {
+            $entreprise = Entreprise::findOrFail($id);
+            return response()->json([
+                'success' => true,
+                'data' => $entreprise,
+                'code' => 200
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Entreprise non trouvée',
+                'code' => 404
+            ], 404);
+        }
     }
 
     /**
@@ -62,8 +100,6 @@ class EntrepriseController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $entreprise = Entreprise::findOrFail($id);
-
         $validator = Validator::make($request->all(), [
             'nom_entreprise' => 'sometimes|string|max:255',
             'adresse' => 'nullable|string',
@@ -71,20 +107,32 @@ class EntrepriseController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'code' => 422
+            ], 422);
         }
 
-        $this->syncService->update(
-            $entreprise,
-            'entreprises',
-            $validator->validated()
-        );
+        try {
+            $entreprise = Entreprise::findOrFail($id);
+            $entreprise->update($validator->validated());
 
-        return response()->json([
-            'message' => 'Entreprise mise à jour',
-            'entreprise' => $entreprise->fresh(),
-            'synchronized' => $entreprise->fresh()->synchronized
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Entreprise mise à jour',
+                'data' => $entreprise->fresh(),
+                'code' => 200
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la mise à jour de l'entreprise: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour',
+                'error' => $e->getMessage(),
+                'code' => 500
+            ], 500);
+        }
     }
 
     /**
@@ -92,12 +140,23 @@ class EntrepriseController extends Controller
      */
     public function destroy($id)
     {
-        $entreprise = Entreprise::findOrFail($id);
-        
-        $this->syncService->delete($entreprise, 'entreprises');
+        try {
+            $entreprise = Entreprise::findOrFail($id);
+            $entreprise->delete();
 
-        return response()->json([
-            'message' => 'Entreprise supprimée'
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Entreprise supprimée',
+                'code' => 200
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la suppression de l'entreprise: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la suppression',
+                'error' => $e->getMessage(),
+                'code' => 500
+            ], 500);
+        }
     }
 }

@@ -507,6 +507,34 @@ export default function SignalementFiche() {
                                 )}
                             </div>
 
+                            {histoStatuts && histoStatuts.some(h => h.image) && (
+                                <div className="mb-4">
+                                    <h6 className="fw-bold mb-3 text-muted">Preuves et Pièces jointes</h6>
+                                    <div className="photos-gallery d-flex flex-wrap gap-2">
+                                        {histoStatuts.map((histo) => 
+                                            histo.image && (
+                                                <div key={histo.id_histo_statut} className="photo-item">
+                                                    <CImage
+                                                        src={histo.image.startsWith('http') ? histo.image : `http://localhost:8000/storage/${histo.image}`}
+                                                        alt="Preuve"
+                                                        style={{ 
+                                                            width: '120px', 
+                                                            height: '120px', 
+                                                            objectFit: 'cover',
+                                                            borderRadius: '8px',
+                                                            cursor: 'pointer',
+                                                            border: '2px solid #e9ecef',
+                                                            transition: 'transform 0.2s'
+                                                        }}
+                                                        className="hover-zoom"
+                                                    />
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             <CRow className="g-4">
                                 <CCol md="4">
                                     <div className="info-box p-3 rounded-3 bg-light h-100">
@@ -637,16 +665,6 @@ export default function SignalementFiche() {
                                                     {histo.description && (
                                                         <div className="timeline-description">
                                                             {histo.description}
-                                                        </div>
-                                                    )}
-                                                    {histo.image && (
-                                                        <div className="timeline-image mt-2">
-                                                            <CImage
-                                                                src={histo.image.startsWith('http') ? histo.image : `http://localhost:8000/storage/${histo.image}`}
-                                                                alt="Preuve"
-                                                                className="img-thumbnail"
-                                                                style={{ maxWidth: 150, maxHeight: 100, cursor: 'pointer' }}
-                                                            />
                                                         </div>
                                                     )}
                                                 </div>

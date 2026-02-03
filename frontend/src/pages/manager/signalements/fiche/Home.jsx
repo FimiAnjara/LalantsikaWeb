@@ -451,37 +451,77 @@ export default function SignalementFiche() {
                             </CButton>
                         </CCardBody>
                     </CCard>
-                    {/* Historique des statuts (en bas) */}
-                    <CCard className="mb-4 border-0 shadow-sm">
-                        <CCardHeader className="bg-white p-3 border-0">
-                            <h5 className="mb-0 fw-bold">Historique des statuts</h5>
+                    {/* Historique des statuts (Timeline) */}
+                    <CCard className="mb-4 border-0 shadow-sm card-gradient-purple">
+                        <CCardHeader className="bg-transparent p-3 border-0">
+                            <h5 className="mb-0 fw-bold text-white">📋 Historique des statuts</h5>
                         </CCardHeader>
-                        <CCardBody className="p-4">
+                        <CCardBody className="p-4 bg-white" style={{ borderRadius: '0 0 16px 16px' }}>
                             {loadingHisto ? (
-                                <div className="text-center text-muted">Chargement de l'historique...</div>
+                                <div className="text-center text-muted py-4">
+                                    <div className="spinner-border text-primary" role="status"></div>
+                                    <p className="mt-2 mb-0">Chargement...</p>
+                                </div>
                             ) : histoStatuts.length === 0 ? (
-                                <div className="text-center text-muted">Aucun historique de statut.</div>
+                                <div className="text-center text-muted py-4">
+                                    <div className="empty-history-icon mb-2">📭</div>
+                                    <p className="mb-0">Aucun historique de statut</p>
+                                </div>
                             ) : (
-                                <ul className="list-unstyled mb-0">
-                                    {histoStatuts.map((histo) => (
-                                        <li key={histo.id_histo_statut} className="mb-3 border-bottom pb-2">
-                                            <div className="d-flex align-items-center gap-3">
-                                                <CBadge color="secondary" className="me-2">
-                                                    {histo.statut && histo.statut.libelle ? histo.statut.libelle : 'Statut inconnu'}
-                                                </CBadge>
-                                                <span className="text-muted small">{histo.daty ? new Date(histo.daty).toLocaleString() : ''}</span>
+                                <div className="timeline-container">
+                                    {histoStatuts.map((histo, index) => {
+                                        const statutLibelle = histo.statut && histo.statut.libelle ? histo.statut.libelle : 'Inconnu'
+                                        const getTimelineColor = (statut) => {
+                                            switch(statut) {
+                                                case 'Nouveau': return 'timeline-gray'
+                                                case 'En cours': return 'timeline-blue'
+                                                case 'Terminé': return 'timeline-green'
+                                                case 'Validé': return 'timeline-purple'
+                                                case 'Rejeté': return 'timeline-red'
+                                                default: return 'timeline-gray'
+                                            }
+                                        }
+                                        const getAvancement = (statut) => {
+                                            switch(statut) {
+                                                case 'Nouveau': return '0%'
+                                                case 'En cours': return '50%'
+                                                case 'Terminé': return '100%'
+                                                default: return '-'
+                                            }
+                                        }
+                                        return (
+                                            <div key={histo.id_histo_statut} className={`timeline-item ${getTimelineColor(statutLibelle)} ${index === 0 ? 'timeline-first' : ''}`}>
+                                                <div className="timeline-dot"></div>
+                                                <div className="timeline-content">
+                                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                                        <span className={`badge-statut badge-${statutLibelle.toLowerCase().replace(' ', '-')}`}>
+                                                            {statutLibelle}
+                                                        </span>
+                                                        <span className="badge-avancement">{getAvancement(statutLibelle)}</span>
+                                                    </div>
+                                                    <div className="timeline-date">
+                                                        📅 {histo.daty ? new Date(histo.daty).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                                    </div>
+                                                    {histo.description && (
+                                                        <div className="timeline-description mt-2">
+                                                            {histo.description}
+                                                        </div>
+                                                    )}
+                                                    {histo.image && (
+                                                        <div className="timeline-image mt-2">
+                                                            <CImage
+                                                                src={histo.image.startsWith('http') ? histo.image : `http://localhost:8000/storage/${histo.image}`}
+                                                                alt="Preuve"
+                                                                className="rounded shadow-sm"
+                                                                style={{ maxWidth: '100%', maxHeight: 100, objectFit: 'cover' }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="mt-1 mb-1">{histo.description}</div>
-                                            {histo.image && (
-                                                <CImage
-                                                    src={histo.image.startsWith('http') ? histo.image : `http://localhost:8000/storage/${histo.image}`}
-                                                    alt="Preuve"
-                                                    style={{ maxWidth: 120, maxHeight: 80, borderRadius: 6 }}
-                                                />
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
+                                        )
+                                    })}
+                                </div>
                             )}
                         </CCardBody>
                     </CCard>

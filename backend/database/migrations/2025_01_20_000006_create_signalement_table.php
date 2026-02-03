@@ -18,10 +18,12 @@ return new class extends Migration
             $table->decimal('surface', 15, 2)->nullable();
             $table->decimal('budget', 15, 2)->nullable();
             $table->text('description')->nullable();
-            $table->string('photo', 150)->nullable();
             $table->unsignedBigInteger('id_entreprise')->nullable();
             $table->unsignedBigInteger('id_utilisateur');
-            $table->unsignedBigInteger('id_statut')->nullable();
+            
+            // Colonnes de synchronisation
+            $table->boolean('synchronized')->default(false);
+            $table->timestamp('last_sync_at')->nullable();
 
             $table->foreign('id_entreprise')
                 ->references('id_entreprise')

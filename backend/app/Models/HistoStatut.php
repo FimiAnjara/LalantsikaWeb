@@ -12,10 +12,17 @@ class HistoStatut extends Model
 
     protected $fillable = [
         'daty',
-        'image',
         'description',
         'id_statut',
         'id_signalement',
+        'synchronized',
+        'last_sync_at',
+    ];
+
+    protected $casts = [
+        'synchronized' => 'boolean',
+        'last_sync_at' => 'datetime',
+        'daty' => 'datetime',
     ];
 
     public function statut()
@@ -26,5 +33,10 @@ class HistoStatut extends Model
     public function signalement()
     {
         return $this->belongsTo(Signalement::class, 'id_signalement', 'id_signalement');
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ImageSignalement::class, 'id_histo_statut', 'id_histo_statut');
     }
 }

@@ -14,6 +14,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import { cilArrowLeft, cilCheckAlt, cilX, cilUser } from '@coreui/icons'
 import Modal from '../../../../components/Modal'
+import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Modifier.css'
 
 export default function ModifierUtilisateur() {
@@ -45,12 +46,8 @@ export default function ModifierUtilisateur() {
     const fetchUser = async () => {
         setLoading(true)
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch(`http://localhost:8000/api/users/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
+            const response = await fetch(ENDPOINTS.USER(id), {
+                headers: getAuthHeaders()
             })
 
             const result = await response.json()
@@ -88,12 +85,8 @@ export default function ModifierUtilisateur() {
 
     const fetchSexes = async () => {
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch('http://localhost:8000/api/sexes', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
+            const response = await fetch(ENDPOINTS.SEXES, {
+                headers: getAuthHeaders()
             })
 
             const result = await response.json()
@@ -107,12 +100,8 @@ export default function ModifierUtilisateur() {
 
     const fetchTypesUtilisateurs = async () => {
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch('http://localhost:8000/api/user-types', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
+            const response = await fetch(ENDPOINTS.USER_TYPES, {
+                headers: getAuthHeaders()
             })
 
             const result = await response.json()
@@ -139,14 +128,9 @@ export default function ModifierUtilisateur() {
         setErrors({})
 
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch(`http://localhost:8000/api/users/${id}`, {
+            const response = await fetch(ENDPOINTS.USER(id), {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     nom: formData.nom,
                     prenom: formData.prenom,

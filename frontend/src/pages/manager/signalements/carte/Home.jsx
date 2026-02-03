@@ -6,6 +6,7 @@ import { cilMap, cilUser, cilFilter, cilCheckCircle, cilWarning, cilXCircle, cil
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Carte.css'
 
 
@@ -61,21 +62,18 @@ export default function SignalementCarte() {
             setLoading(true)
             setError(null)
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const response = await fetch('http://localhost:8000/api/reports', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                    }
-                })
+                const headers = getAuthHeaders()
+                const response = await fetch(ENDPOINTS.REPORTS, { headers })
                 const result = await response.json()
                 console.log('API result', result)
                 if (result.success && result.data) {
-                    console.log('Signalements reçus de l\'API:', result.data.items)
-                    if (result.data.items.length > 0) {
-                        console.log('Exemple signalement:', result.data.items[0])
+                    // Handle both array format and object with items
+                    const items = Array.isArray(result.data) ? result.data : result.data.items || []
+                    console.log('Signalements reçus de l\'API:', items)
+                    if (items.length > 0) {
+                        console.log('Exemple signalement:', items[0])
                     }
-                    setSignalements(result.data.items)
+                    setSignalements(items)
                 } else {
                     setError(result.message || 'Erreur lors du chargement des signalements')
                 }
@@ -87,13 +85,8 @@ export default function SignalementCarte() {
         }
         const fetchStatuts = async () => {
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const response = await fetch('http://localhost:8000/api/statuses', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                         'Accept': 'application/json',
-                    }
-                })
+                const headers = getAuthHeaders()
+                const response = await fetch(ENDPOINTS.STATUSES, { headers })
                 const result = await response.json()
                 if (result.success && result.data) {
                     setStatuts(result.data)

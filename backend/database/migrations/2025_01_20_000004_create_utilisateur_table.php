@@ -19,8 +19,16 @@ return new class extends Migration
             $table->string('prenom', 50);
             $table->date('dtn');
             $table->string('email', 50)->nullable();
+            $table->string('firebase_uid', 128)->nullable()->unique();
             $table->unsignedBigInteger('id_sexe');
             $table->unsignedBigInteger('id_type_utilisateur');
+            
+            // Colonnes de synchronisation
+            $table->boolean('synchronized')->default(false);
+            $table->timestamp('last_sync_at')->nullable();
+            
+            // Soft deletes
+            $table->softDeletes();
             
             $table->foreign('id_sexe')
                 ->references('id_sexe')

@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             StatutUtilisateurSeeder::class,
             SignalementSeeder::class,
             HistoStatutSeeder::class,
+            ImageSignalementSeeder::class,
         ]);
     }
 }

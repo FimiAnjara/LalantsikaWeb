@@ -24,6 +24,7 @@ import {
     cilSync,
 } from '@coreui/icons'
 import Modal from '../../../../components/Modal'
+import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Fiche.css'
 
 export default function FicheUtilisateur() {
@@ -44,12 +45,8 @@ export default function FicheUtilisateur() {
     const fetchUser = async () => {
         setLoading(true)
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch(`http://localhost:8000/api/users/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
+            const response = await fetch(ENDPOINTS.USER(id), {
+                headers: getAuthHeaders()
             })
 
             const result = await response.json()
@@ -122,14 +119,10 @@ export default function FicheUtilisateur() {
             action: async () => {
                 setActionLoading(true)
                 try {
-                    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
                     const endpoint = isActif ? 'block' : 'unblock'
-                    const response = await fetch(`http://localhost:8000/api/users/${id}/${endpoint}`, {
+                    const response = await fetch(`${ENDPOINTS.USER(id)}/${endpoint}`, {
                         method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Accept': 'application/json',
-                        }
+                        headers: getAuthHeaders()
                     })
 
                     const result = await response.json()
@@ -173,13 +166,9 @@ export default function FicheUtilisateur() {
             action: async () => {
                 setActionLoading(true)
                 try {
-                    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                    const response = await fetch(`http://localhost:8000/api/users/${id}`, {
+                    const response = await fetch(ENDPOINTS.USER(id), {
                         method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Accept': 'application/json',
-                        }
+                        headers: getAuthHeaders()
                     })
 
                     const result = await response.json()

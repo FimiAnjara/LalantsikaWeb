@@ -13,7 +13,11 @@ class ParametreSeeder extends Seeder
     public function run(): void
     {
         DB::table('parametre')->insert([
-            ['tentative_max' => 3],
+            [
+                'tentative_max' => 3,
+                'synchronized' => false,
+                'last_sync_at' => null,
+            ],
         ]);
     }
 }

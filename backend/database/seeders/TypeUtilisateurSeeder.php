@@ -13,9 +13,8 @@ class TypeUtilisateurSeeder extends Seeder
     public function run(): void
     {
         DB::table('type_utilisateur')->insert([
-            ['libelle' => 'Administrateur'],
+            ['libelle' => 'Manager'],
             ['libelle' => 'Utilisateur'],
-            ['libelle' => 'Modérateur'],
         ]);
     }
 }

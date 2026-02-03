@@ -15,7 +15,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import { cilArrowLeft, cilSave, cilCheckCircle } from '@coreui/icons'
 import Modal from '../../../../components/Modal'
-import { uploadFile } from '../../../../config/firebase'
+import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Modifier.css'
 
 
@@ -56,16 +56,9 @@ export default function SignalementModifier() {
             setLoading(true)
             setError(null)
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+                const headers = getAuthHeaders()
                 // Signalement
-                const res = await fetch(`http://localhost:8000/api/reports/${id}`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Accept': 'application/json',
-                        }
-                    }
-                )
+                const res = await fetch(ENDPOINTS.REPORT(id), { headers })
                 const result = await res.json()
                 if (result.success && result.data) {
                     setSignalement(result.data)
@@ -76,12 +69,7 @@ export default function SignalementModifier() {
                     throw new Error(result.message || 'Erreur lors du chargement du signalement')
                 }
                 // Statuts
-                const resStatut = await fetch('http://localhost:8000/api/statuses', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                    }
-                })
+                const resStatut = await fetch(ENDPOINTS.STATUSES, { headers })
                 const statutsResult = await resStatut.json()
                 if (statutsResult.success && statutsResult.data) {
                     setStatuts(statutsResult.data)
@@ -150,35 +138,21 @@ export default function SignalementModifier() {
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
             
-            // Upload de l'image vers Firebase Storage si sélectionnée
+            // Upload de l'image directement au backend
             let photoUrl = null;
-            if (selectedImage) {
-                try {
-                    console.log('📤 Upload de l\'image vers Firebase Storage...');
-                    photoUrl = await uploadFile(selectedImage, 'histostatut');
-                    console.log('✅ Image uploadée:', photoUrl);
-                } catch (uploadError) {
-                    console.error('❌ Erreur upload Firebase:', uploadError);
-                    // Fallback: envoyer l'image directement au backend
-                    console.log('⚠️ Fallback: envoi direct au backend');
-                }
-            }
             
             const formData = new FormData();
             formData.append('id_statut', selectedStatut);
             formData.append('description', description);
             formData.append('daty', statutDate);
             
-            // Si on a une URL Firebase, l'envoyer comme string
-            // Sinon, envoyer le fichier au backend (fallback)
-            if (photoUrl) {
-                formData.append('photo_url', photoUrl);
-            } else if (selectedImage) {
+            // Envoyer le fichier au backend
+            if (selectedImage) {
                 formData.append('photo', selectedImage);
             }
             
             // Ajout dans l'historique uniquement
-            const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+            const res = await fetch(ENDPOINTS.REPORT_HISTO(id), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

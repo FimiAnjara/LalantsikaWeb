@@ -26,6 +26,7 @@ import {
     cilBuilding,
 } from '@coreui/icons'
 import Modal from '../../../../components/Modal'
+import { API_BASE_URL, ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Fiche.css'
 
 export default function SignalementFiche() {
@@ -82,15 +83,8 @@ export default function SignalementFiche() {
             setLoading(true)
             setError(null)
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const res = await fetch(`http://localhost:8000/api/reports/${id}`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Accept': 'application/json',
-                        }
-                    }
-                )
+                const headers = getAuthHeaders()
+                const res = await fetch(ENDPOINTS.REPORT(id), { headers })
                 const result = await res.json()
                 if (result.success && result.data) {
                     setSignalement(result.data)
@@ -111,13 +105,8 @@ export default function SignalementFiche() {
         const fetchHisto = async () => {
             setLoadingHisto(true)
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                    }
-                })
+                const headers = getAuthHeaders()
+                const res = await fetch(ENDPOINTS.REPORT_HISTO(id), { headers })
                 const result = await res.json()
                 if (result.success && result.data) {
                     setHistoStatuts(result.data)
@@ -137,13 +126,8 @@ export default function SignalementFiche() {
     useEffect(() => {
         const fetchEntreprises = async () => {
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const res = await fetch('http://localhost:8000/api/companies', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                    }
-                })
+                const headers = getAuthHeaders()
+                const res = await fetch(ENDPOINTS.COMPANIES, { headers })
                 const result = await res.json()
                 if (result.success && result.data) {
                     setEntreprises(result.data)
@@ -181,7 +165,7 @@ export default function SignalementFiche() {
     const handleUpdateStatut = async (newStatutLibelle) => {
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const resStatut = await fetch('http://localhost:8000/api/statuses', {
+            const resStatut = await fetch(ENDPOINTS.STATUSES, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -201,7 +185,7 @@ export default function SignalementFiche() {
             formData.append('description', `Statut changé à ${newStatutLibelle}`)
             formData.append('daty', new Date().toISOString().slice(0, 16))
 
-            const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+            const res = await fetch(ENDPOINTS.REPORT_HISTO(id), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -247,7 +231,7 @@ export default function SignalementFiche() {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
             
             // 1. Mettre à jour le signalement (id_entreprise et budget)
-            const res = await fetch(`http://localhost:8000/api/reports/${id}`, {
+            const res = await fetch(ENDPOINTS.REPORT(id), {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -266,7 +250,7 @@ export default function SignalementFiche() {
             }
 
             // 2. Récupérer l'id du statut "En cours"
-            const resStatut = await fetch('http://localhost:8000/api/statuses', {
+            const resStatut = await fetch(ENDPOINTS.STATUSES, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -290,7 +274,7 @@ export default function SignalementFiche() {
             formData.append('description', `Assigné à ${entrepriseNom} - Budget: ${Number(assignBudget).toLocaleString()} Ar`)
             formData.append('daty', new Date().toISOString().slice(0, 16))
 
-            const resHisto = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+            const resHisto = await fetch(ENDPOINTS.REPORT_HISTO(id), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -335,7 +319,7 @@ export default function SignalementFiche() {
         setDeleteModal({ visible: false })
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const res = await fetch(`http://localhost:8000/api/reports/${id}`,
+            const res = await fetch(ENDPOINTS.REPORT(id),
                 {
                     method: 'DELETE',
                     headers: {
@@ -381,7 +365,7 @@ export default function SignalementFiche() {
         setModal({ visible: false })
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-            const resStatut = await fetch('http://localhost:8000/api/statuses', {
+            const resStatut = await fetch(ENDPOINTS.STATUSES, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -395,7 +379,7 @@ export default function SignalementFiche() {
             formData.append('id_statut', statutObj.id_statut);
             formData.append('description', action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté');
             formData.append('daty', new Date().toISOString().slice(0, 16));
-            const res = await fetch(`http://localhost:8000/api/reports/${id}/histostatut`, {
+            const res = await fetch(ENDPOINTS.REPORT_HISTO(id), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -493,7 +477,7 @@ export default function SignalementFiche() {
                             <div className="signalement-photo-container rounded-4 overflow-hidden mb-4 shadow-sm">
                                 {signalement.photo ? (
                                     <CImage 
-                                        src={signalement.photo.startsWith('http') ? signalement.photo : `http://localhost:8000${signalement.photo}`} 
+                                        src={signalement.photo.startsWith('http') ? signalement.photo : `${API_BASE_URL}${signalement.photo}`} 
                                         alt="Photo du signalement" 
                                         style={{ width: '100%', height: '300px', objectFit: 'cover' }} 
                                     />

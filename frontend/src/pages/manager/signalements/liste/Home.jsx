@@ -18,6 +18,7 @@ import { cilSearch } from '@coreui/icons'
 import ActionButtons from '../../../../components/ActionButtons'
 import GenericTable from '../../../../components/GenericTable'
 import Modal from '../../../../components/Modal'
+import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import '../../../../styles/ListStyles.css'
 import './Liste.css'
 
@@ -46,18 +47,16 @@ export default function SignalementListe() {
     const fetchSignalements = async () => {
         setLoading(true)
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch('http://localhost:8000/api/reports', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
+            const response = await fetch(ENDPOINTS.REPORTS, {
+                headers: getAuthHeaders()
             })
 
             const result = await response.json()
 
             if (result.success && result.data) {
-                setSignalements(result.data.items)
+                // Handle both array format and object with items
+                const items = Array.isArray(result.data) ? result.data : result.data.items || []
+                setSignalements(items)
             } else {
                 setModal({
                     visible: true,
@@ -81,12 +80,8 @@ export default function SignalementListe() {
 
     const fetchStatuts = async () => {
         try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const response = await fetch('http://localhost:8000/api/statuses', {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
+            const response = await fetch(ENDPOINTS.STATUSES, {
+                headers: getAuthHeaders()
             })
 
             const result = await response.json()
@@ -144,13 +139,9 @@ export default function SignalementListe() {
         if (deleteModal.id) {
             setActionLoading(true)
             try {
-                const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-                const response = await fetch(`http://localhost:8000/api/reports/${deleteModal.id}`, {
+                const response = await fetch(ENDPOINTS.REPORT(deleteModal.id), {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                    }
+                    headers: getAuthHeaders()
                 })
 
                 const result = await response.json()

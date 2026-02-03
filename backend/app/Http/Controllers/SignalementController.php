@@ -354,8 +354,13 @@ class SignalementController extends Controller
             $signalement = Signalement::findOrFail($id);
 
             // Gestion de l'image (optionnelle)
+            // Priorité: photo_url (Firebase) > photo (fichier local)
             $photoPath = null;
-            if ($request->hasFile('photo')) {
+            if ($request->has('photo_url') && !empty($request->photo_url)) {
+                // URL Firebase Storage directement
+                $photoPath = $request->photo_url;
+            } elseif ($request->hasFile('photo')) {
+                // Fallback: stockage local
                 $photoPath = $request->file('photo')->store('histostatut', 'public');
             }
 

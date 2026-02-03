@@ -20,6 +20,7 @@ export interface User {
   dtn: string; // Date de naissance
   id_sexe: number; // 1 = Homme, 2 = Femme, etc.
   id_type_utilisateur: UserType;
+  photoUrl?: string; // Photo de profil (URL Firebase Storage)
   createdAt?: Date;
   updatedAt?: Date;
   last_sync_at?: string;

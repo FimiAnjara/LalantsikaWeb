@@ -1,0 +1,136 @@
+.changer-statut {
+    padding: 20px;
+}
+
+.changer-statut .page-header {
+    margin-bottom: 2rem;
+}
+
+.changer-statut .btn-back {
+    background: #f8f9fa;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.changer-statut .btn-back:hover {
+    background: #e9ecef;
+    transform: translateX(-3px);
+}
+
+/* Options de statut */
+.statut-option {
+    background: #f8f9fa;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.statut-option:hover {
+    background: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.statut-option.selected {
+    background: #e7f1ff;
+    border-color: #0d6efd;
+}
+
+/* Zone d'upload */
+.upload-zone {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    transition: all 0.2s ease;
+}
+
+.upload-zone:hover {
+    background: #e9ecef;
+    border-color: #0d6efd;
+}
+
+.upload-zone label {
+    display: block;
+    cursor: pointer;
+}
+
+/* Preview images */
+.preview-item {
+    position: relative;
+}
+
+.btn-remove-image {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white;
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.btn-remove-image:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+/* Flux des statuts */
+.status-flow .flow-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.status-flow .flow-item.current {
+    background: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+}
+
+/* Bouton thème */
+.btn-theme {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    font-weight: 500;
+}
+
+.btn-theme:hover {
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+    color: white;
+}
+
+.btn-theme:disabled {
+    background: #6c757d;
+    opacity: 0.7;
+}
+
+/* Cursor pointer */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .changer-statut {
+        padding: 15px;
+    }
+    
+    .statut-option {
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+    }
+    
+    .preview-images {
+        justify-content: center;
+    }
+}

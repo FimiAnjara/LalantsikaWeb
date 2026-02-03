@@ -127,10 +127,6 @@ export default function SignalementListe() {
         navigate(`/manager/signalements/fiche/${id}`)
     }
 
-    const handleEdit = (id) => {
-        navigate(`/manager/signalements/modifier/${id}`)
-    }
-
     const handleDelete = (id) => {
         setDeleteModal({ visible: true, id })
     }
@@ -317,8 +313,8 @@ export default function SignalementListe() {
                             <ActionButtons
                                 id={sig.id_signalement}
                                 onView={handleView}
-                                // onEdit={handleEdit}
-                                // onDelete={handleDelete}
+                                showDelete={false}
+                                showEdit={false}
                             />
                         </CTableDataCell>
                     </CTableRow>

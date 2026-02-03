@@ -16,6 +16,7 @@ import SignalementListe from './pages/manager/signalements/liste/Home'
 import SignalementCarte from './pages/manager/signalements/carte/Home'
 import SignalementFiche from './pages/manager/signalements/fiche/Home'
 import SignalementModifier from './pages/manager/signalements/modifier/Home'
+import SignalementChangerStatut from './pages/manager/signalements/changer-statut/Home'
 import ManagerLogin from './pages/manager/login/Login'
 
 
@@ -83,6 +84,11 @@ function App() {
             <Route path="/manager/signalements/modifier/:id" element={
               <ProtectedRoute>
                 <SignalementModifier />
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/signalements/changer-statut/:id" element={
+              <ProtectedRoute>
+                <SignalementChangerStatut />
               </ProtectedRoute>
             } />
           </Route>

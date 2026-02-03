@@ -32,19 +32,41 @@
     <ion-content :fullscreen="true" class="details-page">
       <div v-if="signalement" class="details-container">
         
-        <!-- Section principale avec photo et infos côte à côte -->
+        <!-- Section principale avec photos et infos côte à côte -->
         <div class="main-section">
-          <!-- Photo du signalement -->
+          <!-- Photos du signalement (première entrée historique) -->
           <div class="photo-section">
-            <div v-if="signalement.photo" class="photo-container" @click="openImage(signalement.photo)">
-              <img :src="signalement.photo" alt="Photo du signalement" class="signalement-photo" />
-              <div class="photo-overlay">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.35-4.35"/>
-                  <line x1="11" y1="8" x2="11" y2="14"/>
-                  <line x1="8" y1="11" x2="14" y2="11"/>
-                </svg>
+            <div v-if="mainPhotos.length > 0" class="main-photos-container">
+              <!-- Photo principale -->
+              <div class="photo-container main-photo" @click="openGalleryMain(0)">
+                <img :src="mainPhotos[0]" alt="Photo du signalement" class="signalement-photo" />
+                <div class="photo-overlay">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </div>
+                <!-- Badge nombre de photos -->
+                <div v-if="mainPhotos.length > 1" class="photos-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  </svg>
+                  {{ mainPhotos.length }}
+                </div>
+              </div>
+              <!-- Miniatures des autres photos -->
+              <div v-if="mainPhotos.length > 1" class="photo-thumbnails">
+                <div 
+                  v-for="(photo, index) in mainPhotos.slice(1, 4)" 
+                  :key="index"
+                  class="thumbnail"
+                  @click="openGalleryMain(index + 1)"
+                >
+                  <img :src="photo" :alt="'Photo ' + (index + 2)" />
+                  <div v-if="index === 2 && mainPhotos.length > 4" class="more-overlay">
+                    +{{ mainPhotos.length - 4 }}
+                  </div>
+                </div>
               </div>
             </div>
             <div v-else class="no-photo">
@@ -150,7 +172,7 @@
           <p>{{ signalement.description || 'Aucune description fournie.' }}</p>
         </div>
         
-        <!-- Historique des statuts -->
+        <!-- Historique des statuts avec photos -->
         <div class="history-section">
           <h3>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -158,6 +180,7 @@
               <polyline points="12 6 12 12 16 14"/>
             </svg>
             Historique des statuts
+            <span class="history-count" v-if="histoStatuts.length > 0">({{ histoStatuts.length }})</span>
           </h3>
           
           <div v-if="isLoadingHistory" class="loading-history">
@@ -182,23 +205,40 @@
               </div>
               
               <div class="history-content">
-                <!-- Layout avec photo à gauche si présente -->
-                <div class="history-layout" :class="{ 'has-photo': histo.image }">
-                  <!-- Photo de l'historique -->
-                  <div v-if="histo.image" class="history-photo" @click="openImage(histo.image)">
-                    <img :src="histo.image" alt="Photo" />
+                <!-- Header avec statut et date -->
+                <div class="history-header">
+                  <span class="history-status" :style="{ color: getStatutColor(histo.statut?.id_statut || 1) }">
+                    {{ histo.statut?.libelle || 'Statut inconnu' }}
+                  </span>
+                  <span class="history-date">{{ formatDate(histo.daty) }}</span>
+                </div>
+                
+                <!-- Description -->
+                <p v-if="histo.description" class="history-description">{{ histo.description }}</p>
+                
+                <!-- Galerie de photos (nouveau design) -->
+                <div v-if="getHistoImages(histo).length > 0" class="history-gallery">
+                  <div class="gallery-header">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <span>{{ getHistoImages(histo).length }} photo{{ getHistoImages(histo).length > 1 ? 's' : '' }}</span>
                   </div>
-                  
-                  <!-- Détails de l'historique -->
-                  <div class="history-details">
-                    <div class="history-header">
-                      <span class="history-status" :style="{ color: getStatutColor(histo.statut?.id_statut || 1) }">
-                        {{ histo.statut?.libelle || 'Statut inconnu' }}
-                      </span>
-                      <span class="history-date">{{ formatDate(histo.daty) }}</span>
+                  <div class="gallery-grid" :class="{ 'single': getHistoImages(histo).length === 1, 'double': getHistoImages(histo).length === 2, 'multi': getHistoImages(histo).length > 2 }">
+                    <div 
+                      v-for="(image, imgIndex) in getHistoImages(histo).slice(0, 4)" 
+                      :key="imgIndex"
+                      class="gallery-item"
+                      @click="openGallery(histo, imgIndex)"
+                    >
+                      <img :src="image" :alt="'Photo ' + (imgIndex + 1)" />
+                      <!-- Overlay pour voir plus de photos -->
+                      <div v-if="imgIndex === 3 && getHistoImages(histo).length > 4" class="more-photos-overlay">
+                        <span>+{{ getHistoImages(histo).length - 4 }}</span>
+                      </div>
                     </div>
-                    
-                    <p v-if="histo.description" class="history-description">{{ histo.description }}</p>
                   </div>
                 </div>
               </div>
@@ -257,6 +297,49 @@ const canEdit = computed(() => {
   if (!signalement.value || !auth.currentUser) return false;
   return signalement.value.utilisateur?.firebase_uid === auth.currentUser.uid;
 });
+
+// Photos principales (du premier historique - la création)
+const mainPhotos = computed(() => {
+  if (histoStatuts.value.length === 0) return [];
+  
+  // Trouver l'historique de création (le dernier dans la liste car trié desc)
+  const creationHisto = histoStatuts.value[histoStatuts.value.length - 1];
+  return getHistoImages(creationHisto);
+});
+
+// Récupérer les images d'un historique (gère les deux formats: images[] et image)
+const getHistoImages = (histo: any): string[] => {
+  if (!histo) return [];
+  
+  const images: string[] = [];
+  
+  // Nouveau format: tableau d'images
+  if (histo.images && Array.isArray(histo.images)) {
+    images.push(...histo.images);
+  }
+  
+  // Ancien format: image unique
+  if (histo.image && !images.includes(histo.image)) {
+    images.push(histo.image);
+  }
+  
+  return images;
+};
+
+// Ouvrir la galerie d'images pour un historique
+const openGallery = (histo: any, startIndex: number = 0) => {
+  const images = getHistoImages(histo);
+  if (images.length > 0 && images[startIndex]) {
+    openImage(images[startIndex]);
+  }
+};
+
+// Ouvrir la galerie principale
+const openGalleryMain = (index: number = 0) => {
+  if (mainPhotos.value.length > 0 && mainPhotos.value[index]) {
+    openImage(mainPhotos.value[index]);
+  }
+};
 
 onMounted(async () => {
   await loadSignalement();
@@ -616,44 +699,6 @@ ion-button {
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
 }
 
-/* Layout historique avec photo */
-.history-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.history-layout.has-photo {
-  flex-direction: row;
-  gap: 0.75rem;
-}
-
-.history-photo {
-  flex: 0 0 80px;
-  width: 80px;
-  height: 80px;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-}
-
-.history-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.2s ease;
-}
-
-.history-photo:hover img {
-  transform: scale(1.05);
-}
-
-.history-details {
-  flex: 1;
-  min-width: 0;
-}
-
 .history-header {
   display: flex;
   justify-content: space-between;
@@ -678,6 +723,145 @@ ion-button {
   color: #555;
   font-size: 0.8rem;
   line-height: 1.4;
+}
+
+.history-count {
+  background: #0a1e37;
+  color: white;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+/* Galerie de photos dans l'historique */
+.history-gallery {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.gallery-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.gallery-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gallery-grid.single {
+  grid-template-columns: 1fr;
+}
+
+.gallery-grid.double {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.gallery-grid.multi {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.gallery-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.gallery-item:hover {
+  transform: scale(1.02);
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.more-photos-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 30, 55, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* Photos principales améliorées */
+.main-photos-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.main-photo {
+  position: relative;
+}
+
+.photos-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(10, 30, 55, 0.85);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.photo-thumbnails {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+}
+
+.thumbnail {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.thumbnail:hover img {
+  transform: scale(1.05);
+}
+
+.more-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 30, 55, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
 /* État non trouvé */

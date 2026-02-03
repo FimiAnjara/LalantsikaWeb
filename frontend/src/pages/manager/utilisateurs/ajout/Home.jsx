@@ -42,7 +42,9 @@ export default function AjoutUtilisateur() {
         dtn: '',
         email: '',
         id_sexe: '',
+        photo: null,
     })
+    const [photoPreview, setPhotoPreview] = useState(null)
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState({ type: '', text: '' })
     const [errors, setErrors] = useState({})
@@ -83,11 +85,29 @@ export default function AjoutUtilisateur() {
     }, [])
 
     const handleChange = (e) => {
-        const { name, value } = e.target
-        setFormData({
-            ...formData,
-            [name]: value,
-        })
+        const { name, value, type, files } = e.target
+        
+        if (type === 'file') {
+            const file = files[0]
+            if (file) {
+                setFormData({
+                    ...formData,
+                    photo: file,
+                })
+                // Créer un aperçu de l'image
+                const reader = new FileReader()
+                reader.onloadend = () => {
+                    setPhotoPreview(reader.result)
+                }
+                reader.readAsDataURL(file)
+            }
+        } else {
+            setFormData({
+                ...formData,
+                [name]: value,
+            })
+        }
+        
         // Nettoyer l'erreur du champ si l'utilisateur commence à corriger
         if (errors[name]) {
             setErrors({
@@ -165,19 +185,28 @@ export default function AjoutUtilisateur() {
                 return
             }
             
+            // Créer FormData pour l'upload de fichier
+            const formDataToSend = new FormData()
+            formDataToSend.append('identifiant', formData.identifiant)
+            formDataToSend.append('mdp', formData.mdp)
+            formDataToSend.append('mdp_confirmation', formData.mdp_confirmation)
+            formDataToSend.append('nom', formData.nom)
+            formDataToSend.append('prenom', formData.prenom)
+            formDataToSend.append('dtn', formData.dtn)
+            formDataToSend.append('email', formData.email)
+            formDataToSend.append('id_sexe', parseInt(formData.id_sexe))
+            
+            if (formData.photo) {
+                formDataToSend.append('photo', formData.photo)
+            }
+            
             const response = await fetch(ENDPOINTS.REGISTER, {
                 method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    identifiant: formData.identifiant,
-                    mdp: formData.mdp,
-                    mdp_confirmation: formData.mdp_confirmation,
-                    nom: formData.nom,
-                    prenom: formData.prenom,
-                    dtn: formData.dtn,
-                    email: formData.email,
-                    id_sexe: parseInt(formData.id_sexe),
-                }),
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    // Ne pas définir Content-Type, le navigateur le fera automatiquement avec le boundary
+                },
+                body: formDataToSend,
             })
 
             const data = await response.json()
@@ -206,7 +235,9 @@ export default function AjoutUtilisateur() {
                 dtn: '',
                 email: '',
                 id_sexe: '',
+                photo: null,
             })
+            setPhotoPreview(null)
             setStep(1)
             setErrors({})
 
@@ -424,6 +455,29 @@ export default function AjoutUtilisateur() {
                                         </CInputGroup>
                                         {errors.email && (
                                             <small className="text-danger">{errors.email}</small>
+                                        )}
+                                    </CCol>
+                                    <CCol lg="6">
+                                        <label className="form-label">Photo de profil (optionnel)</label>
+                                        <CFormInput
+                                            type="file"
+                                            name="photo"
+                                            accept="image/*"
+                                            onChange={handleChange}
+                                        />
+                                        {photoPreview && (
+                                            <div className="mt-3">
+                                                <img 
+                                                    src={photoPreview} 
+                                                    alt="Aperçu" 
+                                                    style={{ 
+                                                        maxWidth: '150px', 
+                                                        maxHeight: '150px', 
+                                                        borderRadius: '8px',
+                                                        objectFit: 'cover'
+                                                    }} 
+                                                />
+                                            </div>
                                         )}
                                     </CCol>
                                 </CRow>

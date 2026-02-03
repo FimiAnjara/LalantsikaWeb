@@ -46,7 +46,8 @@
           </div>
         </div>
         <button class="profile-btn" @click="goToProfile">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+          <img v-if="userPhotoUrl" :src="userPhotoUrl" alt="Photo de profil" class="profile-photo" />
+          <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="7" r="4"/>
             <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
           </svg>
@@ -397,6 +398,8 @@ import SpinnerLoader from '@/components/SpinnerLoader.vue';
 import router from '@/router';
 import { signalementService } from '@/services/signalement';
 import { Signalement, getStatutLibelle, getStatutType } from '@/models';
+import { auth, db } from '@/services/firebase/config';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 const mapComponent = ref<any>(null);
 const searchQuery = ref('');
@@ -411,6 +414,7 @@ const isDeleting = ref(false);
 const isValidating = ref(false); // Pour le bouton de validation
 const loadingMessage = ref('Chargement...');
 const mapFilter = ref<'all' | 'mine'>('all'); // Filtre pour la carte
+const userPhotoUrl = ref<string | null>(null); // Photo de profil utilisateur
 
 const itemsPerPage = 3; // Nombre d'éléments affichés par défaut
 
@@ -539,12 +543,41 @@ const formatBudget = (amount: number) => {
 // Charger les signalements au montage
 onMounted(async () => {
   await loadSignalements();
+  await loadUserPhoto();
 });
+
+// Charger la photo de profil de l'utilisateur
+const loadUserPhoto = async () => {
+  try {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return;
+
+    // Chercher dans Firestore
+    const usersRef = collection(db, 'utilisateurs');
+    let q = query(usersRef, where('uid', '==', firebaseUser.uid));
+    let snapshot = await getDocs(q);
+
+    if (snapshot.empty && firebaseUser.email) {
+      q = query(usersRef, where('email', '==', firebaseUser.email));
+      snapshot = await getDocs(q);
+    }
+
+    if (!snapshot.empty) {
+      const userData = snapshot.docs[0].data();
+      if (userData.photoUrl) {
+        userPhotoUrl.value = userData.photoUrl;
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de la photo de profil:', error);
+  }
+};
 
 // Recharger les signalements à chaque retour sur la page
 onIonViewWillEnter(async () => {
   console.log('🔄 Retour sur MapPage - Rechargement des signalements...');
   await loadSignalements();
+  await loadUserPhoto();
   
   // Forcer le rafraîchissement de la carte pour éviter les bugs d'affichage
   setTimeout(() => {
@@ -880,6 +913,15 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  padding: 0;
+}
+
+.profile-btn .profile-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .profile-btn:hover {

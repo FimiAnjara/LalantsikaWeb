@@ -104,13 +104,17 @@ const handleGetStarted = () => {
 }
 
 .app-name {
+  font-size: 2rem; /* Slightly larger */
+  font-weight: 900;
+  background: linear-gradient(to right, #E8E2DB 20%, #FAB95B 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: #E8E2DB;
-  font-size: 38px;
-  font-weight: 800;
-  margin: 0;
+  margin: 10px 0 0;
   letter-spacing: 2px;
-  text-transform: capitalize; /* Changed to capitalize for cleaner look or keep uppercase */
-  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3)); /* Drop shadow on gradient text */
   font-family: system-ui, -apple-system, sans-serif;
 }
 

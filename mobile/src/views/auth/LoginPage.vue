@@ -81,9 +81,7 @@
           </button>
         </div>
 
-        <p class="signup-text">
-          Vous n'avez pas de compte ? <a href="#" class="signup-link">Inscrivez-vous</a>
-        </p>
+
       </div>
     </ion-content>
   </ion-page>
@@ -450,36 +448,7 @@ const handleLogin = async () => {
 .facebook-btn { background: #1877F2; }
 .apple-btn { background: #000000; }
 
-/* Signup Text */
-.signup-text {
-  text-align: center;
-  color: #666;
-  font-size: 0.95rem;
-  margin: 0;
-}
 
-.signup-link {
-  color: #FAB95B;
-  font-weight: 700;
-  text-decoration: none;
-  position: relative;
-}
-
-.signup-link::after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 2px;
-  bottom: -2px;
-  left: 0;
-  background-color: #FAB95B;
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
-}
-
-.signup-link:hover::after {
-  transform: scaleX(1);
-}
 
 @keyframes slideUp {
   from {
@@ -489,6 +458,92 @@ const handleLogin = async () => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Responsive Breakpoints */
+
+/* Small Phones (iPhone SE, small Androids) - Width based */
+@media (max-width: 375px) {
+  .form-container {
+    padding: 2rem 1.5rem;
+    border-top-left-radius: 30px;
+    border-top-right-radius: 30px;
+  }
+
+  .title {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .logo-circle {
+    width: 110px;
+    height: 110px;
+    border-radius: 28px;
+  }
+
+  .app-name {
+    font-size: 2rem;
+  }
+  
+  .social-btn {
+    width: 45px;
+    height: 45px;
+  }
+}
+
+/* Short Screens (Old phones or landscapeish) - Height based */
+@media (max-height: 700px) {
+  .top-section {
+    height: 30vh;
+  }
+  
+  .form-container {
+    min-height: 70vh;
+    padding: 1.5rem 1.5rem;
+  }
+  
+  .logo-wrapper {
+    gap: 10px;
+  }
+  
+  .logo-circle {
+    width: 100px;
+    height: 100px;
+    padding: 15px;
+  }
+  
+  .app-name {
+    font-size: 1.8rem;
+  }
+  
+  .title {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-options {
+    margin-bottom: 1.5rem;
+  }
+  
+  .login-btn {
+    height: 50px;
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Very Small Screens */
+@media (max-width: 340px) {
+  .form-container {
+    padding: 1.5rem 1rem;
+  }
+  
+  .input-wrapper {
+    height: 50px;
+    padding: 0 15px;
+  }
+  
+  .app-name {
+    font-size: 1.6rem;
   }
 }
 </style>

@@ -418,7 +418,18 @@ class SignalementController extends Controller
             $histos = HistoStatut::with('statut')
                 ->where('id_signalement', $id)
                 ->orderBy('daty', 'desc')
-                ->get();
+                ->get()
+                ->map(function ($histo) {
+                    return [
+                        'id_histo_statut' => $histo->id_histo_statut,
+                        'daty' => $histo->daty,
+                        'image' => $histo->image ? url('storage/' . $histo->image) : null,
+                        'description' => $histo->description,
+                        'id_statut' => $histo->id_statut,
+                        'id_signalement' => $histo->id_signalement,
+                        'statut' => $histo->statut,
+                    ];
+                });
 
             return response()->json([
                 'code' => 200,

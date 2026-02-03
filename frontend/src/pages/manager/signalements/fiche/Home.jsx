@@ -509,28 +509,26 @@ export default function SignalementFiche() {
 
                             {histoStatuts && histoStatuts.some(h => h.image) && (
                                 <div className="mb-4">
-                                    <h6 className="fw-bold mb-3 text-muted">Preuves et Pièces jointes</h6>
+                                    <h6 className="fw-bold mb-3 text-muted">Photos du signalement</h6>
                                     <div className="photos-gallery d-flex flex-wrap gap-2">
-                                        {histoStatuts.map((histo) => 
-                                            histo.image && (
-                                                <div key={histo.id_histo_statut} className="photo-item">
-                                                    <CImage
-                                                        src={histo.image.startsWith('http') ? histo.image : `http://localhost:8000/storage/${histo.image}`}
-                                                        alt="Preuve"
-                                                        style={{ 
-                                                            width: '120px', 
-                                                            height: '120px', 
-                                                            objectFit: 'cover',
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer',
-                                                            border: '2px solid #e9ecef',
-                                                            transition: 'transform 0.2s'
-                                                        }}
-                                                        className="hover-zoom"
-                                                    />
-                                                </div>
-                                            )
-                                        )}
+                                        {histoStatuts.filter(h => h.image).map((histo) => (
+                                            <div key={histo.id_histo_statut} className="photo-item">
+                                                <CImage
+                                                    src={histo.image}
+                                                    alt="Photo signalement"
+                                                    style={{ 
+                                                        width: '120px', 
+                                                        height: '120px', 
+                                                        objectFit: 'cover',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        border: '2px solid #e9ecef',
+                                                        transition: 'transform 0.2s'
+                                                    }}
+                                                    className="hover-zoom"
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}

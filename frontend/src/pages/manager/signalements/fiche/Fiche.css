@@ -277,3 +277,20 @@
         height: 12px;
     }
 }
+
+/* Photos gallery */
+.photos-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.photo-item {
+    position: relative;
+}
+
+.hover-zoom:hover {
+    transform: scale(1.1);
+    z-index: 10;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}

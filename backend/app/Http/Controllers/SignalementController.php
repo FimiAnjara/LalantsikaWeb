@@ -44,85 +44,56 @@ class SignalementController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Signalement::with(['utilisateur', 'entreprise'])
-                ->orderBy('id_signalement', 'desc');
-
-            // --- Filtrage SQL simple ---
-            if ($request->filled('id_utilisateur')) {
-                $query->where('id_utilisateur', $request->id_utilisateur);
-            }
-            if ($request->filled('id_entreprise')) {
-                $query->where('id_entreprise', $request->id_entreprise);
-            }
-
-            // --- Pagination ---
-            $perPage = $request->input('per_page', 15);
-            $page = $request->input('page', 1);
-            
-            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
-
-            // --- Transformation des données ---
-            $data = $paginator->getCollection()->map(function ($signalement) {
-                // Extraire latitude/longitude du champ geometry
-                $coordinates = null;
-                if ($signalement->point) {
-                    $lat = null;
-                    $lng = null;
-                    try {
-                        $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
-                        $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
-                    } catch (\Exception $e) {}
-                    if ($lat !== null && $lng !== null) {
-                        $coordinates = [
-                            'latitude' => $lat,
-                            'longitude' => $lng,
-                        ];
+            $signalements = Signalement::with(['utilisateur', 'entreprise'])
+                ->select(
+                    'id_signalement',
+                    'daty',
+                    'surface',
+                    'budget',
+                    'description',
+                    'photo',
+                    'id_entreprise',
+                    'id_utilisateur',
+                    DB::raw('ST_Y(point::geometry) as latitude'),
+                    DB::raw('ST_X(point::geometry) as longitude'),
+                    'synchronized'
+                )
+                ->orderBy('id_signalement', 'desc')
+                ->get()
+                ->map(function ($signalement) {
+                    // Récupérer le dernier statut depuis histo_statut
+                    $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
+                        ->orderByDesc('daty')
+                        ->first();
+                    $statut = null;
+                    if ($lastHisto) {
+                        $statutObj = $lastHisto->statut;
+                        $statut = $statutObj ? $statutObj->libelle : null;
                     }
-                }
 
-                // Récupérer le dernier statut depuis histo_statut
-                $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
-                    ->orderByDesc('daty')
-                    ->first();
-                $statut = null;
-                if ($lastHisto) {
-                    $statutObj = $lastHisto->statut;
-                    $statut = $statutObj ? $statutObj->libelle : null;
-                }
-
-                return [
-                    'id_signalement' => $signalement->id_signalement,
-                    'daty' => $signalement->daty ? $signalement->daty->format('Y-m-d H:i') : null,
-                    'surface' => (float) $signalement->surface,
-                    'budget' => (float) $signalement->budget,
-                    'description' => $signalement->description,
-                    'photo' => $signalement->photo,
-                    'statut' => $statut,
-                    'utilisateur' => $signalement->utilisateur ? [
-                        'id' => $signalement->utilisateur->id_utilisateur,
-                        'nom' => $signalement->utilisateur->nom,
-                        'prenom' => $signalement->utilisateur->prenom,
-                        'nom_complet' => $signalement->utilisateur->prenom . ' ' . $signalement->utilisateur->nom,
-                    ] : null,
-                    'entreprise' => $signalement->entreprise ? [
-                        'id' => $signalement->entreprise->id_entreprise,
-                        'nom' => $signalement->entreprise->nom,
-                    ] : null,
-                    'coordinates' => $coordinates,
-                    'latitude' => $coordinates ? $coordinates['latitude'] : null,
-                    'longitude' => $coordinates ? $coordinates['longitude'] : null,
-                    'synchronized' => $signalement->synchronized ?? false,
-                ];
-            });
-
-            // --- Filtrage Post-Requete (Statut) ---
-            if ($request->filled('statut')) {
-                $statutVoulu = $request->statut;
-                $data = $data->filter(function ($item) use ($statutVoulu) {
-                    // Recherche approximative insensible à la casse
-                    return $item['statut'] && stripos($item['statut'], $statutVoulu) !== false;
-                })->values();
-            }
+                    return [
+                        'id_signalement' => $signalement->id_signalement,
+                        'daty' => $signalement->daty ? $signalement->daty->format('Y-m-d H:i') : null,
+                        'surface' => (float) $signalement->surface,
+                        'budget' => (float) $signalement->budget,
+                        'description' => $signalement->description,
+                        'photo' => $signalement->photo,
+                        'statut' => $statut,
+                        'utilisateur' => $signalement->utilisateur ? [
+                            'id' => $signalement->utilisateur->id_utilisateur,
+                            'nom' => $signalement->utilisateur->nom,
+                            'prenom' => $signalement->utilisateur->prenom,
+                            'nom_complet' => $signalement->utilisateur->prenom . ' ' . $signalement->utilisateur->nom,
+                        ] : null,
+                        'entreprise' => $signalement->entreprise ? [
+                            'id' => $signalement->entreprise->id_entreprise,
+                            'nom' => $signalement->entreprise->nom,
+                        ] : null,
+                        'latitude' => $signalement->latitude ? (float) $signalement->latitude : null,
+                        'longitude' => $signalement->longitude ? (float) $signalement->longitude : null,
+                        'synchronized' => $signalement->synchronized ?? false,
+                    ];
+                });
 
             return response()->json([
                 'code' => 200,
@@ -247,24 +218,20 @@ class SignalementController extends Controller
         try {
 
             $signalement = Signalement::with(['utilisateur', 'entreprise'])
+                ->select(
+                    'id_signalement',
+                    'daty',
+                    'surface',
+                    'budget',
+                    'description',
+                    'photo',
+                    'id_entreprise',
+                    'id_utilisateur',
+                    DB::raw('ST_Y(point::geometry) as latitude'),
+                    DB::raw('ST_X(point::geometry) as longitude'),
+                    'synchronized'
+                )
                 ->findOrFail($id);
-
-            // Récupérer les coordonnées du point (depuis la colonne point de signalement)
-            $coordinates = null;
-            if ($signalement->point) {
-                $lat = null;
-                $lng = null;
-                try {
-                    $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
-                    $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
-                } catch (\Exception $e) {}
-                if ($lat !== null && $lng !== null) {
-                    $coordinates = [
-                        'latitude' => $lat,
-                        'longitude' => $lng,
-                    ];
-                }
-            }
 
             // Récupérer le dernier statut depuis histo_statut (modèle)
             $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
@@ -290,7 +257,8 @@ class SignalementController extends Controller
                     'statut' => $statut,
                     'utilisateur' => $signalement->utilisateur,
                     'entreprise' => $signalement->entreprise,
-                    'coordinates' => $coordinates,
+                    'latitude' => $signalement->latitude ? (float) $signalement->latitude : null,
+                    'longitude' => $signalement->longitude ? (float) $signalement->longitude : null,
                     'synchronized' => $signalement->synchronized ?? false,
                 ]
             ]);

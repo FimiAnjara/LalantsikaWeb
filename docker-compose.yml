@@ -1,8 +1,69 @@
 version: "3.8"
 
 services:
+  # Base de données PostgreSQL avec PostGIS
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: lalantsikaWeb_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: laravel 
+      POSTGRES_USER: laravel
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lalantsikaWeb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laravel"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Application Backend Laravel
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lalantsikaWeb_backend
+    volumes:
+      - ./backend:/var/www/html
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - lalantsikaWeb
+    environment:
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=laravel
+      - DB_USERNAME=laravel
+      - DB_PASSWORD=root
+
+  # Serveur Web Nginx
+  nginx:
+    image: nginx:1.25
+    container_name: lalantsikaWeb_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - lalantsikaWeb
+    restart: unless-stopped
+
+  # Application Frontend React/Vite
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lalantsikaWeb_frontend
     ports:
       - "5173:5173"
     volumes:
@@ -10,17 +71,23 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000
       - VITE_TILESERVER_URL=http://localhost:8088
     stdin_open: true
     tty: true
     depends_on:
+      - nginx
       - tileserver
+    networks:
+      - lalantsikaWeb
+    restart: unless-stopped
 
+  # Serveur de cartes TileServer
   tileserver:
     build:
       context: ./maps
       dockerfile: dockerfile
-    container_name: tileserver-gl
+    container_name: lalantsikaWeb_tileserver
     ports:
       - "8088:8080"
     volumes:
@@ -29,4 +96,13 @@ services:
       - ./maps/fonts:/data/fonts
       - ./maps/config.json:/data/config.json
     command: --verbose --config /data/config.json
+    networks:
+      - lalantsikaWeb
     restart: unless-stopped
+
+networks:
+  lalantsikaWeb:
+    driver: bridge
+
+volumes:
+  postgres_data:

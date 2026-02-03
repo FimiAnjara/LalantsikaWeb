@@ -9,11 +9,21 @@ import ReportDetailsPage from '../views/maps/ReportDetailsPage.vue';
 import ReportFormPage from '../views/maps/ReportFormPage.vue';
 import SignalementDetailsPage from '../views/maps/SignalementDetailsPage.vue';
 import SplashPage from '../views/SplashPage.vue';
+import WelcomePage from '../views/WelcomePage.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     redirect: '/splash'
+  },
+  {
+    path: '/splash',
+    component: SplashPage
+  },
+  {
+    path: '/welcome',
+    name: 'Welcome',
+    component: WelcomePage
   },
   {
     path: '/home',

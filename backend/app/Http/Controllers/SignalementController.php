@@ -20,28 +20,23 @@ class SignalementController extends Controller
     public function index()
     {
         try {
-
             $signalements = Signalement::with(['utilisateur', 'entreprise'])
+                ->select(
+                    'id_signalement',
+                    'daty',
+                    'surface',
+                    'budget',
+                    'description',
+                    'photo',
+                    'id_entreprise',
+                    'id_utilisateur',
+                    DB::raw('ST_Y(point::geometry) as latitude'),
+                    DB::raw('ST_X(point::geometry) as longitude'),
+                    'synchronized'
+                )
                 ->orderBy('id_signalement', 'desc')
                 ->get()
                 ->map(function ($signalement) {
-                    // Extraire latitude/longitude du champ geometry
-                    $coordinates = null;
-                    if ($signalement->point) {
-                        $lat = null;
-                        $lng = null;
-                        try {
-                            $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
-                            $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
-                        } catch (\Exception $e) {}
-                        if ($lat !== null && $lng !== null) {
-                            $coordinates = [
-                                'latitude' => $lat,
-                                'longitude' => $lng,
-                            ];
-                        }
-                    }
-
                     // Récupérer le dernier statut depuis histo_statut
                     $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
                         ->orderByDesc('daty')
@@ -70,9 +65,8 @@ class SignalementController extends Controller
                             'id' => $signalement->entreprise->id_entreprise,
                             'nom' => $signalement->entreprise->nom,
                         ] : null,
-                        'coordinates' => $coordinates,
-                        'latitude' => $coordinates ? $coordinates['latitude'] : null,
-                        'longitude' => $coordinates ? $coordinates['longitude'] : null,
+                        'latitude' => $signalement->latitude ? (float) $signalement->latitude : null,
+                        'longitude' => $signalement->longitude ? (float) $signalement->longitude : null,
                         'synchronized' => $signalement->synchronized ?? false,
                     ];
                 });
@@ -158,24 +152,20 @@ class SignalementController extends Controller
         try {
 
             $signalement = Signalement::with(['utilisateur', 'entreprise'])
+                ->select(
+                    'id_signalement',
+                    'daty',
+                    'surface',
+                    'budget',
+                    'description',
+                    'photo',
+                    'id_entreprise',
+                    'id_utilisateur',
+                    DB::raw('ST_Y(point::geometry) as latitude'),
+                    DB::raw('ST_X(point::geometry) as longitude'),
+                    'synchronized'
+                )
                 ->findOrFail($id);
-
-            // Récupérer les coordonnées du point (depuis la colonne point de signalement)
-            $coordinates = null;
-            if ($signalement->point) {
-                $lat = null;
-                $lng = null;
-                try {
-                    $lat = DB::selectOne('SELECT ST_Y(point) as lat FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lat ?? null;
-                    $lng = DB::selectOne('SELECT ST_X(point) as lng FROM signalement WHERE id_signalement = ?', [$signalement->id_signalement])->lng ?? null;
-                } catch (\Exception $e) {}
-                if ($lat !== null && $lng !== null) {
-                    $coordinates = [
-                        'latitude' => $lat,
-                        'longitude' => $lng,
-                    ];
-                }
-            }
 
             // Récupérer le dernier statut depuis histo_statut (modèle)
             $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
@@ -201,7 +191,8 @@ class SignalementController extends Controller
                     'statut' => $statut,
                     'utilisateur' => $signalement->utilisateur,
                     'entreprise' => $signalement->entreprise,
-                    'coordinates' => $coordinates,
+                    'latitude' => $signalement->latitude ? (float) $signalement->latitude : null,
+                    'longitude' => $signalement->longitude ? (float) $signalement->longitude : null,
                     'synchronized' => $signalement->synchronized ?? false,
                 ]
             ]);

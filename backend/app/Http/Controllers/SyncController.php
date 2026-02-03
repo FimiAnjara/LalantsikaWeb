@@ -378,6 +378,20 @@ class SyncController extends Controller
                 $firestoreData
             );
 
+            // Ajouter le statut de synchronisation dans la collection statut_utilisateurs
+            $this->firebaseRestService->saveDocument(
+                'statut_utilisateurs',
+                (string) $utilisateur->id_utilisateur,
+                [
+                    'uid' => $firebaseUid,
+                    'email' => $utilisateur->email,
+                    'etat' => 1,
+                    'synchronized' => false,
+                    'date' => now()->toIso8601String(),
+                    'updatedAt' => now()->toIso8601String()
+                ]
+            );
+
             // Mettre à jour le statut de synchronisation
             $utilisateur->synchronized = true;
             $utilisateur->last_sync_at = now();

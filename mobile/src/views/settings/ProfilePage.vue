@@ -12,9 +12,13 @@
     <ion-content :fullscreen="true" class="profile-page">
       <!-- Profile Header -->
       <div class="profile-header">
-        <div class="avatar-container">
+        <div class="avatar-container" @click="changeProfilePhoto">
           <div class="avatar">
-            <span class="avatar-initial">{{ user.prenom?.charAt(0) || 'U' }}</span>
+            <img v-if="user.photoUrl" :src="user.photoUrl" alt="Photo de profil" class="avatar-image" />
+            <span v-else class="avatar-initial">{{ user.prenom?.charAt(0) || 'U' }}</span>
+          </div>
+          <div class="avatar-edit-badge">
+            <ion-icon :icon="cameraOutline"></ion-icon>
           </div>
         </div>
         <h2 class="user-name">{{ user.name || 'Utilisateur' }}</h2>
@@ -191,10 +195,13 @@ import {
 } from 'ionicons/icons';
 import { authService } from '@/services/auth';
 import { getFullName } from '@/models/User';
+import { photoService } from '@/services/photo';
+import { storageService } from '@/services/storage';
 import router from '@/router';
 
 const isEditing = ref(false);
 const loading = ref(true);
+const isUploadingPhoto = ref(false);
 
 const user = ref({
   id: 0,
@@ -204,6 +211,7 @@ const user = ref({
   email: '',
   phone: '',
   identifiant: '',
+  photoUrl: '',
   reportsCount: 0,
   joinDate: '',
 });
@@ -224,6 +232,7 @@ onMounted(async () => {
         email: currentUser.email || '',
         phone: '', // Le champ phone n'existe pas dans le modèle actuel
         identifiant: currentUser.identifiant || '',
+        photoUrl: currentUser.photoUrl || '',
         reportsCount: 0, // À calculer depuis la base de données
         joinDate: formatJoinDate(currentUser.last_sync_at || new Date().toISOString())
       };
@@ -276,6 +285,99 @@ const saveProfile = async () => {
 const cancelEdit = () => {
   user.value = { ...originalUser.value };
   isEditing.value = false;
+};
+
+// Changer la photo de profil
+const changeProfilePhoto = async () => {
+  const alert = await alertController.create({
+    header: 'Photo de profil',
+    message: 'Choisissez une option',
+    buttons: [
+      {
+        text: 'Prendre une photo',
+        handler: () => takeProfilePhoto()
+      },
+      {
+        text: 'Choisir depuis la galerie',
+        handler: () => pickProfilePhoto()
+      },
+      {
+        text: 'Annuler',
+        role: 'cancel'
+      }
+    ]
+  });
+  await alert.present();
+};
+
+const takeProfilePhoto = async () => {
+  try {
+    isUploadingPhoto.value = true;
+    
+    const result = await photoService.takePhoto({ quality: 80 });
+    if (result && result.dataUrl) {
+      await uploadProfilePhoto(result.dataUrl);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la prise de photo:', error);
+    const toast = await toastController.create({
+      message: 'Erreur lors de la prise de photo',
+      duration: 2000,
+      color: 'danger'
+    });
+    await toast.present();
+  } finally {
+    isUploadingPhoto.value = false;
+  }
+};
+
+const pickProfilePhoto = async () => {
+  try {
+    isUploadingPhoto.value = true;
+    
+    const result = await photoService.pickFromGallery({ quality: 80 });
+    if (result && result.dataUrl) {
+      await uploadProfilePhoto(result.dataUrl);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sélection de photo:', error);
+    const toast = await toastController.create({
+      message: 'Erreur lors de la sélection de photo',
+      duration: 2000,
+      color: 'danger'
+    });
+    await toast.present();
+  } finally {
+    isUploadingPhoto.value = false;
+  }
+};
+
+const uploadProfilePhoto = async (base64Data: string) => {
+  try {
+    // Upload vers Firebase Storage
+    const photoUrl = await storageService.uploadBase64Image(base64Data, 'profiles');
+    
+    // Mettre à jour l'utilisateur dans Firestore
+    await authService.updateProfilePhoto(photoUrl);
+    
+    // Mettre à jour l'affichage local
+    user.value.photoUrl = photoUrl;
+    
+    const toast = await toastController.create({
+      message: 'Photo de profil mise à jour !',
+      duration: 2000,
+      color: 'success'
+    });
+    await toast.present();
+  } catch (error: any) {
+    console.error('Erreur lors de l\'upload:', error);
+    const toast = await toastController.create({
+      message: error.message || 'Erreur lors de la mise à jour de la photo',
+      duration: 2000,
+      color: 'danger'
+    });
+    await toast.present();
+  }
 };
 
 const changePassword = async () => {

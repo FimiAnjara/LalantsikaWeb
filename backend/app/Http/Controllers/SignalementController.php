@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Models\HistoStatut;
+use App\Models\ImageSignalement;
 
 use OpenApi\Attributes as OA;
 
@@ -127,24 +128,16 @@ class SignalementController extends Controller
                 'surface' => 'required|numeric|min:0',
                 'latitude' => 'required|numeric',
                 'longitude' => 'required|numeric',
-                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // Max 5MB
                 'id_utilisateur' => 'required|exists:utilisateur,id_utilisateur',
                 'budget' => 'nullable|numeric|min:0',
                 'id_entreprise' => 'nullable|exists:entreprise,id_entreprise',
             ]);
-
-            // Gestion de la photo
-            $photoPath = null;
-            if ($request->hasFile('photo')) {
-                $photoPath = $request->file('photo')->store('signalements', 'public');
-            }
 
             // Créer le signalement
             $signalement = new Signalement();
             $signalement->description = $request->description;
             $signalement->surface = $request->surface;
             $signalement->daty = now();
-            $signalement->photo = $photoPath;
             $signalement->id_utilisateur = $request->id_utilisateur;
             $signalement->budget = $request->budget ?? 0;
             $signalement->id_entreprise = $request->id_entreprise;
@@ -176,7 +169,6 @@ class SignalementController extends Controller
                     'id_signalement' => $signalement->id_signalement,
                     'description' => $signalement->description,
                     'surface' => $signalement->surface,
-                    'photo' => $photoPath ? url('storage/' . $photoPath) : null,
                     'latitude' => $latitude,
                     'longitude' => $longitude,
                 ]
@@ -240,7 +232,6 @@ class SignalementController extends Controller
                 'surface' => 'nullable|numeric|min:0',
                 'budget' => 'nullable|numeric|min:0',
                 'id_entreprise' => 'nullable|exists:entreprise,id_entreprise',
-                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
                 'latitude' => 'nullable|numeric',
                 'longitude' => 'nullable|numeric',
             ]);
@@ -262,16 +253,6 @@ class SignalementController extends Controller
             }
             if ($request->has('budget')) {
                 $signalement->budget = $request->budget;
-                $updated = true;
-            }
-
-            // Gestion de la photo
-            if ($request->hasFile('photo')) {
-                // Supprimer l'ancienne photo si elle existe
-                if ($signalement->photo && Storage::disk('public')->exists($signalement->photo)) {
-                    Storage::disk('public')->delete($signalement->photo);
-                }
-                $signalement->photo = $request->file('photo')->store('signalements', 'public');
                 $updated = true;
             }
 
@@ -353,7 +334,6 @@ class SignalementController extends Controller
                     'surface',
                     'budget',
                     'description',
-                    'photo',
                     'id_entreprise',
                     'id_utilisateur',
                     DB::raw('ST_Y(point::geometry) as latitude'),
@@ -382,7 +362,6 @@ class SignalementController extends Controller
                     'surface' => (float) $signalement->surface,
                     'budget' => (float) $signalement->budget,
                     'description' => $signalement->description,
-                    'photo' => $signalement->photo ? url('storage/' . $signalement->photo) : null,
                     'statut' => $statut,
                     'utilisateur' => $signalement->utilisateur,
                     'entreprise' => $signalement->entreprise,
@@ -444,31 +423,56 @@ class SignalementController extends Controller
         try {
             $request->validate([
                 'id_statut' => 'required|exists:statut,id_statut',
-                'description' => 'required|string',
+                'description' => 'nullable|string',
                 'daty' => 'required|date',
+                'images' => 'nullable|array',
+                'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             ]);
 
             $signalement = Signalement::findOrFail($id);
 
-            // Gestion de l'image (optionnelle)
-            // Priorité: photo_url (Firebase) > photo (fichier local)
-            $photoPath = null;
-            if ($request->has('photo_url') && !empty($request->photo_url)) {
-                // URL Firebase Storage directement
-                $photoPath = $request->photo_url;
-            } elseif ($request->hasFile('photo')) {
-                // Fallback: stockage local
-                $photoPath = $request->file('photo')->store('histostatut', 'public');
-            }
-
-            // Insertion via modèle HistoStatut
+            // Insertion de l'historique de statut
             $histo = new HistoStatut();
             $histo->id_signalement = $signalement->id_signalement;
             $histo->id_statut = $request->id_statut;
-            $histo->description = $request->description;
+            $histo->description = $request->description ?? '';
             $histo->daty = $request->daty;
-            $histo->image = $photoPath;
             $histo->save();
+
+            // Gestion des images (insertion dans image_signalement)
+            $uploadedImages = [];
+            
+            // Support pour les images multiples
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $imageFile) {
+                    $imagePath = $imageFile->store('signalements/images', 'public');
+                    
+                    $imageSignalement = new ImageSignalement();
+                    $imageSignalement->id_histo_statut = $histo->id_histo_statut;
+                    $imageSignalement->image = $imagePath;
+                    $imageSignalement->save();
+                    
+                    $uploadedImages[] = [
+                        'id_image_signalement' => $imageSignalement->id_image_signalement,
+                        'image' => url('storage/' . $imagePath),
+                    ];
+                }
+            }
+            
+            // Support pour une seule image (ancien format - rétrocompatibilité)
+            if ($request->hasFile('photo')) {
+                $imagePath = $request->file('photo')->store('signalements/images', 'public');
+                
+                $imageSignalement = new ImageSignalement();
+                $imageSignalement->id_histo_statut = $histo->id_histo_statut;
+                $imageSignalement->image = $imagePath;
+                $imageSignalement->save();
+                
+                $uploadedImages[] = [
+                    'id_image_signalement' => $imageSignalement->id_image_signalement,
+                    'image' => url('storage/' . $imagePath),
+                ];
+            }
 
             return response()->json([
                 'code' => 201,
@@ -480,7 +484,7 @@ class SignalementController extends Controller
                     'id_statut' => $histo->id_statut,
                     'description' => $histo->description,
                     'daty' => $histo->daty,
-                    'image' => $histo->image,
+                    'images' => $uploadedImages,
                 ]
             ], 201);
         } catch (\Exception $e) {
@@ -516,15 +520,23 @@ class SignalementController extends Controller
     public function getHistoStatuts($id)
     {
         try {
-            $histos = HistoStatut::with('statut')
+            $histos = HistoStatut::with(['statut', 'images'])
                 ->where('id_signalement', $id)
                 ->orderBy('daty', 'desc')
                 ->get()
                 ->map(function ($histo) {
+                    // Récupérer les images liées à cet historique
+                    $images = $histo->images->map(function ($img) {
+                        return [
+                            'id_image_signalement' => $img->id_image_signalement,
+                            'image' => url('storage/' . $img->image),
+                        ];
+                    });
+                    
                     return [
                         'id_histo_statut' => $histo->id_histo_statut,
                         'daty' => $histo->daty,
-                        'image' => $histo->image ? url('storage/' . $histo->image) : null,
+                        'images' => $images,
                         'description' => $histo->description,
                         'id_statut' => $histo->id_statut,
                         'id_signalement' => $histo->id_signalement,

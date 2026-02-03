@@ -14,20 +14,27 @@ import {
 import CIcon from '@coreui/icons-react'
 import {
     cilArrowLeft,
-    cilPencil,
-    cilTrash,
     cilUser,
     cilCalendar,
     cilClock,
-    cilCheckCircle,
     cilLocationPin,
     cilMoney,
     cilLayers,
     cilBuilding,
+    cilArrowRight,
+    cilX,
 } from '@coreui/icons'
 import Modal from '../../../../components/Modal'
 import { API_BASE_URL, ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Fiche.css'
+
+// Flux des statuts pour déterminer le prochain statut
+const STATUT_FLOW = {
+    'Nouveau': ['En cours'],
+    'En cours': ['Terminé'],
+    'Terminé': null,
+    'Rejeté': null,
+}
 
 export default function SignalementFiche() {
     const { id } = useParams()
@@ -40,7 +47,9 @@ export default function SignalementFiche() {
     const [entreprises, setEntreprises] = useState([])
     const [selectedEntreprise, setSelectedEntreprise] = useState('')
     const [assignBudget, setAssignBudget] = useState('')
+    const [assignSurface, setAssignSurface] = useState('')
     const [assignLoading, setAssignLoading] = useState(false)
+    const [entrepriseSearch, setEntrepriseSearch] = useState('')
 
     // Signalement state
     const [signalement, setSignalement] = useState(null)
@@ -48,6 +57,9 @@ export default function SignalementFiche() {
     const [error, setError] = useState(null)
 
     const assignModalRef = useRef(null)
+
+    // State pour le zoom de l'image
+    const [zoomedImage, setZoomedImage] = useState(null)
 
     // Gestion du clic en dehors de la modal d'assignation
     useEffect(() => {
@@ -150,71 +162,34 @@ export default function SignalementFiche() {
     }
 
     const handleBack = () => navigate('/manager/signalements/liste')
-    const handleEdit = () => navigate(`/manager/signalements/modifier/${id}`)
+    
+    // Navigation vers la page de changement de statut
+    const handleChangeStatut = () => navigate(`/manager/signalements/changer-statut/${id}`)
+    
+    // Vérifier si le changement de statut est possible
+    const canChangeStatus = () => {
+        if (!signalement) return false
+        const nextStatuts = STATUT_FLOW[signalement.statut]
+        return nextStatuts && nextStatuts.length > 0
+    }
+    
+    // Obtenir le texte du bouton selon le statut actuel
+    const getNextStatusButtonText = () => {
+        if (!signalement) return 'Prochain statut'
+        const nextStatuts = STATUT_FLOW[signalement.statut]
+        if (!nextStatuts || nextStatuts.length === 0) return null
+        if (nextStatuts.length === 1) {
+            return `${nextStatuts[0]}`
+        }
+        return 'Changer le statut'
+    }
+    
     const handleAssign = () => {
         setAssignModal({ visible: true })
         setSelectedEntreprise('')
         setAssignBudget('')
-    }
-
-    const handleFinish = () => {
-        setModal({ visible: false })
-        handleUpdateStatut('Terminé')
-    }
-
-    const handleUpdateStatut = async (newStatutLibelle) => {
-        try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            const resStatut = await fetch(ENDPOINTS.STATUSES, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
-            })
-            const statutsResult = await resStatut.json()
-            if (!statutsResult.success || !statutsResult.data) {
-                throw new Error('Impossible de récupérer les statuts')
-            }
-            const statutObj = statutsResult.data.find(s => s.libelle === newStatutLibelle)
-            if (!statutObj) {
-                throw new Error(`Statut "${newStatutLibelle}" non trouvé`)
-            }
-
-            const formData = new FormData()
-            formData.append('id_statut', statutObj.id_statut)
-            formData.append('description', `Statut changé à ${newStatutLibelle}`)
-            formData.append('daty', new Date().toISOString().slice(0, 16))
-
-            const res = await fetch(ENDPOINTS.REPORT_HISTO(id), {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                },
-                body: formData
-            })
-            const result = await res.json()
-            if (!result.success) {
-                throw new Error(result.message || 'Erreur lors de la mise à jour du statut')
-            }
-
-            setModal({
-                visible: true,
-                type: 'success',
-                title: 'Succès',
-                message: `Signalement marqué comme ${newStatutLibelle.toLowerCase()}`
-            })
-            setTimeout(() => {
-                window.location.reload()
-            }, 800)
-        } catch (e) {
-            setModal({
-                visible: true,
-                type: 'danger',
-                title: 'Erreur',
-                message: e.message || 'Erreur lors de la mise à jour du statut'
-            })
-        }
+        setAssignSurface('')
+        setEntrepriseSearch('')
     }
 
     const confirmAssign = async () => {
@@ -226,11 +201,15 @@ export default function SignalementFiche() {
             setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez saisir un budget valide." })
             return
         }
+        if (!assignSurface || isNaN(assignSurface) || Number(assignSurface) <= 0) {
+            setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez saisir une surface valide." })
+            return
+        }
         setAssignLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
             
-            // 1. Mettre à jour le signalement (id_entreprise et budget)
+            // 1. Mettre à jour le signalement (id_entreprise, budget et surface)
             const res = await fetch(ENDPOINTS.REPORT(id), {
                 method: 'PUT',
                 headers: {
@@ -240,7 +219,8 @@ export default function SignalementFiche() {
                 },
                 body: JSON.stringify({
                     id_entreprise: selectedEntreprise,
-                    budget: assignBudget
+                    budget: assignBudget,
+                    surface: assignSurface
                 })
             })
             const result = await res.json()
@@ -360,52 +340,6 @@ export default function SignalementFiche() {
     if (error) return <div className="fiche-signalement"><div className="alert alert-danger m-4">{error}</div></div>
     if (!signalement) return null
 
-    // Action Valider/Rejeter
-    const handleValidationRejet = async (action) => {
-        setModal({ visible: false })
-        try {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-            const resStatut = await fetch(ENDPOINTS.STATUSES, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
-            })
-            const statutsResult = await resStatut.json();
-            if (!statutsResult.success || !statutsResult.data) throw new Error('Impossible de récupérer les statuts');
-            const statutObj = statutsResult.data.find(s => s.libelle === action);
-            if (!statutObj) throw new Error('Statut non trouvé');
-            const formData = new FormData();
-            formData.append('id_statut', statutObj.id_statut);
-            formData.append('description', action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté');
-            formData.append('daty', new Date().toISOString().slice(0, 16));
-            const res = await fetch(ENDPOINTS.REPORT_HISTO(id), {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                },
-                body: formData
-            });
-            const result = await res.json();
-            if (!result.success) throw new Error(result.message || 'Erreur lors de la mise à jour du statut');
-            setModal({
-                visible: true,
-                type: 'success',
-                title: action === 'Validé' ? 'Signalement validé' : 'Signalement rejeté',
-                message: action === 'Validé' ? 'Le signalement a été validé.' : 'Le signalement a été rejeté.'
-            });
-            setTimeout(() => window.location.reload(), 1200);
-        } catch (e) {
-            setModal({
-                visible: true,
-                type: 'danger',
-                title: 'Erreur',
-                message: e.message || 'Erreur lors de la validation/rejet.'
-            });
-        }
-    }
-
     return (
         <div className="fiche-signalement">
 
@@ -420,43 +354,16 @@ export default function SignalementFiche() {
                     </div>
                 </div>
                 <div className="header-actions d-flex gap-2">
-                    <CButton
-                        color="primary"
-                        className="btn-theme"
-                        onClick={handleEdit}
-                        disabled={signalement.statut !== 'Validé' && signalement.statut !== 'En cours' && signalement.statut !== 'Résolu'}
-                        title={signalement.statut !== 'Validé' && signalement.statut !== 'En cours' && signalement.statut !== 'Résolu' ? 'Impossible de modifier le statut tant que le signalement n\'est pas validé' : ''}
-                    >
-                        <CIcon icon={cilPencil} className="me-2" />
-                        Modifier Status
-                    </CButton>
-                    
-                    {/* Bouton Assigner - visible seulement si statut = Nouveau */}
-                    {signalement.statut === 'Nouveau' && (
-                        <CButton color="info" onClick={handleAssign}>
-                            <CIcon icon={cilBuilding} className="me-2" />
-                            Assigner à une entreprise
+                    {/* Bouton unique Prochain Statut */}
+                    {canChangeStatus() && (
+                        <CButton
+                            color="primary"
+                            className="btn-theme"
+                            onClick={handleChangeStatut}
+                        >
+                            <CIcon icon={cilArrowRight} className="me-2" />
+                            {getNextStatusButtonText()}
                         </CButton>
-                    )}
-
-                    {/* Bouton Terminer - visible seulement si statut = En cours */}
-                    {signalement.statut === 'En cours' && (
-                        <CButton color="success" onClick={handleFinish}>
-                            <CIcon icon={cilCheckCircle} className="me-2" />
-                            Marquer comme Terminé
-                        </CButton>
-                    )}
-                    
-                    {/* Boutons Valider/Rejeter si statut = En attente */}
-                    {signalement.statut === 'En attente' && (
-                        <>
-                            <CButton color="success" onClick={() => handleValidationRejet('Validé')}>
-                                Valider
-                            </CButton>
-                            <CButton color="danger" onClick={() => handleValidationRejet('Rejeté')}>
-                                Rejeter
-                            </CButton>
-                        </>
                     )}
                 </div>
             </div>
@@ -474,48 +381,69 @@ export default function SignalementFiche() {
                         <CCardBody className="p-4">
                             <p className="description-text mb-4">{signalement.description}</p>
 
-                            <div className="signalement-photo-container rounded-4 overflow-hidden mb-4 shadow-sm">
-                                {signalement.photo ? (
-                                    <CImage 
-                                        src={signalement.photo.startsWith('http') ? signalement.photo : `${API_BASE_URL}${signalement.photo}`} 
-                                        alt="Photo du signalement" 
-                                        style={{ width: '100%', height: '300px', objectFit: 'cover' }} 
-                                    />
-                                ) : (
-                                    <div className="photo-placeholder d-flex align-items-center justify-content-center bg-light text-muted" style={{ height: '300px' }}>
-                                        <div className="text-center">
-                                            <CIcon icon={cilLocationPin} size="3xl" className="mb-2" />
-                                            <p>Photo du signalement</p>
+                            {/* Photo principale du signalement (1ère image de la création) */}
+                            {(() => {
+                                // Le premier histo_statut (création) est le dernier dans l'array (ordonné DESC)
+                                const creationHisto = histoStatuts.length > 0 ? histoStatuts[histoStatuts.length - 1] : null
+                                const creationImages = creationHisto?.images || []
+                                const mainPhoto = creationImages.length > 0 ? creationImages[0] : null
+                                
+                                return (
+                                    <div className="signalement-photo-container rounded-4 overflow-hidden mb-4 shadow-sm">
+                                        {mainPhoto ? (
+                                            <CImage 
+                                                src={mainPhoto.image} 
+                                                alt="Photo du signalement" 
+                                                style={{ width: '100%', height: '300px', objectFit: 'cover', cursor: 'pointer' }} 
+                                                onClick={() => setZoomedImage(mainPhoto.image)}
+                                            />
+                                        ) : (
+                                            <div className="photo-placeholder d-flex align-items-center justify-content-center bg-light text-muted" style={{ height: '300px' }}>
+                                                <div className="text-center">
+                                                    <CIcon icon={cilLocationPin} size="3xl" className="mb-2" />
+                                                    <p>Aucune photo</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })()}
+
+                            {/* Autres photos de la création du signalement */}
+                            {(() => {
+                                const creationHisto = histoStatuts.length > 0 ? histoStatuts[histoStatuts.length - 1] : null
+                                const creationImages = creationHisto?.images || []
+                                const otherPhotos = creationImages.slice(1) // Toutes sauf la première
+                                
+                                if (otherPhotos.length === 0) return null
+                                
+                                return (
+                                    <div className="mb-4">
+                                        <h6 className="fw-bold mb-3 text-muted">Autres photos du signalement</h6>
+                                        <div className="photos-gallery d-flex flex-wrap gap-2">
+                                            {otherPhotos.map((img) => (
+                                                <div key={img.id_image_signalement} className="photo-item">
+                                                    <CImage
+                                                        src={img.image}
+                                                        alt="Photo signalement"
+                                                        style={{ 
+                                                            width: '120px', 
+                                                            height: '120px', 
+                                                            objectFit: 'cover',
+                                                            borderRadius: '8px',
+                                                            cursor: 'pointer',
+                                                            border: '2px solid #e9ecef',
+                                                            transition: 'transform 0.2s'
+                                                        }}
+                                                        className="hover-zoom"
+                                                        onClick={() => setZoomedImage(img.image)}
+                                                    />
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
-                                )}
-                            </div>
-
-                            {histoStatuts && histoStatuts.some(h => h.image) && (
-                                <div className="mb-4">
-                                    <h6 className="fw-bold mb-3 text-muted">Photos du signalement</h6>
-                                    <div className="photos-gallery d-flex flex-wrap gap-2">
-                                        {histoStatuts.filter(h => h.image).map((histo) => (
-                                            <div key={histo.id_histo_statut} className="photo-item">
-                                                <CImage
-                                                    src={histo.image}
-                                                    alt="Photo signalement"
-                                                    style={{ 
-                                                        width: '120px', 
-                                                        height: '120px', 
-                                                        objectFit: 'cover',
-                                                        borderRadius: '8px',
-                                                        cursor: 'pointer',
-                                                        border: '2px solid #e9ecef',
-                                                        transition: 'transform 0.2s'
-                                                    }}
-                                                    className="hover-zoom"
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                )
+                            })()}
 
                             <CRow className="g-4">
                                 <CCol md="4">
@@ -549,11 +477,18 @@ export default function SignalementFiche() {
                                 <div className="enterprise-icon p-3 rounded-circle bg-info bg-opacity-10 text-info">
                                     <CIcon icon={cilBuilding} size="xl" />
                                 </div>
-                                <div>
+                                <div className="flex-grow-1">
                                     <div className="fw-bold fs-5">{typeof signalement.entreprise === 'object' && signalement.entreprise !== null ? signalement.entreprise.nom : (signalement.entreprise || 'Non assignée')}</div>
                                     <div className="text-muted">Partenaire certifié Lalantsika</div>
                                 </div>
                             </div>
+                            {/* Bouton Assigner - visible si pas encore assigné */}
+                            {!signalement.entreprise && (
+                                <CButton color="info" className="w-100 mt-3" onClick={handleAssign}>
+                                    <CIcon icon={cilBuilding} className="me-2" />
+                                    Assigner à une entreprise
+                                </CButton>
+                            )}
                         </CCardBody>
                     </CCard>
                 </CCol>
@@ -649,6 +584,27 @@ export default function SignalementFiche() {
                                                             {histo.description}
                                                         </div>
                                                     )}
+                                                    {/* Images de l'historique */}
+                                                    {histo.images && histo.images.length > 0 && (
+                                                        <div className="timeline-images mt-2 d-flex flex-wrap gap-2">
+                                                            {histo.images.map((img) => (
+                                                                <CImage
+                                                                    key={img.id_image_signalement}
+                                                                    src={img.image}
+                                                                    alt="Photo"
+                                                                    style={{ 
+                                                                        width: '60px', 
+                                                                        height: '60px', 
+                                                                        objectFit: 'cover',
+                                                                        borderRadius: '6px',
+                                                                        cursor: 'pointer',
+                                                                        border: '1px solid #dee2e6'
+                                                                    }}
+                                                                    onClick={() => setZoomedImage(img.image)}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )
@@ -706,19 +662,72 @@ export default function SignalementFiche() {
                                 <div className="modal-body p-4">
                                     <div className="mb-3">
                                         <label className="form-label fw-medium">Entreprise</label>
-                                        <select
-                                            className="form-select"
-                                            value={selectedEntreprise}
-                                            onChange={e => setSelectedEntreprise(e.target.value)}
+                                        <input
+                                            type="text"
+                                            className="form-control mb-2"
+                                            placeholder="Rechercher une entreprise..."
+                                            value={entrepriseSearch}
+                                            onChange={e => setEntrepriseSearch(e.target.value)}
                                             disabled={assignLoading}
-                                        >
-                                            <option value="">Sélectionner une entreprise...</option>
-                                            {entreprises.map(ent => (
-                                                <option key={ent.id_entreprise || ent.id} value={ent.id_entreprise || ent.id}>
-                                                    {ent.nom_entreprise || ent.nom}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        />
+                                        <div className="entreprise-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '8px' }}>
+                                            {entreprises
+                                                .filter(ent => {
+                                                    const nom = (ent.nom_entreprise || ent.nom || '').toLowerCase()
+                                                    return nom.includes(entrepriseSearch.toLowerCase())
+                                                })
+                                                .map(ent => (
+                                                    <div
+                                                        key={ent.id_entreprise || ent.id}
+                                                        className={`entreprise-item p-2 px-3 ${selectedEntreprise == (ent.id_entreprise || ent.id) ? 'bg-primary text-white' : 'bg-white'}`}
+                                                        style={{ 
+                                                            cursor: 'pointer',
+                                                            borderBottom: '1px solid #eee',
+                                                            transition: 'background-color 0.2s'
+                                                        }}
+                                                        onClick={() => !assignLoading && setSelectedEntreprise(ent.id_entreprise || ent.id)}
+                                                    >
+                                                        <div className="fw-medium">{ent.nom_entreprise || ent.nom}</div>
+                                                        {ent.contact && <small className={selectedEntreprise == (ent.id_entreprise || ent.id) ? 'text-white-50' : 'text-muted'}>{ent.contact}</small>}
+                                                    </div>
+                                                ))
+                                            }
+                                            {entreprises.filter(ent => {
+                                                const nom = (ent.nom_entreprise || ent.nom || '').toLowerCase()
+                                                return nom.includes(entrepriseSearch.toLowerCase())
+                                            }).length === 0 && (
+                                                <div className="p-3 text-center text-muted">Aucune entreprise trouvée</div>
+                                            )}
+                                        </div>
+                                        {selectedEntreprise && (
+                                            <div className="mt-2 p-2 bg-light rounded d-flex justify-content-between align-items-center">
+                                                <span className="text-success fw-medium">
+                                                    ✓ {entreprises.find(e => (e.id_entreprise || e.id) == selectedEntreprise)?.nom_entreprise || entreprises.find(e => (e.id_entreprise || e.id) == selectedEntreprise)?.nom}
+                                                </span>
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-sm btn-outline-secondary"
+                                                    onClick={() => setSelectedEntreprise('')}
+                                                >
+                                                    Changer
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <label className="form-label fw-medium">Surface (m²)</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={assignSurface}
+                                            onChange={e => setAssignSurface(e.target.value)}
+                                            min="0"
+                                            step="0.1"
+                                            placeholder="Ex: 25.5"
+                                            disabled={assignLoading}
+                                        />
+                                        <div className="form-text">Surface en mètres carrés</div>
                                     </div>
 
                                     <div className="mb-4">
@@ -749,7 +758,7 @@ export default function SignalementFiche() {
                                         type="button"
                                         className="btn btn-primary px-4"
                                         onClick={confirmAssign}
-                                        disabled={assignLoading || !selectedEntreprise || !assignBudget}
+                                        disabled={assignLoading || !selectedEntreprise || !assignBudget || !assignSurface}
                                     >
                                         {assignLoading ? (
                                             <>
@@ -763,6 +772,60 @@ export default function SignalementFiche() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Modal de zoom image */}
+            {zoomedImage && (
+                <div 
+                    className="image-zoom-modal"
+                    onClick={() => setZoomedImage(null)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'zoom-out'
+                    }}
+                >
+                    <button
+                        onClick={() => setZoomedImage(null)}
+                        style={{
+                            position: 'absolute',
+                            top: '20px',
+                            right: '20px',
+                            background: 'rgba(255,255,255,0.2)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: 'white'
+                        }}
+                    >
+                        <CIcon icon={cilX} size="lg" />
+                    </button>
+                    <img
+                        src={zoomedImage}
+                        alt="Photo zoomée"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            maxWidth: '90vw',
+                            maxHeight: '90vh',
+                            objectFit: 'contain',
+                            borderRadius: '8px',
+                            cursor: 'default'
+                        }}
+                    />
+                </div>
             )}
 
 

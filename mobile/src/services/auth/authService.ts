@@ -67,8 +67,14 @@ class AuthService {
       }
 
       // 3. Vérifier si c'est bien un Utilisateur (pas Manager)
-      const isUtilisateur = await utilisateurService.isUtilisateurType(email);
-      if (!isUtilisateur) {
+      const userTypeResult = await utilisateurService.isUtilisateurType(email);
+      
+      // Vérifier d'abord si c'est une erreur réseau
+      if (userTypeResult.error === 'NETWORK_ERROR') {
+        throw new Error('NETWORK_ERROR');
+      }
+      
+      if (!userTypeResult.isUtilisateur) {
         throw new Error('MANAGER_NON_AUTORISE');
       }
 
@@ -133,6 +139,13 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
+      // Import dynamique pour éviter les dépendances circulaires
+      const { sessionService } = await import('./sessionService');
+      
+      // Effacer la session locale
+      await sessionService.clearSession();
+      
+      // Déconnexion Firebase
       await signOut(auth);
       console.log('✅ Déconnexion réussie');
     } catch (error) {
@@ -217,7 +230,8 @@ class AuthService {
         error.message?.startsWith('MAX_TENTATIVES') ||
         error.message?.startsWith('TENTATIVE_ECHOUEE') ||
         error.message?.startsWith('MANAGER_NON_AUTORISE') ||
-        error.message?.startsWith('UTILISATEUR_NON_TROUVE')) {
+        error.message?.startsWith('UTILISATEUR_NON_TROUVE') ||
+        error.message?.startsWith('NETWORK_ERROR')) {
       return error;
     }
 

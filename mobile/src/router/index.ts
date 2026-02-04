@@ -9,6 +9,11 @@ import ReportDetailsPage from '../views/maps/ReportDetailsPage.vue';
 import ReportFormPage from '../views/maps/ReportFormPage.vue';
 import SignalementDetailsPage from '../views/maps/SignalementDetailsPage.vue';
 import SplashPage from '../views/SplashPage.vue';
+import { sessionService } from '@/services/auth';
+import { auth } from '@/services/firebase/config';
+
+// Routes publiques (pas besoin d'authentification)
+const publicRoutes = ['Login', 'SplashPage'];
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -18,7 +23,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/home',
     name: 'Home',
-    component: HomePage
+    component: HomePage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -28,38 +34,45 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/profile',
     name: 'Profile',
-    component: ProfilePage
+    component: ProfilePage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/mode',
     name: 'Modes',
-    component: ModePage
+    component: ModePage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/map',
     name: 'Map',
-    component: MapPage
+    component: MapPage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/report/:id',
     name: 'ReportDetails',
-    component: ReportDetailsPage
+    component: ReportDetailsPage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/signalement/:id',
     name: 'SignalementDetails',
-    component: SignalementDetailsPage
+    component: SignalementDetailsPage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/signalement/:id/edit',
     name: 'EditSignalement',
     component: ReportFormPage,
-    props: route => ({ editMode: true, signalementId: route.params.id })
+    props: route => ({ editMode: true, signalementId: route.params.id }),
+    meta: { requiresAuth: true }
   },
   {
     path: '/report-form',
     name: 'ReportForm',
-    component: ReportFormPage
+    component: ReportFormPage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/splash',
@@ -72,5 +85,40 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
+
+/**
+ * Navigation Guard - Vérifie l'authentification et la validité de la session
+ */
+router.beforeEach(async (to, from, next) => {
+  const routeName = to.name as string;
+  const requiresAuth = to.meta.requiresAuth === true;
+
+  // Routes publiques - pas de vérification
+  if (!requiresAuth || publicRoutes.includes(routeName)) {
+    return next();
+  }
+
+  // Vérifier si l'utilisateur est connecté à Firebase
+  const firebaseUser = auth.currentUser;
+  
+  if (!firebaseUser) {
+    console.log('🔒 Utilisateur non connecté, redirection vers Login');
+    return next({ name: 'Login' });
+  }
+
+  // Vérifier si la session est encore valide (durée personnalisée)
+  const isSessionValid = await sessionService.isSessionValid();
+  
+  if (!isSessionValid) {
+    console.log('⏰ Session expirée, redirection vers Login');
+    // Optionnel: afficher un toast
+    return next({ name: 'Login' });
+  }
+
+  // Prolonger la session si "Remember Me" est activé
+  await sessionService.extendSession();
+
+  next();
+});
 
 export default router

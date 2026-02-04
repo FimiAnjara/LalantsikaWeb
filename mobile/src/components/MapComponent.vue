@@ -27,6 +27,7 @@ const emit = defineEmits<{
 const mapContainer = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
 const markerLayers: L.Marker[] = [];
+let searchMarker: L.Marker | null = null;
 
 // Antananarivo par défaut
 const defaultCenter: [number, number] = [-18.8792, 47.5079];
@@ -191,11 +192,49 @@ const invalidateSize = () => {
   }
 };
 
+// Méthode pour ajouter/mettre à jour le marqueur de recherche (cercle bleu)
+const setSearchMarker = (lat: number, lng: number, label?: string) => {
+  if (!map) return;
+  
+  // Supprimer l'ancien marqueur de recherche s'il existe
+  if (searchMarker) {
+    searchMarker.remove();
+    searchMarker = null;
+  }
+  
+  // Créer le nouveau marqueur de recherche (style cercle bleu comme la position utilisateur)
+  searchMarker = L.marker([lat, lng], {
+    icon: L.divIcon({
+      className: 'search-location-marker',
+      html: `<div class="search-marker-icon">
+        <div class="search-marker-pulse"></div>
+        <div class="search-marker-dot"></div>
+      </div>`,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
+    })
+  }).addTo(map);
+  
+  if (label) {
+    searchMarker.bindPopup(label).openPopup();
+  }
+};
+
+// Méthode pour supprimer le marqueur de recherche
+const clearSearchMarker = () => {
+  if (searchMarker) {
+    searchMarker.remove();
+    searchMarker = null;
+  }
+};
+
 // Exposer les méthodes publiques
 defineExpose({
   setView,
   getCenter,
-  invalidateSize
+  invalidateSize,
+  setSearchMarker,
+  clearSearchMarker
 });
 
 onMounted(() => {
@@ -325,5 +364,46 @@ watch(() => props.markers, updateMarkers, { deep: true, immediate: true });
 :deep(.custom-marker:hover .marker-pin-shape) {
   transform: translateX(-50%) rotate(-45deg) scale(1.1);
   transition: transform 0.2s ease;
+}
+
+/* Marqueur de recherche - cercle bleu avec animation pulse */
+:deep(.search-marker-icon) {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.search-marker-dot) {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.5);
+  z-index: 2;
+}
+
+:deep(.search-marker-pulse) {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: rgba(33, 150, 243, 0.3);
+  border-radius: 50%;
+  animation: searchPulse 2s ease-out infinite;
+  z-index: 1;
+}
+
+@keyframes searchPulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
 </style>

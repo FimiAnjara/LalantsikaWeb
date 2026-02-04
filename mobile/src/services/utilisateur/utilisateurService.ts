@@ -60,8 +60,28 @@ class UtilisateurService {
         ...userData,
         _firestore_id: snapshot.docs[0].id
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur getByEmail:', error);
+      
+      // Propager les erreurs réseau pour qu'elles soient gérées correctement
+      const errorMsg = error?.message?.toLowerCase() || '';
+      const errorCode = error?.code?.toLowerCase() || '';
+      
+      const isNetworkError = 
+        errorMsg.includes('network') ||
+        errorMsg.includes('failed to fetch') ||
+        errorMsg.includes('offline') ||
+        errorMsg.includes('unavailable') ||
+        errorMsg.includes('timeout') ||
+        errorMsg.includes('client is offline') ||
+        errorCode === 'unavailable' ||
+        errorCode === 'deadline-exceeded' ||
+        errorCode === 'failed-precondition';
+      
+      if (isNetworkError) {
+        throw new Error('NETWORK_ERROR');
+      }
+      
       return null;
     }
   }
@@ -87,38 +107,75 @@ class UtilisateurService {
 
   /**
    * Vérifie si l'utilisateur est de type "Utilisateur" (pas Manager)
-   * Utilise la structure imbriquée: type_utilisateur.id_type_utilisateur
+   * Méthode robuste: récupère l'utilisateur puis vérifie le type
    */
-  async isUtilisateurType(email: string): Promise<boolean> {
+  async isUtilisateurType(email: string): Promise<{ isUtilisateur: boolean; error?: string }> {
     try {
-      const q = query(
-        this.getCollectionRef(),
-        where('email', '==', email),
-        where('type_utilisateur.id_type_utilisateur', '==', TypeUtilisateurEnum.UTILISATEUR)
-      );
+      // Récupérer l'utilisateur par email d'abord
+      const user = await this.getByEmail(email);
       
-      const snapshot = await getDocs(q);
-      return !snapshot.empty;
-    } catch (error) {
-      console.error('Erreur isUtilisateurType:', error);
-      return false;
+      if (!user) {
+        console.log('❌ isUtilisateurType: Utilisateur non trouvé pour', email);
+        return { isUtilisateur: false };
+      }
+
+      // Log pour debug
+      console.log('🔍 isUtilisateurType - Données utilisateur:');
+      console.log('   Email:', user.email);
+      console.log('   Type utilisateur:', JSON.stringify(user.type_utilisateur));
+      
+      // Vérifier le type de plusieurs façons (robustesse)
+      // typeId peut être number ou string selon comment Firestore stocke la valeur
+      const typeId = user.type_utilisateur?.id_type_utilisateur;
+      
+      // Convertir en number pour comparer (gère string et number)
+      const typeIdNum = Number(typeId);
+      const isUtilisateur = typeIdNum === TypeUtilisateurEnum.UTILISATEUR;
+      
+      console.log('   typeId:', typeId, '(type:', typeof typeId, ')');
+      console.log('   typeIdNum:', typeIdNum);
+      console.log('   Expected:', TypeUtilisateurEnum.UTILISATEUR);
+      console.log('   isUtilisateur:', isUtilisateur);
+      
+      return { isUtilisateur };
+    } catch (error: any) {
+      console.error('❌ Erreur isUtilisateurType:', error);
+      
+      // Détecter les erreurs réseau
+      const errorMsg = error?.message?.toLowerCase() || '';
+      const isNetworkError = 
+        errorMsg.includes('network') ||
+        errorMsg.includes('failed to fetch') ||
+        errorMsg.includes('offline') ||
+        errorMsg.includes('unavailable') ||
+        errorMsg.includes('timeout') ||
+        error?.code === 'unavailable' ||
+        error?.code === 'deadline-exceeded';
+      
+      if (isNetworkError) {
+        return { isUtilisateur: false, error: 'NETWORK_ERROR' };
+      }
+      
+      return { isUtilisateur: false };
     }
   }
 
   /**
    * Vérifie si l'utilisateur est de type "Manager"
-   * Utilise la structure imbriquée: type_utilisateur.id_type_utilisateur
+   * Méthode robuste: récupère l'utilisateur puis vérifie le type
    */
   async isManagerType(email: string): Promise<boolean> {
     try {
-      const q = query(
-        this.getCollectionRef(),
-        where('email', '==', email),
-        where('type_utilisateur.id_type_utilisateur', '==', TypeUtilisateurEnum.MANAGER)
-      );
+      const user = await this.getByEmail(email);
       
-      const snapshot = await getDocs(q);
-      return !snapshot.empty;
+      if (!user) {
+        return false;
+      }
+
+      const typeId = user.type_utilisateur?.id_type_utilisateur;
+      
+      // Convertir en number pour comparer
+      return Number(typeId) === TypeUtilisateurEnum.MANAGER;
     } catch (error) {
       console.error('Erreur isManagerType:', error);
       return false;

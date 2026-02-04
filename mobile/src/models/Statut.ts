@@ -10,7 +10,7 @@ export interface Statut {
  * Enum des statuts de signalement
  */
 export enum StatutEnum {
-  EN_ATTENTE = 1,
+  NOUVEAU = 1,
   EN_COURS = 2,
   TERMINE = 3,
   REJETE = 4
@@ -32,7 +32,7 @@ export const STATUT_OPTIONS: Statut[] = [
  */
 export const getStatutType = (id_statut: number): string => {
   const types: Record<number, string> = {
-    [StatutEnum.EN_ATTENTE]: 'warning',
+    [StatutEnum.NOUVEAU]: 'warning',
     [StatutEnum.EN_COURS]: 'info',
     [StatutEnum.TERMINE]: 'success',
     [StatutEnum.REJETE]: 'danger'
@@ -45,7 +45,7 @@ export const getStatutType = (id_statut: number): string => {
  */
 export const getStatutColor = (id_statut: number): string => {
   const colors: Record<number, string> = {
-    [StatutEnum.EN_ATTENTE]: '#ff9800',
+    [StatutEnum.NOUVEAU]: '#ff9800',
     [StatutEnum.EN_COURS]: '#2196f3',
     [StatutEnum.TERMINE]: '#4caf50',
     [StatutEnum.REJETE]: '#f44336'

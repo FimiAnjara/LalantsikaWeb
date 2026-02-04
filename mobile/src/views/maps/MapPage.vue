@@ -2,9 +2,9 @@
   <ion-page>
     <ion-content :fullscreen="true" class="map-page">
       
-      <!-- Spinner Fullscreen pour recherche de ville et suppression -->
+      <!-- Spinner Fullscreen pour recherche de ville, suppression et déconnexion -->
       <SpinnerLoader 
-        v-if="isSearching || isDeleting" 
+        v-if="isSearching || isDeleting || isLoggingOut" 
         :fullscreen="true" 
         :message="loadingMessage" 
       />
@@ -45,13 +45,15 @@
             </svg>
           </div>
         </div>
-        <button class="profile-btn" @click="goToProfile">
-          <img v-if="userPhotoUrl" :src="userPhotoUrl" alt="Photo de profil" class="profile-photo" />
-          <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="7" r="4"/>
-            <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
-          </svg>
-        </button>
+        <div class="profile-container">
+          <button class="profile-btn" @click="toggleProfileMenu">
+            <img v-if="userPhotoUrl" :src="userPhotoUrl" alt="Photo de profil" class="profile-photo" />
+            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="7" r="4"/>
+              <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Bouton Signaler (flottant en bas à droite) -->
@@ -100,252 +102,23 @@
       </div>
 
       <!-- Carte flottante des signalements -->
-      <div v-if="activeMenu === 'saved'" class="saved-reports-card">
-        <div class="card-header">
-          <h2>Signalements</h2>
-          <button class="close-btn" @click="activeMenu = 'map'">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="card-body">
-          <!-- Spinner de chargement de la liste -->
-          <SpinnerLoader 
-            v-if="isLoadingList" 
-            :fullscreen="false" 
-            message="Chargement des signalements..." 
-          />
-          
-          <!-- Contenu de la liste -->
-          <template v-else>
-          <!-- Mes signalements -->
-          <div class="reports-section">
-            <h3 class="section-title">Mes signalements ({{ myReports.length }})</h3>
-            <div v-if="myReports.length === 0" class="empty-state-small">
-              <p>Aucun signalement pour le moment</p>
-            </div>
-            <div v-else class="reports-list">
-              <div 
-                v-for="report in displayedMyReports" 
-                :key="report.id"
-                class="report-item"
-              >
-                <div class="report-info">
-                  <h3>{{ report.title }}</h3>
-                  <p v-if="report.city" class="city-name">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                      <circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    Près de {{ report.city }}
-                  </p>
-                  <p class="coordinates">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    {{ report.lat.toFixed(6) }}, {{ report.lng.toFixed(6) }}
-                  </p>
-                </div>
-                <div class="report-actions">
-                  <button 
-                    class="action-btn edit-btn" 
-                    @click="openReportDetails(report)"
-                    title="Voir/Modifier"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                  </button>
-                  <button 
-                    class="action-btn delete-btn" 
-                    @click="deleteReport(report.id)"
-                    title="Supprimer"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                      <line x1="10" y1="11" x2="10" y2="17"/>
-                      <line x1="14" y1="11" x2="14" y2="17"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-            <button 
-              v-if="myReports.length > itemsPerPage"
-              @click="showAllMyReports = !showAllMyReports"
-              class="show-more-btn"
-            >
-              {{ showAllMyReports ? 'Voir moins' : `Voir plus (${myReports.length - itemsPerPage} autres)` }}
-            </button>
-          </div>
-
-          <!-- Tous les signalements -->
-          <div class="reports-section">
-            <h3 class="section-title">Tous les signalements ({{ allReports.length }})</h3>
-            <div v-if="allReports.length === 0" class="empty-state-small">
-              <p>Aucun signalement disponible</p>
-            </div>
-            <div v-else class="reports-list">
-              <div 
-                v-for="report in displayedAllReports" 
-                :key="report.id"
-                class="report-item"
-              >
-                <div class="report-info">
-                  <h3>{{ report.title }}</h3>
-                  <p v-if="report.city" class="city-name">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                      <circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    Près de {{ report.city }}
-                  </p>
-                  <p class="coordinates">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    {{ report.lat.toFixed(6) }}, {{ report.lng.toFixed(6) }}
-                  </p>
-                </div>
-                <div class="report-status">
-                  <span class="status-badge" :class="'status-' + report.type">
-                    {{ getStatusLabel(report.type) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button 
-              v-if="allReports.length > itemsPerPage"
-              @click="showAllReports = !showAllReports"
-              class="show-more-btn"
-            >
-              {{ showAllReports ? 'Voir moins' : `Voir plus (${allReports.length - itemsPerPage} autres)` }}
-            </button>
-          </div>
-          </template>
-        </div>
-      </div>
+      <SavedReportsCard
+        v-if="activeMenu === 'saved'"
+        :my-reports="myReports"
+        :all-reports="allReports"
+        :is-loading="isLoadingList"
+        @close="activeMenu = 'map'"
+        @open-details="openReportDetails"
+        @delete="deleteReport"
+      />
 
       <!-- Carte flottante Recap/Dashboard -->
-      <div v-if="activeMenu === 'recap'" class="recap-card">
-        <div class="card-header">
-          <h2>Récapitulatif</h2>
-          <button class="close-btn" @click="backToMap">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="card-body">
-          <!-- Spinner de chargement -->
-          <SpinnerLoader 
-            v-if="isLoadingList" 
-            :fullscreen="false" 
-            message="Chargement des statistiques..." 
-          />
-          
-          <!-- Contenu du dashboard -->
-          <template v-else>
-            <!-- Statistiques principales -->
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-icon total">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                  </svg>
-                </div>
-                <div class="stat-info">
-                  <h3>{{ totalSignalements }}</h3>
-                  <p>Signalements</p>
-                </div>
-              </div>
-
-              <div class="stat-card">
-                <div class="stat-icon budget">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="1" x2="12" y2="23"/>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                  </svg>
-                </div>
-                <div class="stat-info">
-                  <h3>{{ formatBudget(totalBudget) }}</h3>
-                  <p>Budget Total</p>
-                </div>
-              </div>
-
-              <div class="stat-card">
-                <div class="stat-icon surface">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                  </svg>
-                </div>
-                <div class="stat-info">
-                  <h3>{{ totalSurface }} m²</h3>
-                  <p>Surface Totale</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Progression par statut -->
-            <div class="status-section">
-              <h3 class="section-title">Progression des signalements</h3>
-              <div class="status-progress-list">
-                <div v-for="stat in statusStats" :key="stat.label" class="status-progress-item">
-                  <div class="status-header">
-                    <span class="status-label">{{ stat.label }}</span>
-                    <span class="status-count">{{ stat.count }} ({{ stat.percentage }}%)</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div 
-                      class="progress-fill" 
-                      :class="'progress-' + stat.type"
-                      :style="{ width: stat.percentage + '%' }"
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Diagramme circulaire -->
-            <div class="chart-section">
-              <h3 class="section-title">Répartition par statut</h3>
-              <div class="pie-chart">
-                <svg viewBox="0 0 200 200" class="pie-svg">
-                  <circle
-                    v-for="(segment, index) in pieChartSegments"
-                    :key="index"
-                    cx="100"
-                    cy="100"
-                    r="80"
-                    fill="none"
-                    :stroke="segment.color"
-                    stroke-width="40"
-                    :stroke-dasharray="segment.dashArray"
-                    :stroke-dashoffset="segment.dashOffset"
-                    :transform="`rotate(-90 100 100)`"
-                  />
-                </svg>
-                <div class="chart-legend">
-                  <div v-for="stat in statusStats" :key="stat.label" class="legend-item">
-                    <div class="legend-color" :style="{ backgroundColor: stat.color }"></div>
-                    <span>{{ stat.label }}: {{ stat.count }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-        </div>
-      </div>
+      <RecapCard
+        v-if="activeMenu === 'recap'"
+        :signalements="allSignalements"
+        :is-loading="isLoadingList"
+        @close="backToMap"
+      />
 
       <!-- Menu horizontal en bas -->
       <div class="bottom-menu">
@@ -392,22 +165,23 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { IonPage, IonContent, toastController, loadingController, alertController, onIonViewWillEnter } from '@ionic/vue';
+import { IonPage, IonContent, alertController, actionSheetController, onIonViewWillEnter } from '@ionic/vue';
 import MapComponent from '@/components/MapComponent.vue';
 import SpinnerLoader from '@/components/SpinnerLoader.vue';
+import SavedReportsCard from '@/components/maps/SavedReportsCard.vue';
+import RecapCard from '@/components/maps/RecapCard.vue';
 import router from '@/router';
 import { signalementService } from '@/services/signalement';
-import { Signalement, getStatutLibelle, getStatutType } from '@/models';
+import { authService } from '@/services/auth';
+import { toastService } from '@/services/toast';
+import { Signalement, getStatutType } from '@/models';
 import { auth, db } from '@/services/firebase/config';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const mapComponent = ref<any>(null);
 const searchQuery = ref('');
 const activeMenu = ref('map');
-const savedCount = ref(0);
 const reportMode = ref(false);
-const showAllMyReports = ref(false);
-const showAllReports = ref(false);
 const isLoadingList = ref(false); // Pour la liste des signalements seulement
 const isSearching = ref(false);
 const isDeleting = ref(false);
@@ -415,8 +189,7 @@ const isValidating = ref(false); // Pour le bouton de validation
 const loadingMessage = ref('Chargement...');
 const mapFilter = ref<'all' | 'mine'>('all'); // Filtre pour la carte
 const userPhotoUrl = ref<string | null>(null); // Photo de profil utilisateur
-
-const itemsPerPage = 3; // Nombre d'éléments affichés par défaut
+const isLoggingOut = ref(false); // Spinner pour la déconnexion
 
 // Données de signalements depuis Firestore
 const allSignalements = ref<Signalement[]>([]);
@@ -455,20 +228,6 @@ const allReports = computed(() => {
   }));
 });
 
-const displayedMyReports = computed(() => {
-  if (showAllMyReports.value) {
-    return myReports.value;
-  }
-  return myReports.value.slice(0, itemsPerPage);
-});
-
-const displayedAllReports = computed(() => {
-  if (showAllReports.value) {
-    return allReports.value;
-  }
-  return allReports.value.slice(0, itemsPerPage);
-});
-
 // Marqueurs filtrés pour la carte
 const currentMarkers = computed(() => {
   if (mapFilter.value === 'mine') {
@@ -476,69 +235,6 @@ const currentMarkers = computed(() => {
   }
   return markers.value;
 });
-
-// Statistiques pour le dashboard
-const totalSignalements = computed(() => allSignalements.value.length);
-
-const totalBudget = computed(() => {
-  // Pour le moment, budget par défaut de 500 000 Ar par signalement
-  // À remplacer quand la colonne budget sera ajoutée
-  return allSignalements.value.reduce((sum, sig) => {
-    return sum + (sig.budget || 500000);
-  }, 0);
-});
-
-const totalSurface = computed(() => {
-  return allSignalements.value.reduce((sum, sig) => {
-    return sum + (sig.surface || 0);
-  }, 0);
-});
-
-const statusStats = computed(() => {
-  const stats = [
-    { type: 'danger', label: '🔴 Rejeté', count: 0, color: '#dc3545' },
-    { type: 'warning', label: '🟠 En attente', count: 0, color: '#ff9800' },
-    { type: 'info', label: '🔵 En cours', count: 0, color: '#2196f3' },
-    { type: 'success', label: '🟢 Terminé', count: 0, color: '#28a745' }
-  ];
-
-  allSignalements.value.forEach(sig => {
-    const type = getStatutType(sig.statut.id_statut);
-    const stat = stats.find(s => s.type === type);
-    if (stat) stat.count++;
-  });
-
-  const total = allSignalements.value.length || 1;
-  return stats.map(stat => ({
-    ...stat,
-    percentage: Math.round((stat.count / total) * 100)
-  }));
-});
-
-const pieChartSegments = computed(() => {
-  const circumference = 2 * Math.PI * 80;
-  let currentOffset = 0;
-  
-  return statusStats.value
-    .filter(stat => stat.count > 0)
-    .map(stat => {
-      const dashLength = (stat.percentage / 100) * circumference;
-      const segment = {
-        color: stat.color,
-        dashArray: `${dashLength} ${circumference}`,
-        dashOffset: -currentOffset
-      };
-      currentOffset += dashLength;
-      return segment;
-    });
-});
-
-const formatBudget = (amount: number) => {
-  if (amount >= 1000000) {
-    return `${(amount / 1000000).toFixed(1)} M Ar`;
-  }
-  return `${(amount / 1000).toFixed(0)} K Ar`;
-};
 
 // Charger les signalements au montage
 onMounted(async () => {
@@ -602,7 +298,6 @@ const loadSignalements = async (showLoader = false) => {
     try {
       console.log('🔄 Tentative de chargement de mes signalements...');
       mySignalements.value = await signalementService.getMySignalements();
-      savedCount.value = mySignalements.value.length;
       console.log('✅ Mes signalements chargés:', mySignalements.value.length);
     } catch (error) {
       // Si erreur (utilisateur non connecté), on ignore
@@ -613,7 +308,7 @@ const loadSignalements = async (showLoader = false) => {
     console.log('📊 Résumé: Total =', allSignalements.value.length, ', Mes signalements =', mySignalements.value.length);
   } catch (error) {
     console.error('❌ Erreur lors du chargement des signalements:', error);
-    showToast('Erreur lors du chargement des signalements', 'danger');
+    toastService.error('Erreur lors du chargement des signalements');
   } finally {
     isLoadingList.value = false;
   }
@@ -622,7 +317,7 @@ const loadSignalements = async (showLoader = false) => {
 // Rafraîchir les données
 const refreshData = async () => {
   await loadSignalements();
-  showToast('Données actualisées', 'success');
+  toastService.success('Données actualisées');
 };
 
 const onMapReady = (map: any) => {
@@ -643,22 +338,99 @@ const searchCity = async () => {
     const data = await response.json();
 
     if (data && data.length > 0) {
-      const { lat, lon } = data[0];
-      mapComponent.value?.setView([parseFloat(lat), parseFloat(lon)], 13);
-      showToast(`Localisation: ${data[0].display_name.split(',')[0]}`, 'success');
+      const { lat, lon, display_name } = data[0];
+      const locationName = display_name.split(',')[0];
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lon);
+      
+      // Centrer la carte sur le lieu trouvé
+      mapComponent.value?.setView([latitude, longitude], 14);
+      
+      // Ajouter un marqueur bleu sur le lieu recherché
+      mapComponent.value?.setSearchMarker(latitude, longitude, locationName);
+      
+      toastService.success(`Localisation: ${locationName}`);
     } else {
-      showToast('Ville non trouvée', 'warning');
+      toastService.warning('Ville non trouvée');
     }
   } catch (error) {
     console.error('Erreur de recherche:', error);
-    showToast('Erreur lors de la recherche', 'danger');
+    toastService.error('Erreur lors de la recherche');
   } finally {
     isSearching.value = false;
   }
 };
 
-const goToProfile = () => {
-  router.push({ name: 'Profile' });
+// Gestion du menu profil avec Action Sheet
+const toggleProfileMenu = async () => {
+  const actionSheet = await actionSheetController.create({
+    header: 'Menu',
+    cssClass: 'profile-action-sheet',
+    buttons: [
+      {
+        text: 'Mon Profil',
+        icon: 'person-circle-outline',
+        handler: () => {
+          router.push({ name: 'Profile' });
+        }
+      },
+      {
+        text: 'Déconnexion',
+        icon: 'log-out-outline',
+        role: 'destructive',
+        handler: () => {
+          showLogoutConfirm();
+        }
+      },
+      {
+        text: 'Annuler',
+        icon: 'close-outline',
+        role: 'cancel'
+      }
+    ]
+  });
+  await actionSheet.present();
+};
+
+const showLogoutConfirm = async () => {
+  const alert = await alertController.create({
+    header: 'Déconnexion',
+    message: 'Voulez-vous vraiment vous déconnecter ?',
+    buttons: [
+      {
+        text: 'Annuler',
+        role: 'cancel'
+      },
+      {
+        text: 'Déconnexion',
+        role: 'destructive',
+        handler: () => {
+          performLogout();
+          return true;
+        }
+      }
+    ]
+  });
+  await alert.present();
+};
+
+const performLogout = async () => {
+  isLoggingOut.value = true;
+  loadingMessage.value = 'Déconnexion en cours...';
+  
+  try {
+    await authService.logout();
+    toastService.success('À bientôt !', 'Déconnexion réussie');
+    
+    setTimeout(() => {
+      router.push({ name: 'Login' });
+    }, 800);
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+    toastService.error('Erreur lors de la déconnexion');
+  } finally {
+    isLoggingOut.value = false;
+  }
 };
 
 // Obtenir le nom de la ville depuis les coordonnées (reverse geocoding)
@@ -776,10 +548,10 @@ const performDelete = async (reportId: string) => {
   try {
     await signalementService.deleteSignalement(reportId);
     await loadSignalements(); // Recharger la liste
-    await showToast('Signalement supprimé', 'success');
+    toastService.success('Signalement supprimé');
   } catch (error) {
     console.error('Erreur lors de la suppression:', error);
-    await showToast('Erreur lors de la suppression', 'danger');
+    toastService.error('Erreur lors de la suppression');
   } finally {
     isDeleting.value = false;
   }
@@ -788,7 +560,7 @@ const performDelete = async (reportId: string) => {
 // Mode signalement
 const startReportMode = () => {
   reportMode.value = true;
-  showToast('Déplacez la carte pour positionner le marqueur', 'primary');
+  toastService.info('Déplacez la carte pour positionner le marqueur');
 };
 
 const cancelReportMode = () => {
@@ -800,20 +572,6 @@ const openSignalementsList = async () => {
   activeMenu.value = 'saved';
   // Recharger les données avec le spinner
   await loadSignalements(true);
-};
-
-// Obtenir le label du statut
-const getStatusLabel = (type: string, statut?: any) => {
-  if (statut) {
-    return getStatutLibelle(statut.id_statut);
-  }
-  const labels: Record<string, string> = {
-    'danger': '🔴 Rejeté',
-    'warning': '🟠 En attente',
-    'info': '🔵 En cours',
-    'success': '🟢 Terminé'
-  };
-  return labels[type] || type;
 };
 
 const validateReport = async () => {
@@ -851,12 +609,12 @@ const validateReport = async () => {
       });
     } catch (error) {
       console.error('Erreur lors de la validation:', error);
-      showToast('Erreur lors de la validation', 'danger');
+      toastService.error('Erreur lors de la validation');
     } finally {
       isValidating.value = false;
     }
   } else {
-    showToast('Impossible de récupérer la position', 'danger');
+    toastService.error('Impossible de récupérer la position');
   }
 };
 
@@ -867,16 +625,6 @@ const backToMap = () => {
   setTimeout(() => {
     mapComponent.value?.invalidateSize();
   }, 200);
-};
-
-const showToast = async (message: string, color: 'success' | 'danger' | 'warning' | 'primary' = 'danger') => {
-  const toast = await toastController.create({
-    message,
-    duration: 2000,
-    position: 'top',
-    color
-  });
-  await toast.present();
 };
 </script>
 
@@ -891,7 +639,7 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
   top: 50px;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 1010;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -929,13 +677,18 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
   transform: scale(1.05);
 }
 
+/* Container du profil */
+.profile-container {
+  position: relative;
+}
+
 /* Filtre de la carte */
 .map-filter {
   position: absolute;
   top: 110px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1001;
+  z-index: 1005;
   display: flex;
   background: white;
   border-radius: 25px;
@@ -1203,459 +956,6 @@ const showToast = async (message: string, color: 'success' | 'danger' | 'warning
   height: 3px;
   background: linear-gradient(90deg, rgb(207, 184, 36) 0%, rgb(207, 184, 36) 100%);
   border-radius: 0 0 3px 3px;
-}
-
-.badge {
-  position: absolute;
-  top: 0.5rem;
-  right: 1rem;
-  background: #dc3545;
-  color: white;
-  font-size: 0.65rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 10px;
-  font-weight: 600;
-}
-
-/* Carte flottante des signalements */
-.saved-reports-card,
-.recap-card {
-  position: absolute;
-  top: 10vh;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  background: white;
-  border-radius: 28px 28px 0 0;
-  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.15);
-  z-index: 1001;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: slideUp 0.4s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #0a1e37 0%, #1a3a5f 100%);
-  color: white;
-  border-radius: 20px 20px 0 0;
-}
-
-.card-header h2 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.close-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
-}
-
-.close-btn svg {
-  stroke: white;
-}
-
-.card-body {
-  padding: 1.5rem;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1rem;
-  text-align: center;
-}
-
-.empty-state p {
-  margin-top: 1rem;
-  color: #999;
-  font-size: 0.95rem;
-}
-
-.empty-state-small {
-  padding: 1.5rem 1rem;
-  text-align: center;
-  color: #999;
-  font-size: 0.9rem;
-}
-
-.reports-section {
-  margin-bottom: 2rem;
-}
-
-.section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0a1e37;
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.reports-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.report-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 1px solid #e9ecef;
-  transition: all 0.3s ease;
-}
-
-.report-item:hover {
-  background: #e9ecef;
-  transform: translateX(5px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.report-info {
-  flex: 1;
-}
-
-.report-info h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0a1e37;
-  margin: 0 0 0.5rem 0;
-}
-
-.city-name {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.9rem;
-  color: #0a1e37;
-  font-weight: 500;
-  margin: 0 0 0.3rem 0;
-}
-
-.city-name svg {
-  stroke: #dc3545;
-}
-
-.coordinates {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  color: #999;
-  margin: 0;
-}
-
-.coordinates svg {
-  stroke: #999;
-}
-
-.report-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.report-status {
-  display: flex;
-  align-items: center;
-}
-
-.status-badge {
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.status-danger {
-  background: #ffebee;
-  color: #dc3545;
-}
-
-.status-warning {
-  background: #fff3cd;
-  color: #ff9800;
-}
-
-.status-info {
-  background: #e3f2fd;
-  color: #2196f3;
-}
-
-.status-success {
-  background: #e8f5e9;
-  color: #28a745;
-}
-
-.show-more-btn {
-  width: 100%;
-  padding: 0.75rem;
-  margin-top: 1rem;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
-  color: #0a1e37;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.show-more-btn:hover {
-  background: #e9ecef;
-}
-
-.action-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.edit-btn {
-  background: #0a1e37;
-}
-
-.edit-btn:hover {
-  background: #1a3a5f;
-  transform: scale(1.1);
-}
-
-.edit-btn svg {
-  stroke: white;
-}
-
-.delete-btn {
-  background: #dc3545;
-}
-
-.delete-btn:hover {
-  background: #c82333;
-  transform: scale(1.1);
-}
-
-.delete-btn svg {
-  stroke: white;
-}
-
-/* Dashboard Recap Styles */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 0.5rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border-radius: 12px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  text-align: center;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.stat-icon.total {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.stat-icon.budget {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.stat-icon.surface {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.stat-icon svg {
-  stroke: white;
-}
-
-.stat-info h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0a1e37;
-}
-
-.stat-info p {
-  margin: 0.15rem 0 0 0;
-  font-size: 0.7rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.status-section,
-.chart-section {
-  margin-top: 2rem;
-}
-
-.status-progress-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.status-progress-item {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 12px;
-}
-
-.status-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.status-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #0a1e37;
-}
-
-.status-count {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #666;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 12px;
-  background: #e9ecef;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 6px;
-  transition: width 0.6s ease;
-}
-
-.progress-danger {
-  background: linear-gradient(90deg, #dc3545 0%, #ff6b7a 100%);
-}
-
-.progress-warning {
-  background: linear-gradient(90deg, #ff9800 0%, #ffc947 100%);
-}
-
-.progress-info {
-  background: linear-gradient(90deg, #2196f3 0%, #64b5f6 100%);
-}
-
-.progress-success {
-  background: linear-gradient(90deg, #28a745 0%, #66bb6a 100%);
-}
-
-.chart-section {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 16px;
-}
-
-.pie-chart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
-
-.pie-svg {
-  width: 200px;
-  height: 200px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-}
-
-.chart-legend {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: #0a1e37;
-}
-
-.legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  flex-shrink: 0;
 }
 
 </style>

@@ -2,8 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Services\Sync\DatabaseSyncService;
-use App\Services\Firebase\FirestoreService;
+use App\Services\Firebase\FirebaseRestService;
 use App\Models\User;
 
 Route::group(['prefix' => 'auth'], function () {

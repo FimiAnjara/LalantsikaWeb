@@ -1,26 +1,7 @@
 import { 
-  collection, 
-  doc, 
-  addDoc, 
-  getDoc, 
-  getDocs, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit,
-  Timestamp,
-  DocumentData,
-  QueryConstraint
-} from 'firebase/firestore';
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, Timestamp, DocumentData, QueryConstraint } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { 
-  Signalement, 
-  CreateSignalementData, 
-  UpdateSignalementData,
-  UtilisateurRef 
-} from '@/models/Signalement';
+import { Signalement, CreateSignalementData, UpdateSignalementData, UtilisateurRef } from '@/models/Signalement';
 import { STATUT_OPTIONS, Statut } from '@/models/Statut';
 import { Point } from '@/models/Point';
 import { auth } from '../firebase/config';

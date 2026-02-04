@@ -1,5 +1,5 @@
 /**
- * Interface représentant le sexe (pour l'imbrication dans Firestore)
+ * Interface représentant le sexe (objet imbriqué dans Firestore)
  */
 export interface Sexe {
   id_sexe: number;
@@ -7,17 +7,9 @@ export interface Sexe {
 }
 
 /**
- * Valeurs par défaut des sexes
+ * Valeurs par défaut des sexes (fallback si Firestore indisponible)
  */
 export const SEXE_OPTIONS: Sexe[] = [
   { id_sexe: 1, libelle: 'Masculin' },
   { id_sexe: 2, libelle: 'Féminin' }
 ];
-
-/**
- * Obtenir le libellé du sexe par son ID
- */
-export const getSexeLibelle = (id_sexe: number): string => {
-  const sexe = SEXE_OPTIONS.find(s => s.id_sexe === id_sexe);
-  return sexe?.libelle || 'Non défini';
-};

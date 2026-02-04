@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "681061277527",
+    "firebase_url": "https://lalantsika-project-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "lalantsika-project",
+    "storage_bucket": "lalantsika-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:681061277527:android:5551751a0cc38ff4512812",
+        "android_client_info": {
+          "package_name": "com.lalana.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "681061277527-m3vhiehohn1i8tqh9hjtrplses4cvhu8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDd_JlvV1N7WGtSNZ0u8_lhcGg3QenuEBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "681061277527-m3vhiehohn1i8tqh9hjtrplses4cvhu8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

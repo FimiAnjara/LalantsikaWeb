@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('prenom', 50);
             $table->date('dtn');
             $table->string('email', 50)->nullable();
+            $table->string('photo_url', 500)->nullable();
             $table->string('firebase_uid', 128)->nullable()->unique();
             $table->unsignedBigInteger('id_sexe');
             $table->unsignedBigInteger('id_type_utilisateur');

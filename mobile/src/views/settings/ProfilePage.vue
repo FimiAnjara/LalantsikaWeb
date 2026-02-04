@@ -90,31 +90,6 @@
           </ion-list>
         </div>
 
-        <!-- Preferences -->
-        <div class="section-card">
-          <h3 class="section-title">
-            <ion-icon :icon="settingsOutline"></ion-icon>
-            Préférences
-          </h3>
-          <ion-list>
-            <ion-item>
-              <ion-icon :icon="notificationsOutline" slot="start"></ion-icon>
-              <ion-label>Notifications</ion-label>
-              <ion-toggle v-model="preferences.notifications"></ion-toggle>
-            </ion-item>
-            <ion-item>
-              <ion-icon :icon="locationOutline" slot="start"></ion-icon>
-              <ion-label>Partager ma position</ion-label>
-              <ion-toggle v-model="preferences.location"></ion-toggle>
-            </ion-item>
-            <ion-item lines="none">
-              <ion-icon :icon="mailOutline" slot="start"></ion-icon>
-              <ion-label>Notifications par email</ion-label>
-              <ion-toggle v-model="preferences.emailNotifications"></ion-toggle>
-            </ion-item>
-          </ion-list>
-        </div>
-
         <!-- Account Actions -->
         <div class="section-card">
           <h3 class="section-title">
@@ -175,7 +150,6 @@ import {
   IonItem,
   IonLabel,
   IonInput,
-  IonToggle,
   alertController,
   toastController,
 } from '@ionic/vue';
@@ -183,10 +157,6 @@ import {
   personOutline,
   personCircleOutline,
   cameraOutline,
-  settingsOutline,
-  notificationsOutline,
-  locationOutline,
-  mailOutline,
   shieldCheckmarkOutline,
   lockClosedOutline,
   trashOutline,
@@ -261,12 +231,6 @@ const formatJoinDate = (dateString?: string) => {
   const options: Intl.DateTimeFormatOptions = { month: 'short', year: 'numeric' };
   return date.toLocaleDateString('fr-FR', options);
 };
-
-const preferences = ref({
-  notifications: true,
-  location: true,
-  emailNotifications: false,
-});
 
 const saveProfile = async () => {
   // TODO: Implement save logic
@@ -458,6 +422,27 @@ const showDeleteConfirm = async () => {
   position: relative;
   display: inline-block;
   margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+.avatar-edit-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  background: #dabe24;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-edit-badge ion-icon {
+  font-size: 16px;
+  color: #0a1e37;
 }
 
 .avatar {
@@ -470,6 +455,13 @@ const showDeleteConfirm = async () => {
   justify-content: center;
   box-shadow: 0 4px 16px rgba(10, 30, 55, 0.2);
   border: 4px solid white;
+  overflow: hidden;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatar-initial {
@@ -580,6 +572,19 @@ ion-item::part(native) {
 
 ion-label {
   font-weight: 500;
+  color: #0a1e37 !important;
+  --color: #0a1e37 !important;
+}
+
+ion-label[position="stacked"] {
+  color: #666 !important;
+  font-size: 0.85rem !important;
+}
+
+ion-input {
+  color: #0a1e37 !important;
+  --color: #0a1e37 !important;
+  --placeholder-color: #999;
 }
 
 .danger-item {

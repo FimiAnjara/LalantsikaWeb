@@ -1,155 +1,98 @@
-import {
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  User as FirebaseUser,
-  AuthError
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged, 
+  User as FirebaseUser, 
+  AuthError 
 } from 'firebase/auth';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  getDoc,
-  doc,
-  updateDoc,
-  addDoc,
-  orderBy,
-  limit,
-  serverTimestamp
-} from 'firebase/firestore';
-import { auth, db } from '../firebase';
-import { User, UserType, LoginResponse, getFullName } from '@/models/User';
+import { auth } from '../firebase/config';
+import { User, LoginResponse } from '@/models/User';
+import { parametreService } from '../parametre/parametreService';
+import { utilisateurService, statutUtilisateurService } from '../utilisateur';
 
-// Nombre maximum de tentatives avant blocage
-const MAX_LOGIN_ATTEMPTS = 3;
-
-// Interface pour le statut utilisateur
-interface StatutUtilisateur {
-  id_statut_utilisateur?: number;
-  date_: string;
-  etat: number; // 0 = bloqué, 1 = actif
-  id_utilisateur?: number;
-  firebase_uid?: string;
-  email?: string;
-  tentatives_echouees?: number;
-}
-
-/**
- * Service d'authentification Firebase
- */
 class AuthService {
   // Compteur de tentatives en mémoire (par session)
   private loginAttempts: Map<string, number> = new Map();
+  private maxTentatives: number = 3; // Valeur par défaut, sera chargée depuis Firestore
 
-  /**
-   * Vérifier si l'utilisateur est bloqué
-   */
-  private async isUserBlocked(email: string): Promise<boolean> {
+  
+  // Initialise le service (charge les paramètres)
+  async init(): Promise<void> {
     try {
-      const statutRef = collection(db, 'statut_utilisateurs');
-      const q = query(
-        statutRef,
-        where('email', '==', email),
-        orderBy('date_', 'desc'),
-        limit(1)
-      );
-      
-      const snapshot = await getDocs(q);
-      
-      if (!snapshot.empty) {
-        const lastStatus = snapshot.docs[0].data() as StatutUtilisateur;
-        console.log('🔍 Dernier statut utilisateur:', lastStatus);
-        return lastStatus.etat === 0; // 0 = bloqué
-      }
-      
-      return false; // Pas de statut = pas bloqué
+      this.maxTentatives = await parametreService.getMaxTentatives();
+      console.log('🔧 Max tentatives:', this.maxTentatives);
     } catch (error) {
-      console.error('Erreur lors de la vérification du statut:', error);
-      return false;
+      console.error('Erreur init authService:', error);
     }
   }
 
-  /**
-   * Bloquer un utilisateur
-   */
-  private async blockUser(email: string, id_utilisateur?: number): Promise<void> {
-    try {
-      const statutRef = collection(db, 'statut_utilisateurs');
-      await addDoc(statutRef, {
-        date_: new Date().toISOString(),
-        etat: 0, // 0 = bloqué
-        email: email,
-        id_utilisateur: id_utilisateur || null,
-        tentatives_echouees: MAX_LOGIN_ATTEMPTS,
-        raison: 'Nombre maximum de tentatives de connexion atteint'
-      });
-      console.log('⛔ Utilisateur bloqué:', email);
-    } catch (error) {
-      console.error('Erreur lors du blocage de l\'utilisateur:', error);
-    }
-  }
-
-  /**
-   * Incrémenter le compteur de tentatives
-   */
+  // Incrémente le compteur de tentatives
   private incrementAttempts(email: string): number {
     const current = this.loginAttempts.get(email) || 0;
     const newCount = current + 1;
     this.loginAttempts.set(email, newCount);
-    console.log(`⚠️ Tentative ${newCount}/${MAX_LOGIN_ATTEMPTS} pour ${email}`);
+    console.log(`⚠️ Tentative ${newCount}/${this.maxTentatives} pour ${email}`);
     return newCount;
   }
 
-  /**
-   * Réinitialiser le compteur de tentatives
-   */
+  // Réinitialise le compteur de tentatives
   private resetAttempts(email: string): void {
     this.loginAttempts.delete(email);
   }
 
-  /**
-   * Obtenir le nombre de tentatives restantes
-   */
+  // Retourne le nombre de tentatives restantes
   getRemainingAttempts(email: string): number {
     const current = this.loginAttempts.get(email) || 0;
-    return MAX_LOGIN_ATTEMPTS - current;
+    return this.maxTentatives - current;
   }
-  /**
-   * Connexion avec email et mot de passe
-   */
+
+  // Connexion utilisateur
+  // Étapes:
+  // 1. Vérifier si bloqué
+  // 2. Vérifier si c'est un Utilisateur (pas Manager)
+  // 3. Authentification Firebase
+  // 4. Gestion des tentatives
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
-      // 1. Vérifier si l'utilisateur est bloqué
-      const isBlocked = await this.isUserBlocked(email);
+      // 1. Vérifier si bloqué
+      const isBlocked = await statutUtilisateurService.isBlocked(email);
       if (isBlocked) {
         throw new Error('COMPTE_BLOQUE');
       }
 
       // 2. Vérifier le nombre de tentatives en mémoire
       const currentAttempts = this.loginAttempts.get(email) || 0;
-      if (currentAttempts >= MAX_LOGIN_ATTEMPTS) {
+      if (currentAttempts >= this.maxTentatives) {
         throw new Error('COMPTE_BLOQUE');
       }
 
-      // 3. Tenter l'authentification Firebase
+      // 3. Vérifier si c'est bien un Utilisateur (pas Manager)
+      const userTypeResult = await utilisateurService.isUtilisateurType(email);
+      
+      // Vérifier d'abord si c'est une erreur réseau
+      if (userTypeResult.error === 'NETWORK_ERROR') {
+        throw new Error('NETWORK_ERROR');
+      }
+      
+      if (!userTypeResult.isUtilisateur) {
+        throw new Error('MANAGER_NON_AUTORISE');
+      }
+
+      // 4. Tenter l'authentification Firebase
       let userCredential;
       try {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       } catch (authError: any) {
-        // Mot de passe incorrect ou autre erreur d'auth
-        if (authError.code === 'auth/wrong-password' || 
-            authError.code === 'auth/invalid-credential') {
+        // Mot de passe incorrect
+        if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
           const attempts = this.incrementAttempts(email);
           
-          if (attempts >= MAX_LOGIN_ATTEMPTS) {
-            // Bloquer l'utilisateur dans Firestore
-            await this.blockUser(email);
+          if (attempts >= this.maxTentatives) {
+            await statutUtilisateurService.blockUser(email, attempts);
             throw new Error('MAX_TENTATIVES');
           }
-          
-          // Retourner l'erreur avec le nombre de tentatives restantes
-          const remaining = MAX_LOGIN_ATTEMPTS - attempts;
+        
+          const remaining = this.maxTentatives - attempts;
           throw new Error(`TENTATIVE_ECHOUEE:${remaining}`);
         }
         throw authError;
@@ -157,38 +100,27 @@ class AuthService {
       
       const firebaseUser = userCredential.user;
 
-      // 4. Rechercher l'utilisateur dans Firestore par email
-      const usersRef = collection(db, 'utilisateurs');
-      const q = query(usersRef, where('email', '==', email));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
+      // 5. Récupérer les données utilisateur
+      const userData = await utilisateurService.getByEmail(email);
+      if (!userData) {
         await this.logout();
-        throw new Error('Utilisateur non trouvé dans la base de données');
+        throw new Error('UTILISATEUR_NON_TROUVE');
       }
 
-      // Récupérer les données utilisateur (premier résultat)
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data() as User;
+      // 6. Mettre à jour l'UID Firebase
+      await utilisateurService.updateFirebaseUid(email, firebaseUser.uid);
 
-      // Mettre à jour le UID Firebase et last_sync_at
-      await updateDoc(doc(db, 'utilisateurs', userDoc.id), {
-        uid: firebaseUser.uid,
-        updatedAt: serverTimestamp(),
-        last_sync_at: new Date().toISOString()
-      });
-
-      // Obtenir le token
+      // 7. Obtenir le token
       const token = await firebaseUser.getIdToken();
 
-      // Créer l'objet utilisateur complet
+      // 8. Créer l'objet utilisateur complet
       const completeUser: User = {
         ...userData,
         uid: firebaseUser.uid,
         last_sync_at: new Date().toISOString()
       };
 
-      // 5. Connexion réussie - Réinitialiser les tentatives
+      // 9. Réinitialiser les tentatives
       this.resetAttempts(email);
       console.log('✅ Connexion réussie pour:', email);
 
@@ -207,7 +139,15 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
+      // Import dynamique pour éviter les dépendances circulaires
+      const { sessionService } = await import('./sessionService');
+      
+      // Effacer la session locale
+      await sessionService.clearSession();
+      
+      // Déconnexion Firebase
       await signOut(auth);
+      console.log('✅ Déconnexion réussie');
     } catch (error) {
       console.error('Erreur de déconnexion:', error);
       throw new Error('Erreur lors de la déconnexion');
@@ -215,44 +155,33 @@ class AuthService {
   }
 
   /**
-   * Obtenir l'utilisateur actuellement connecté
+   * Récupère l'utilisateur actuellement connecté
    */
   async getCurrentUser(): Promise<User | null> {
     const firebaseUser = auth.currentUser;
-
     if (!firebaseUser) {
       return null;
     }
 
     try {
-      // Rechercher l'utilisateur dans Firestore par UID
-      const usersRef = collection(db, 'utilisateurs');
-      const q = query(usersRef, where('uid', '==', firebaseUser.uid));
-      const querySnapshot = await getDocs(q);
+      // Essayer par UID d'abord
+      let user = await utilisateurService.getByUid(firebaseUser.uid);
+      if (user) return user;
 
-      if (!querySnapshot.empty) {
-        const userData = querySnapshot.docs[0].data() as User;
-        return userData;
+      // Fallback par email
+      if (firebaseUser.email) {
+        user = await utilisateurService.getByEmail(firebaseUser.email);
       }
 
-      // Si pas de UID, chercher par email
-      const emailQuery = query(usersRef, where('email', '==', firebaseUser.email!));
-      const emailSnapshot = await getDocs(emailQuery);
-
-      if (!emailSnapshot.empty) {
-        const userData = emailSnapshot.docs[0].data() as User;
-        return userData;
-      }
-
-      return null;
+      return user;
     } catch (error) {
-      console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+      console.error('Erreur getCurrentUser:', error);
       return null;
     }
   }
 
   /**
-   * Écouter les changements d'état d'authentification
+   * Écoute les changements d'état d'authentification
    */
   onAuthStateChange(callback: (user: User | null) => void): () => void {
     return onAuthStateChanged(auth, async (firebaseUser) => {
@@ -266,14 +195,14 @@ class AuthService {
   }
 
   /**
-   * Vérifier si l'utilisateur est connecté
+   * Vérifie si un utilisateur est authentifié
    */
   isAuthenticated(): boolean {
     return auth.currentUser !== null;
   }
 
   /**
-   * Obtenir le token d'authentification actuel
+   * Récupère le token d'authentification actuel
    */
   async getToken(): Promise<string | null> {
     const user = auth.currentUser;
@@ -284,76 +213,28 @@ class AuthService {
   }
 
   /**
-   * Récupérer un utilisateur par son ID
-   */
-  async getUserById(id_utilisateur: number): Promise<User | null> {
-    try {
-      const usersRef = collection(db, 'utilisateurs');
-      const q = query(usersRef, where('id_utilisateur', '==', id_utilisateur));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        return null;
-      }
-
-      return querySnapshot.docs[0].data() as User;
-    } catch (error) {
-      console.error('Erreur lors de la récupération de l\'utilisateur:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Mettre à jour la photo de profil de l'utilisateur
+   * Met à jour la photo de profil
    */
   async updateProfilePhoto(photoUrl: string): Promise<void> {
     const firebaseUser = auth.currentUser;
-    
     if (!firebaseUser) {
       throw new Error('Utilisateur non connecté');
     }
-
-    try {
-      // Trouver le document utilisateur dans Firestore
-      const usersRef = collection(db, 'utilisateurs');
-      const q = query(usersRef, where('uid', '==', firebaseUser.uid));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        // Essayer par email
-        const emailQuery = query(usersRef, where('email', '==', firebaseUser.email!));
-        const emailSnapshot = await getDocs(emailQuery);
-        
-        if (emailSnapshot.empty) {
-          throw new Error('Profil utilisateur non trouvé');
-        }
-        
-        // Mettre à jour le document trouvé par email
-        const docId = emailSnapshot.docs[0].id;
-        await updateDoc(doc(db, 'utilisateurs', docId), {
-          photoUrl: photoUrl,
-          last_sync_at: new Date().toISOString()
-        });
-      } else {
-        // Mettre à jour le document trouvé par UID
-        const docId = querySnapshot.docs[0].id;
-        await updateDoc(doc(db, 'utilisateurs', docId), {
-          photoUrl: photoUrl,
-          last_sync_at: new Date().toISOString()
-        });
-      }
-
-      console.log('✅ Photo de profil mise à jour');
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour de la photo de profil:', error);
-      throw error;
-    }
+    await utilisateurService.updatePhoto(firebaseUser.uid, photoUrl);
   }
 
-  /**
-   * Gestion des erreurs Firebase Auth
-   */
-  private handleAuthError(error: AuthError): Error {
+  // Gestion des erreurs d'authentification
+  private handleAuthError(error: any): Error {
+    // Si c'est déjà une erreur personnalisée
+    if (error.message?.startsWith('COMPTE_BLOQUE') ||
+        error.message?.startsWith('MAX_TENTATIVES') ||
+        error.message?.startsWith('TENTATIVE_ECHOUEE') ||
+        error.message?.startsWith('MANAGER_NON_AUTORISE') ||
+        error.message?.startsWith('UTILISATEUR_NON_TROUVE') ||
+        error.message?.startsWith('NETWORK_ERROR')) {
+      return error;
+    }
+
     let message = 'Une erreur est survenue lors de la connexion';
 
     switch (error.code) {
@@ -386,6 +267,6 @@ class AuthService {
   }
 }
 
-// Exporter une instance unique du service
+// Instance unique du service
 export const authService = new AuthService();
 export default authService;

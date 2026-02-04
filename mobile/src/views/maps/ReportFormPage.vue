@@ -82,25 +82,44 @@
             ></ion-input>
           </div>
 
-          <!-- Photo (optionnel) -->
+          <!-- Photos (optionnel - plusieurs possibles) -->
           <div class="form-group">
-            <label>Photo - Optionnel</label>
-            <button type="button" @click="takePhoto" class="photo-btn">
+            <label>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              Photos - Optionnel
+              <span class="photo-count" v-if="formData.photos.length > 0">({{ formData.photos.length }})</span>
+            </label>
+            
+            <!-- Grille de photos -->
+            <div class="photos-grid" v-if="formData.photos.length > 0">
+              <div 
+                v-for="(photo, index) in formData.photos" 
+                :key="index" 
+                class="photo-item"
+              >
+                <img :src="photo" :alt="'Photo ' + (index + 1)" />
+                <button type="button" @click="removePhoto(index)" class="remove-photo-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+                <span class="photo-number">{{ index + 1 }}</span>
+              </div>
+            </div>
+            
+            <!-- Bouton ajouter photo -->
+            <button type="button" @click="addPhoto" class="photo-btn" :class="{ 'has-photos': formData.photos.length > 0 }">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
-              <span>Ajouter une photo</span>
+              <span>{{ formData.photos.length > 0 ? 'Ajouter une autre photo' : 'Ajouter une photo' }}</span>
             </button>
-            <div v-if="formData.photoUrl" class="photo-preview">
-              <img :src="formData.photoUrl" alt="Photo du signalement" />
-              <button type="button" @click="removePhoto" class="remove-photo-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
           </div>
 
           <!-- Boutons d'action -->
@@ -171,7 +190,7 @@ const pageTitle = computed(() => props.editMode ? 'Modifier le signalement' : 'N
 const formData = ref({
   description: '',
   surface: null as number | null,
-  photoUrl: ''
+  photos: [] as string[] // Tableau de photos (URLs ou base64)
 });
 
 onMounted(async () => {
@@ -210,7 +229,21 @@ const loadExistingSignalement = async () => {
       cityName.value = signalement.city || '';
       formData.value.description = signalement.description || '';
       formData.value.surface = signalement.surface || null;
-      formData.value.photoUrl = signalement.photo || '';
+      
+      // Charger les photos de l'historique de création
+      const histoStatuts = await signalementService.getHistoStatuts(props.signalementId);
+      if (histoStatuts.length > 0) {
+        // Récupérer toutes les images de tous les historiques
+        const allImages: string[] = [];
+        for (const histo of histoStatuts) {
+          if (histo.images && Array.isArray(histo.images)) {
+            allImages.push(...histo.images);
+          } else if (histo.image) {
+            allImages.push(histo.image);
+          }
+        }
+        formData.value.photos = allImages;
+      }
     } else {
       throw new Error('Signalement non trouvé');
     }
@@ -289,7 +322,7 @@ const goBack = () => {
   router.back();
 };
 
-const takePhoto = async () => {
+const addPhoto = async () => {
   try {
     // Vérifier si on est sur une plateforme native
     const isNative = photoService.isNativePlatform();
@@ -333,9 +366,9 @@ const captureFromCamera = async () => {
     
     const result = await photoService.takePhoto({ quality: 80 });
     if (result && result.dataUrl) {
-      formData.value.photoUrl = result.dataUrl;
+      formData.value.photos.push(result.dataUrl);
       const toast = await toastController.create({
-        message: 'Photo ajoutée !',
+        message: `Photo ${formData.value.photos.length} ajoutée !`,
         duration: 1500,
         color: 'success'
       });
@@ -356,9 +389,9 @@ const pickFromGallery = async () => {
   try {
     const result = await photoService.pickFromGallery({ quality: 80 });
     if (result && result.dataUrl) {
-      formData.value.photoUrl = result.dataUrl;
+      formData.value.photos.push(result.dataUrl);
       const toast = await toastController.create({
-        message: 'Photo ajoutée !',
+        message: `Photo ${formData.value.photos.length} ajoutée !`,
         duration: 1500,
         color: 'success'
       });
@@ -375,8 +408,8 @@ const pickFromGallery = async () => {
   }
 };
 
-const removePhoto = () => {
-  formData.value.photoUrl = '';
+const removePhoto = (index: number) => {
+  formData.value.photos.splice(index, 1);
 };
 
 const saveReport = async () => {
@@ -397,8 +430,8 @@ const saveReport = async () => {
       if (formData.value.surface !== null && formData.value.surface !== undefined) {
         updateData.surface = formData.value.surface;
       }
-      if (formData.value.photoUrl && formData.value.photoUrl.trim() !== '') {
-        updateData.photo = formData.value.photoUrl;
+      if (formData.value.photos.length > 0) {
+        updateData.photos = formData.value.photos;
       }
       
       await signalementService.updateSignalement(props.signalementId, updateData);
@@ -417,13 +450,13 @@ const saveReport = async () => {
         router.back();
       }, 1000);
     } else {
-      // Mode création: créer un nouveau signalement
+      // Mode création: créer un nouveau signalement avec photos multiples
       const signalement = await signalementService.createSignalement({
         latitude: parseFloat(latitude.value),
         longitude: parseFloat(longitude.value),
         description: formData.value.description,
         surface: formData.value.surface || undefined,
-        photo: formData.value.photoUrl || undefined,
+        photos: formData.value.photos.length > 0 ? formData.value.photos : undefined,
         city: cityName.value || undefined
       });
 
@@ -646,10 +679,108 @@ ion-button {
   color: #666;
 }
 
+.photo-btn.has-photos {
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-color: #4caf50;
+  color: #2e7d32;
+}
+
 .photo-btn:hover {
   background: #e9ecef;
   border-color: #0a1e37;
   color: #0a1e37;
+}
+
+.photo-btn.has-photos:hover {
+  background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+}
+
+/* Label photo avec icône */
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.photo-count {
+  background: #0a1e37;
+  color: white;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.25rem;
+}
+
+/* Grille de photos */
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: #f5f5f5;
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.photo-item:hover img {
+  transform: scale(1.05);
+}
+
+.photo-item .remove-photo-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(220, 53, 69, 0.9);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.photo-item:hover .remove-photo-btn {
+  opacity: 1;
+}
+
+.photo-item .remove-photo-btn:hover {
+  background: #dc3545;
+  transform: scale(1.1);
+}
+
+.photo-number {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(10, 30, 55, 0.8);
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
 .photo-preview {

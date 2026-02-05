@@ -6,7 +6,7 @@ return [
     | Firebase REST API Configuration
     |--------------------------------------------------------------------------
     |
-    | Configuration pour Firebase Realtime Database via REST API
+    | Configuration pour Firebase Realtime Database et firestore via REST API
     | Pas besoin de gRPC ni du SDK Kreait
     |
     */

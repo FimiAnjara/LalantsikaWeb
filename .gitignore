@@ -1,3 +1,6 @@
 maps/data/mada.mbtiles
 maps/fonts/NotoSansBold/
 maps/fonts/NotoSansRegular/
+
+# Dependencies
+node_modules/

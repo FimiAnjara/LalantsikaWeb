@@ -1,95 +1,155 @@
-import { CButton, CCarousel, CCarouselItem, CCarouselCaption, CImage } from '@coreui/react'
+import { Link } from 'react-router-dom'
 import CIcon from '@coreui/icons-react'
-import { cilLocationPin, cilMap } from '@coreui/icons'
+import { 
+    cilLocationPin, 
+    cilMap, 
+    cilSpeedometer,
+    cilShieldAlt,
+    cilChartLine
+} from '@coreui/icons'
 import { cibGooglePlay, cibApple } from '@coreui/icons'
 
 export default function Home() {
     return (
-        <div className="home-page">
-            <CCarousel controls indicators className="shadow-lg rounded-4 overflow-hidden">
-                
-                {/* Slide 1 : Signalement Facile */}
-                <CCarouselItem>
-                    <CImage
-                        className="d-block w-100"
-                        src="/assets/img/slide2.png"
-                        alt="Routes endommagées"
-                        style={{ height: '550px', objectFit: 'cover' }}
-                    />
-                    <CCarouselCaption className="d-flex flex-column align-items-center justify-content-center h-100">
-                        <div className="text-center text-white p-5 bg-dark bg-opacity-50 rounded-4">
-                            <h1 className="display-4 fw-bold mb-3">Signalement Facile</h1>
-                            <p className="lead mb-4" style={{ maxWidth: '600px' }}>
-                                Signalez les routes dégradées ou les obstacles pour améliorer la sécurité de tous.
-                            </p>
-                            <CButton color="warning" size="lg" className="fw-bold px-5 py-3 shadow">
-                                <CIcon icon={cilLocationPin} className="me-2" />
-                                SIGNALER UN PROBLEME
-                            </CButton>
+        <div className="home-page-modern">
+            {/* Hero Section */}
+            <section className="hero-section">
+                <div className="hero-background"></div>
+                <div className="hero-content">
+                    <div className="hero-text">
+                        <h1>
+                            Ensemble pour des <span>routes plus sûres</span> à Madagascar
+                        </h1>
+                        <p>
+                            Lalantsika est une plateforme citoyenne qui permet de signaler les problèmes 
+                            routiers, suivre les interventions et contribuer à l'amélioration de notre 
+                            réseau routier national.
+                        </p>
+                        <div className="hero-buttons">
+                            <Link to="/visiteur/signalement" className="btn-primary-custom">
+                                <CIcon icon={cilLocationPin} />
+                                Voir la carte
+                            </Link>
+                            <Link to="/visiteur/recap" className="btn-secondary-custom">
+                                <CIcon icon={cilChartLine} />
+                                Statistiques
+                            </Link>
                         </div>
-                    </CCarouselCaption>
-                </CCarouselItem>
-
-                {/* Slide 2 : Cartographie Interactive */}
-                <CCarouselItem>
-                    <CImage
-                        className="d-block w-100"
-                        src="/assets/img/slide1.png"
-                        alt="Cartographie interactive"
-                        style={{ height: '550px', objectFit: 'cover' }}
-                    />
-                    <CCarouselCaption className="d-flex flex-column align-items-center justify-content-center h-100">
-                        <div className="p-5 bg-white bg-opacity-90 rounded-4 shadow-lg text-center" style={{ maxWidth: '650px' }}>
-                            <div className="mb-3">
-                                <CIcon icon={cilMap} size="3xl" className="text-dark" />
+                        <div className="hero-stats">
+                            <div className="stat-item">
+                                <span className="stat-number">1,250+</span>
+                                <span className="stat-label">Signalements</span>
                             </div>
-                            <h1 className="fw-bold text-navy mb-1 display-7">
-                                Cartographie Interactive
-                            </h1>
-                            <p className="text-muted fs-4">
-                                Visualisez tous les signalements sur une carte dynamique et localisez précisément les zones à risque dans tout Madagascar.
-                            </p>
-                            <CButton color="primary" size="lg" className="fw-bold mt-3 px-5 py-3">
-                                VOIR LA CARTE
-                            </CButton>
-                        </div>
-                    </CCarouselCaption>
-                </CCarouselItem>
-
-                {/* Slide 3 : Application Mobile */}
-                <CCarouselItem>
-                    <CImage
-                        className="d-block w-100"
-                        src="/assets/img/slide3.jpeg"
-                        alt="Application mobile"
-                        style={{ height: '550px', objectFit: 'cover' }}
-                    />
-                    <CCarouselCaption className="d-flex flex-column align-items-center justify-content-center h-100">
-                        <div className="p-5 bg-white bg-opacity-95 rounded-4 shadow-lg text-center" style={{ maxWidth: '600px' }}>
-                            <img 
-                                src="/assets/logo/logo.png" 
-                                alt="LALANTSIKA" 
-                                height="80" 
-                                className="mb-3 rounded shadow-sm"
-                            />
-                            <p className="text-dark fs-4 mb-4">
-                                Emportez Lalantsika partout avec vous ! Signalez les problèmes en un clic depuis votre smartphone.
-                            </p>
-                            <div className="d-flex justify-content-center gap-3">
-                                <CButton color="dark" size="lg" className="fw-bold px-4 py-3">
-                                    <CIcon icon={cibGooglePlay} className="me-2" size="xl" />
-                                    Google Play
-                                </CButton>
-                                <CButton color="dark" size="lg" className="fw-bold px-4 py-3">
-                                    <CIcon icon={cibApple} className="me-2" size="xl" />
-                                    App Store
-                                </CButton>
+                            <div className="stat-item">
+                                <span className="stat-number">85%</span>
+                                <span className="stat-label">Résolus</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-number">22</span>
+                                <span className="stat-label">Régions</span>
                             </div>
                         </div>
-                    </CCarouselCaption>
-                </CCarouselItem>
+                    </div>
+                    <div className="hero-image">
+                        <img 
+                            src="/assets/img/slide1.png" 
+                            alt="Routes Madagascar"
+                        />
+                        <div className="hero-floating-card card-1">
+                            <div className="floating-icon orange">
+                                <CIcon icon={cilLocationPin} size="xl" />
+                            </div>
+                            <div className="floating-text">
+                                <h4>Signalement rapide</h4>
+                                <p>En quelques clics</p>
+                            </div>
+                        </div>
+                        <div className="hero-floating-card card-2">
+                            <div className="floating-icon blue">
+                                <CIcon icon={cilShieldAlt} size="xl" />
+                            </div>
+                            <div className="floating-text">
+                                <h4>Suivi en temps réel</h4>
+                                <p>Interventions visibles</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-            </CCarousel>
+            {/* Features Section */}
+            <section className="features-section">
+                <div className="section-container">
+                    <div className="section-header">
+                        <h2>Comment ça fonctionne ?</h2>
+                        <p>
+                            Une solution simple et efficace pour améliorer nos infrastructures routières 
+                            grâce à la participation citoyenne.
+                        </p>
+                    </div>
+                    <div className="features-grid">
+                        <div className="feature-card">
+                            <div className="feature-icon orange">
+                                <CIcon icon={cilLocationPin} size="3xl" />
+                            </div>
+                            <h3>Signalez un problème</h3>
+                            <p>
+                                Repérez un nid-de-poule, une route endommagée ou un obstacle ? 
+                                Signalez-le facilement avec photo et localisation GPS précise.
+                            </p>
+                        </div>
+                        <div className="feature-card">
+                            <div className="feature-icon blue">
+                                <CIcon icon={cilMap} size="3xl" />
+                            </div>
+                            <h3>Visualisez sur la carte</h3>
+                            <p>
+                                Consultez la carte interactive pour voir tous les signalements 
+                                dans votre région et dans tout Madagascar.
+                            </p>
+                        </div>
+                        <div className="feature-card">
+                            <div className="feature-icon dark">
+                                <CIcon icon={cilSpeedometer} size="3xl" />
+                            </div>
+                            <h3>Suivez les interventions</h3>
+                            <p>
+                                Restez informé de l'avancement des travaux et des interventions 
+                                programmées par les autorités compétentes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* CTA Section */}
+            <section className="cta-section">
+                <div className="section-container">
+                    <div className="cta-content">
+                        <h2>Téléchargez l'application mobile</h2>
+                        <p>
+                            Emportez Lalantsika partout avec vous et signalez les problèmes 
+                            routiers directement depuis votre smartphone.
+                        </p>
+                        <div className="app-buttons">
+                            <a href="#" className="app-btn">
+                                <CIcon icon={cibGooglePlay} size="xl" />
+                                <div>
+                                    <small>Disponible sur</small>
+                                    <strong>Google Play</strong>
+                                </div>
+                            </a>
+                            <a href="#" className="app-btn">
+                                <CIcon icon={cibApple} size="xl" />
+                                <div>
+                                    <small>Télécharger sur</small>
+                                    <strong>App Store</strong>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     )
 }

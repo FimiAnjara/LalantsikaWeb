@@ -1,20 +1,4 @@
 import React from 'react'
-import { 
-    CCard, 
-    CCardBody, 
-    CCardHeader, 
-    CCol, 
-    CRow, 
-    CWidgetStatsA,
-    CTable,
-    CTableBody,
-    CTableDataCell,
-    CTableHead,
-    CTableHeaderCell,
-    CTableRow,
-    CProgress,
-    CBadge
-} from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
     cilLocationPin, 
@@ -23,13 +7,16 @@ import {
     cilChartPie,
     cilCheckCircle,
     cilReload,
-    cilBell
+    cilBell,
+    cilCloudDownload,
+    cilFilter
 } from '@coreui/icons'
 
 const signalements = [
     {
         id: 1,
         problem: "Nid-de-poule majeur",
+        location: "Analakely",
         date: "2024-01-15",
         status: "nouveau",
         surface: 12,
@@ -39,6 +26,7 @@ const signalements = [
     {
         id: 2,
         problem: "Route affaissée",
+        location: "Anosy",
         date: "2024-01-10",
         status: "en cours",
         surface: 45,
@@ -48,20 +36,59 @@ const signalements = [
     {
         id: 3,
         problem: "Fissures transversales",
+        location: "Ivandry",
         date: "2023-12-20",
         status: "terminé",
         surface: 8,
         budget: 2000000,
         entreprise: "HERY TP"
+    },
+    {
+        id: 4,
+        problem: "Effondrement partiel",
+        location: "Andohalo",
+        date: "2024-01-20",
+        status: "nouveau",
+        surface: 25,
+        budget: 1200000,
+        entreprise: "En attente"
+    },
+    {
+        id: 5,
+        problem: "Revêtement dégradé",
+        location: "Ankorondrano",
+        date: "2024-01-05",
+        status: "en cours",
+        surface: 60,
+        budget: 3000000,
+        entreprise: "Sogea Satom"
     }
 ];
 
-const getStatusBadge = (status) => {
+const getStatusBadgeClass = (status) => {
     switch (status) {
-        case 'nouveau': return <CBadge color="danger" shape="rounded-pill"><CIcon icon={cilBell} className="me-1" />Nouveau</CBadge>;
-        case 'en cours': return <CBadge color="warning" shape="rounded-pill"><CIcon icon={cilReload} className="me-1" />En cours</CBadge>;
-        case 'terminé': return <CBadge color="success" shape="rounded-pill"><CIcon icon={cilCheckCircle} className="me-1" />Terminé</CBadge>;
-        default: return <CBadge color="secondary">{status}</CBadge>;
+        case 'nouveau': return 'nouveau';
+        case 'en cours': return 'en-cours';
+        case 'terminé': return 'termine';
+        default: return '';
+    }
+};
+
+const getStatusIcon = (status) => {
+    switch (status) {
+        case 'nouveau': return cilBell;
+        case 'en cours': return cilReload;
+        case 'terminé': return cilCheckCircle;
+        default: return cilBell;
+    }
+};
+
+const getStatusLabel = (status) => {
+    switch (status) {
+        case 'nouveau': return 'Nouveau';
+        case 'en cours': return 'En cours';
+        case 'terminé': return 'Terminé';
+        default: return status;
     }
 };
 
@@ -74,6 +101,15 @@ const getProgressValue = (status) => {
     }
 };
 
+const getProgressClass = (status) => {
+    switch (status) {
+        case 'nouveau': return 'danger';
+        case 'en cours': return 'warning';
+        case 'terminé': return 'success';
+        default: return 'danger';
+    }
+};
+
 export default function Recap() {
     const totalPoints = signalements.length;
     const totalSurface = signalements.reduce((acc, s) => acc + s.surface, 0);
@@ -81,95 +117,113 @@ export default function Recap() {
     const averageProgress = Math.round(signalements.reduce((acc, s) => acc + getProgressValue(s.status), 0) / totalPoints);
 
     return (
-        <div className="recap-page">
-            <h3 className="mb-4 fw-bold">Récapitulatif Général</h3>
+        <div className="recap-page-modern" style={{ padding: '40px 2rem', maxWidth: '1400px', margin: '0 auto' }}>
+            {/* Header */}
+            <div className="recap-header">
+                <h1>Tableau de bord</h1>
+                <p>Vue d'ensemble des signalements et interventions à Antananarivo</p>
+            </div>
 
-            {/* Widgets de statistiques */}
-            <CRow className="mb-4 g-4">
-                <CCol sm={6} lg={3}>
-                    <CWidgetStatsA
-                        className="pb-3 border-0 shadow-sm"
-                        color="primary"
-                        value={totalPoints}
-                        title="Nombre de Points"
-                        icon={<CIcon icon={cilLocationPin} height={48} className="my-2 opacity-50" />}
-                    />
-                </CCol>
-                <CCol sm={6} lg={3}>
-                    <CWidgetStatsA
-                        className="pb-3 border-0 shadow-sm text-white"
-                        style={{ backgroundColor: '#2d3436' }}
-                        value={`${totalSurface} m²`}
-                        title="Surface Totale"
-                        icon={<CIcon icon={cilResizeBoth} height={48} className="my-2 opacity-50 text-white" />}
-                    />
-                </CCol>
-                <CCol sm={6} lg={3}>
-                    <CWidgetStatsA
-                        className="pb-3 border-0 shadow-sm"
-                        color="warning"
-                        value={`${averageProgress}%`}
-                        title="Avancement Global"
-                        icon={<CIcon icon={cilChartPie} height={48} className="my-2 opacity-50" />}
-                    />
-                </CCol>
-                <CCol sm={6} lg={3}>
-                    <CWidgetStatsA
-                        className="pb-3 border-0 shadow-sm"
-                        color="success"
-                        value={`${totalBudget.toLocaleString()} Ar`}
-                        title="Budget Total"
-                        icon={<CIcon icon={cilMoney} height={48} className="my-2 opacity-50" />}
-                    />
-                </CCol>
-            </CRow>
+            {/* Stats Cards */}
+            <div className="stats-cards-grid">
+                <div className="stat-card primary">
+                    <div className="stat-card-icon">
+                        <CIcon icon={cilLocationPin} size="xl" />
+                    </div>
+                    <div className="stat-card-value">{totalPoints}</div>
+                    <div className="stat-card-label">Signalements</div>
+                </div>
 
-            {/* Tableau détaillé */}
-            <CCard className="shadow-sm border-0 rounded-4 overflow-hidden">
-                <CCardHeader className="bg-navy text-white py-3">
-                    <h5 className="mb-0">Détails des interventions</h5>
-                </CCardHeader>
-                <CCardBody className="p-0">
-                    <CTable hover responsive align="middle" className="mb-0 border-top-0">
-                        <CTableHead color="light">
-                            <CTableRow>
-                                <CTableHeaderCell className="ps-4">Problème</CTableHeaderCell>
-                                <CTableHeaderCell>Entreprise</CTableHeaderCell>
-                                <CTableHeaderCell>Surface</CTableHeaderCell>
-                                <CTableHeaderCell>Budget</CTableHeaderCell>
-                                <CTableHeaderCell>Statut</CTableHeaderCell>
-                                <CTableHeaderCell className="pe-4" style={{width: '200px'}}>Progression</CTableHeaderCell>
-                            </CTableRow>
-                        </CTableHead>
-                        <CTableBody>
-                            {signalements.map((s) => (
-                                <CTableRow key={s.id}>
-                                    <CTableDataCell className="ps-4">
-                                        <div className="fw-bold">{s.problem}</div>
-                                        <div className="small text-secondary">{s.date}</div>
-                                    </CTableDataCell>
-                                    <CTableDataCell>{s.entreprise}</CTableDataCell>
-                                    <CTableDataCell>{s.surface} m²</CTableDataCell>
-                                    <CTableDataCell>{s.budget.toLocaleString()} Ar</CTableDataCell>
-                                    <CTableDataCell>{getStatusBadge(s.status)}</CTableDataCell>
-                                    <CTableDataCell className="pe-4">
-                                        <div className="d-flex align-items-center">
-                                            <div className="flex-grow-1 me-2">
-                                                <CProgress 
-                                                    height={6} 
-                                                    value={getProgressValue(s.status)} 
-                                                    color={s.status === 'terminé' ? 'success' : s.status === 'en cours' ? 'warning' : 'danger'}
-                                                />
-                                            </div>
-                                            <span className="small fw-semibold">{getProgressValue(s.status)}%</span>
+                <div className="stat-card secondary">
+                    <div className="stat-card-icon">
+                        <CIcon icon={cilResizeBoth} size="xl" />
+                    </div>
+                    <div className="stat-card-value">{totalSurface} m²</div>
+                    <div className="stat-card-label">Surface Totale</div>
+                </div>
+
+                <div className="stat-card warning">
+                    <div className="stat-card-icon">
+                        <CIcon icon={cilChartPie} size="xl" />
+                    </div>
+                    <div className="stat-card-value">{averageProgress}%</div>
+                    <div className="stat-card-label">Avancement</div>
+                </div>
+
+                <div className="stat-card success">
+                    <div className="stat-card-icon">
+                        <CIcon icon={cilMoney} size="xl" />
+                    </div>
+                    <div className="stat-card-value">{(totalBudget / 1000000).toFixed(1)}M Ar</div>
+                    <div className="stat-card-label">Budget Total</div>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="recap-table-card">
+                <div className="recap-table-header">
+                    <h3>
+                        <CIcon icon={cilChartPie} />
+                        Détails des interventions
+                    </h3>
+                    <div className="recap-table-actions">
+                        <button className="action-btn">
+                            <CIcon icon={cilFilter} />
+                            Filtrer
+                        </button>
+                        <button className="action-btn">
+                            <CIcon icon={cilCloudDownload} />
+                            Exporter
+                        </button>
+                    </div>
+                </div>
+                <table className="recap-table">
+                    <thead>
+                        <tr>
+                            <th>Problème</th>
+                            <th>Lieu</th>
+                            <th>Entreprise</th>
+                            <th>Surface</th>
+                            <th>Budget</th>
+                            <th>Statut</th>
+                            <th>Progression</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {signalements.map((s) => (
+                            <tr key={s.id}>
+                                <td>
+                                    <div className="problem-cell">
+                                        <span className="problem-title">{s.problem}</span>
+                                        <span className="problem-date">{s.date}</span>
+                                    </div>
+                                </td>
+                                <td>{s.location}</td>
+                                <td>{s.entreprise}</td>
+                                <td>{s.surface} m²</td>
+                                <td>{s.budget.toLocaleString()} Ar</td>
+                                <td>
+                                    <span className={`status-badge ${getStatusBadgeClass(s.status)}`}>
+                                        <CIcon icon={getStatusIcon(s.status)} size="sm" />
+                                        {getStatusLabel(s.status)}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div className="progress-cell">
+                                        <div className="progress-bar-custom">
+                                            <div 
+                                                className={`progress-fill ${getProgressClass(s.status)}`}
+                                                style={{ width: `${getProgressValue(s.status)}%` }}
+                                            ></div>
                                         </div>
-                                    </CTableDataCell>
-                                </CTableRow>
-                            ))}
-                        </CTableBody>
-                    </CTable>
-                </CCardBody>
-            </CCard>
+                                        <span className="progress-text">{getProgressValue(s.status)}%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     )
 }

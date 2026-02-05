@@ -4,6 +4,7 @@ import { auth } from '../firebase/config';
 import { utilisateurService } from '../utilisateur';
 import { User, LoginResponse } from '@/models/User';
 import { Capacitor } from '@capacitor/core';
+import { Network } from '@capacitor/network';
 
 /**
  * Service d'authentification Google
@@ -11,6 +12,20 @@ import { Capacitor } from '@capacitor/core';
  */
 class GoogleAuthService {
   private initialized = false;
+
+  /**
+   * Vérifie si l'appareil a une connexion internet
+   */
+  private async checkNetworkConnection(): Promise<boolean> {
+    try {
+      const status = await Network.getStatus();
+      console.log('📡 Network status:', status);
+      return status.connected;
+    } catch (error) {
+      console.error('Erreur vérification réseau:', error);
+      return true;
+    }
+  }
 
   /**
    * Initialise Google Auth
@@ -33,6 +48,12 @@ class GoogleAuthService {
   async signIn(): Promise<LoginResponse> {
     try {
       await this.init();
+
+      // 0. Vérifier la connexion internet en premier
+      const isConnected = await this.checkNetworkConnection();
+      if (!isConnected) {
+        throw new Error('NETWORK_ERROR');
+      }
 
       // 1. Obtenir les credentials Google via Firebase Authentication
       console.log('🔄 Connexion Google en cours...');
@@ -121,6 +142,11 @@ class GoogleAuthService {
       }
       if (error.message?.includes('popup_closed') || error.message?.includes('cancelled') || error.message?.includes('CANCELED')) {
         throw new Error('Connexion annulée');
+      }
+      
+      // "No credentials available" - Aucun compte Google sur l'appareil ou configuration incorrecte
+      if (error.message?.includes('No credentials available') || error.message?.includes('NoCredentialException')) {
+        throw new Error('Aucun compte Google disponible. Veuillez ajouter un compte Google dans les paramètres de votre appareil.');
       }
       
       // Erreurs spécifiques Google Sign-In sur mobile

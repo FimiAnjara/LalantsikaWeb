@@ -9,12 +9,27 @@ import { auth } from '../firebase/config';
 import { User, LoginResponse } from '@/models/User';
 import { parametreService } from '../parametre/parametreService';
 import { utilisateurService, statutUtilisateurService } from '../utilisateur';
+import { Network } from '@capacitor/network';
 
 class AuthService {
   // Compteur de tentatives en mémoire (par session)
   private loginAttempts: Map<string, number> = new Map();
   private maxTentatives: number = 3; // Valeur par défaut, sera chargée depuis Firestore
 
+  /**
+   * Vérifie si l'appareil a une connexion internet
+   */
+  async checkNetworkConnection(): Promise<boolean> {
+    try {
+      const status = await Network.getStatus();
+      console.log('📡 Network status:', status);
+      return status.connected;
+    } catch (error) {
+      console.error('Erreur vérification réseau:', error);
+      // En cas d'erreur, on essaie quand même
+      return true;
+    }
+  }
   
   // Initialise le service (charge les paramètres)
   async init(): Promise<void> {
@@ -48,12 +63,19 @@ class AuthService {
 
   // Connexion utilisateur
   // Étapes:
+  // 0. Vérifier la connexion internet
   // 1. Vérifier si bloqué
   // 2. Vérifier si c'est un Utilisateur (pas Manager)
   // 3. Authentification Firebase
   // 4. Gestion des tentatives
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
+      // 0. Vérifier la connexion internet en premier
+      const isConnected = await this.checkNetworkConnection();
+      if (!isConnected) {
+        throw new Error('NETWORK_ERROR');
+      }
+
       // 1. Vérifier si bloqué
       const isBlocked = await statutUtilisateurService.isBlocked(email);
       if (isBlocked) {

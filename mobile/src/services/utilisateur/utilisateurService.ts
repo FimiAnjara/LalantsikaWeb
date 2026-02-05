@@ -226,6 +226,70 @@ class UtilisateurService {
       throw error;
     }
   }
+
+  /**
+   * Met à jour le token FCM d'un utilisateur pour les notifications push
+   * @param idUtilisateur L'ID de l'utilisateur (id_utilisateur)
+   * @param fcmToken Le token FCM du device
+   * @returns true si la mise à jour a réussi
+   */
+  async updateFcmToken(idUtilisateur: number, fcmToken: string): Promise<boolean> {
+    try {
+      // Chercher l'utilisateur par id_utilisateur
+      const q = query(this.getCollectionRef(), where('id_utilisateur', '==', idUtilisateur));
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        console.error('❌ updateFcmToken: Utilisateur non trouvé pour id:', idUtilisateur);
+        return false;
+      }
+      
+      const docId = snapshot.docs[0].id;
+      
+      await updateDoc(doc(db, this.COLLECTION_NAME, docId), {
+        fcm_token: fcmToken,
+        fcm_token_updated_at: serverTimestamp(),
+        synchronized: false,
+        updatedAt: serverTimestamp()
+      });
+      
+      console.log('✅ FCM token mis à jour pour utilisateur:', idUtilisateur);
+      return true;
+    } catch (error) {
+      console.error('❌ Erreur updateFcmToken:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Supprime le token FCM d'un utilisateur (lors de la déconnexion)
+   * @param idUtilisateur L'ID de l'utilisateur
+   */
+  async removeFcmToken(idUtilisateur: number): Promise<boolean> {
+    try {
+      const q = query(this.getCollectionRef(), where('id_utilisateur', '==', idUtilisateur));
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        return false;
+      }
+      
+      const docId = snapshot.docs[0].id;
+      
+      await updateDoc(doc(db, this.COLLECTION_NAME, docId), {
+        fcm_token: null,
+        fcm_token_updated_at: serverTimestamp(),
+        synchronized: false,
+        updatedAt: serverTimestamp()
+      });
+      
+      console.log('✅ FCM token supprimé pour utilisateur:', idUtilisateur);
+      return true;
+    } catch (error) {
+      console.error('❌ Erreur removeFcmToken:', error);
+      return false;
+    }
+  }
 }
 
 export const utilisateurService = new UtilisateurService();

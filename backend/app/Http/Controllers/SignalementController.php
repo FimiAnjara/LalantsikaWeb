@@ -63,8 +63,10 @@ class SignalementController extends Controller
                 ->get()
                 ->map(function ($signalement) {
                     // Récupérer le dernier statut depuis histo_statut
+                    // Trier par daty DESC puis par id_histo_statut DESC pour avoir le vrai dernier
                     $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
                         ->orderByDesc('daty')
+                        ->orderByDesc('id_histo_statut')
                         ->first();
                     $statut = null;
                     if ($lastHisto) {
@@ -343,8 +345,10 @@ class SignalementController extends Controller
                 ->findOrFail($id);
 
             // Récupérer le dernier statut depuis histo_statut (modèle)
+            // Trier par daty DESC puis par id_histo_statut DESC pour avoir le vrai dernier
             $lastHisto = HistoStatut::where('id_signalement', $signalement->id_signalement)
                 ->orderByDesc('daty')
+                ->orderByDesc('id_histo_statut')
                 ->first();
             $statut = null;
             if ($lastHisto) {

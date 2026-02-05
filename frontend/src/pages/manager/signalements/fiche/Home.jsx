@@ -201,15 +201,21 @@ export default function SignalementFiche() {
             setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez saisir un budget valide." })
             return
         }
-        if (!assignSurface || isNaN(assignSurface) || Number(assignSurface) <= 0) {
-            setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez saisir une surface valide." })
-            return
-        }
         setAssignLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
             
-            // 1. Mettre à jour le signalement (id_entreprise, budget et surface)
+            // Mettre à jour le signalement (id_entreprise et budget seulement, pas de changement de statut)
+            const updateData = {
+                id_entreprise: selectedEntreprise,
+                budget: assignBudget
+            }
+            
+            // Ajouter la surface seulement si elle est renseignée
+            if (assignSurface && !isNaN(assignSurface) && Number(assignSurface) > 0) {
+                updateData.surface = assignSurface
+            }
+            
             const res = await fetch(ENDPOINTS.REPORT(id), {
                 method: 'PUT',
                 headers: {
@@ -217,11 +223,7 @@ export default function SignalementFiche() {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    id_entreprise: selectedEntreprise,
-                    budget: assignBudget,
-                    surface: assignSurface
-                })
+                body: JSON.stringify(updateData)
             })
             const result = await res.json()
             
@@ -229,46 +231,7 @@ export default function SignalementFiche() {
                 throw new Error(result.message || 'Erreur lors de la mise à jour')
             }
 
-            // 2. Récupérer l'id du statut "En cours"
-            const resStatut = await fetch(ENDPOINTS.STATUSES, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
-            })
-            const statutsResult = await resStatut.json()
-            if (!statutsResult.success || !statutsResult.data) {
-                throw new Error('Impossible de récupérer les statuts')
-            }
-            const statutEnCours = statutsResult.data.find(s => s.libelle === 'En cours')
-            if (!statutEnCours) {
-                throw new Error('Statut "En cours" non trouvé')
-            }
-
-            // 3. Créer un histo_statut avec le statut "En cours"
-            const entrepriseObj = entreprises.find(e => (e.id_entreprise || e.id) == selectedEntreprise)
-            const entrepriseNom = entrepriseObj ? (entrepriseObj.nom_entreprise || entrepriseObj.nom) : 'une entreprise'
-            
-            const formData = new FormData()
-            formData.append('id_statut', statutEnCours.id_statut)
-            formData.append('description', `Assigné à ${entrepriseNom} - Budget: ${Number(assignBudget).toLocaleString()} Ar`)
-            formData.append('daty', new Date().toISOString().slice(0, 16))
-
-            const resHisto = await fetch(ENDPOINTS.REPORT_HISTO(id), {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                },
-                body: formData
-            })
-            const histoResult = await resHisto.json()
-            
-            if (!histoResult.success) {
-                console.warn('Avertissement: Historique non créé', histoResult.message)
-            }
-
-            setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement assigné avec succès. Statut mis à jour en "En cours".' })
+            setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement assigné avec succès.' })
             setAssignModal({ visible: false })
             // Recharger le signalement
             setTimeout(() => {
@@ -715,21 +678,6 @@ export default function SignalementFiche() {
                                         )}
                                     </div>
 
-                                    <div className="mb-3">
-                                        <label className="form-label fw-medium">Surface (m²)</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            value={assignSurface}
-                                            onChange={e => setAssignSurface(e.target.value)}
-                                            min="0"
-                                            step="0.1"
-                                            placeholder="Ex: 25.5"
-                                            disabled={assignLoading}
-                                        />
-                                        <div className="form-text">Surface en mètres carrés</div>
-                                    </div>
-
                                     <div className="mb-4">
                                         <label className="form-label fw-medium">Budget (Ar)</label>
                                         <input
@@ -758,7 +706,7 @@ export default function SignalementFiche() {
                                         type="button"
                                         className="btn btn-primary px-4"
                                         onClick={confirmAssign}
-                                        disabled={assignLoading || !selectedEntreprise || !assignBudget || !assignSurface}
+                                        disabled={assignLoading || !selectedEntreprise || !assignBudget}
                                     >
                                         {assignLoading ? (
                                             <>

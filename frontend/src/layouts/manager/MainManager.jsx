@@ -130,7 +130,7 @@ export default function ManagerLayout() {
                 <div className="sidebar-header">
                     <div className="sidebar-brand d-flex align-items-center justify-content-center">
                         <img
-                            src="/assets/logo/login/logo.png"
+                            src="/assets/logo/login/logo1.png"
                             alt="LALANTSIKA"
                             height="60"
                             width="60"

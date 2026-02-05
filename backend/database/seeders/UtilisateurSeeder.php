@@ -15,19 +15,6 @@ class UtilisateurSeeder extends Seeder
     {
         DB::table('utilisateur')->insert([
             [
-                'identifiant' => 'manager',
-                'mdp' => Hash::make('manager123'),
-                'nom' => 'Rakoto',
-                'prenom' => 'Jean',
-                'dtn' => '1990-05-15',
-                'email' => 'manager@example.com',
-                'firebase_uid' => null,
-                'id_sexe' => 1,
-                'id_type_utilisateur' => 1,
-                'synchronized' => false,
-                'last_sync_at' => null,
-            ],
-            [
                 'identifiant' => 'user1',
                 'mdp' => Hash::make('user123'),
                 'nom' => 'Randria',

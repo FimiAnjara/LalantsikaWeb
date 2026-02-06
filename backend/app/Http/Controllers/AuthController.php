@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use App\Services\Firebase\StorageService;
 use OpenApi\Attributes as OA;
 
@@ -102,23 +103,22 @@ class AuthController extends Controller
         try {
             $photoUrl = null;
 
-            // Upload de la photo si présente
+            // Upload de la photo si présente - utiliser le storage local Laravel
             if ($request->hasFile('photo')) {
                 Log::info("📸 Upload de la photo de profil...");
                 
                 $file = $request->file('photo');
-                $uploadResult = $this->storageService->uploadFile(
-                    $file->getContent(),
-                    'utilisateurs',
-                    $request->identifiant . '_' . time(),
-                    $file->getMimeType()
-                );
-
-                if ($uploadResult['success']) {
-                    $photoUrl = $uploadResult['url'];
+                $filename = $request->identifiant . '_' . time() . '.' . $file->getClientOriginalExtension();
+                
+                // Stocker dans storage/app/public/utilisateur
+                $path = $file->storeAs('public/utilisateur', $filename);
+                
+                if ($path) {
+                    // Convertir le chemin storage en URL publique
+                    $photoUrl = '/storage/utilisateur/' . $filename;
                     Log::info("✅ Photo uploadée: {$photoUrl}");
                 } else {
-                    Log::warning("⚠️ Échec upload photo: " . ($uploadResult['error'] ?? 'Erreur inconnue'));
+                    Log::warning("⚠️ Échec upload photo");
                 }
             }
 
@@ -204,7 +204,9 @@ class AuthController extends Controller
     {
         Log::info("💾 Authentification via PostgreSQL");
          
-        $user = User::where('email', $request->email)->first();
+        $user = User::with(['sexe', 'typeUtilisateur'])
+            ->where('email', $request->email)
+            ->first();
 
         if (!$user || !Hash::check($request->mdp, $user->mdp)) {
             return response()->json([
@@ -254,11 +256,18 @@ class AuthController extends Controller
     )]
     public function me()
     {
+        $user = auth('api')->user();
+        
+        // Charger les relations si nécessaire
+        if ($user) {
+            $user->load(['sexe', 'typeUtilisateur']);
+        }
+        
         return response()->json([
             'code' => 200,
             'success' => true,
             'message' => 'Utilisateur récupéré avec succès',
-            'data' => ['user' => auth('api')->user()]
+            'data' => ['user' => $user]
         ]);
     }
 
@@ -320,6 +329,13 @@ class AuthController extends Controller
      */
     protected function respondWithToken($token, $user = null)
     {
+        $userData = $user ?? auth('api')->user();
+        
+        // Charger les relations si nécessaire
+        if ($userData && !$userData->relationLoaded('sexe')) {
+            $userData->load(['sexe', 'typeUtilisateur']);
+        }
+        
         return response()->json([
             'code' => 200,
             'success' => true,
@@ -328,7 +344,7 @@ class AuthController extends Controller
                 'access_token' => $token,
                 'token_type' => 'bearer',
                 'expires_in' => auth('api')->factory()->getTTL() * 60,
-                'user' => $user ?? auth('api')->user()
+                'user' => $userData
             ]
         ]);
     }

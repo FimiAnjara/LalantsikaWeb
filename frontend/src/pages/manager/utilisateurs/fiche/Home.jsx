@@ -24,7 +24,7 @@ import {
     cilSync,
 } from '@coreui/icons'
 import Modal from '../../../../components/Modal'
-import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
+import { ENDPOINTS, getAuthHeaders, API_BASE_URL } from '../../../../config/api'
 import './Fiche.css'
 
 export default function FicheUtilisateur() {
@@ -36,6 +36,17 @@ export default function FicheUtilisateur() {
     const [actionLoading, setActionLoading] = useState(false)
 
     const [user, setUser] = useState(null)
+
+    // Helper pour construire l'URL de la photo (locale ou externe)
+    const getPhotoUrl = (photoUrl) => {
+        if (!photoUrl) return null
+        // Si l'URL commence par http, c'est une URL externe (imgBB, etc.)
+        if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+            return photoUrl
+        }
+        // Sinon, c'est un chemin local Laravel
+        return `${API_BASE_URL}${photoUrl}`
+    }
 
     // Récupérer les détails de l'utilisateur depuis l'API
     useEffect(() => {
@@ -64,6 +75,7 @@ export default function FicheUtilisateur() {
                     statut: result.data.statut || 'actif',
                     synchronized: result.data.synchronized || false,
                     firebase_uid: result.data.firebase_uid,
+                    photo_url: result.data.photo_url,
                 })
             } else {
                 setModal({
@@ -258,9 +270,15 @@ export default function FicheUtilisateur() {
                     <CCard className="profile-card mb-4 border-0 shadow-sm">
                         <CCardBody className="text-center p-4">
                             <div className="position-relative d-inline-block mb-3">
-                                <CAvatar size="xl" className="profile-avatar">
-                                    {user.prenom?.charAt(0) || ''}{user.nom?.charAt(0) || ''}
-                                </CAvatar>
+                                {user.photo_url ? (
+                                    <div className="profile-photo-wrapper">
+                                        <img src={getPhotoUrl(user.photo_url)} alt={user.prenom} className="profile-photo" />
+                                    </div>
+                                ) : (
+                                    <CAvatar size="xl" className="profile-avatar">
+                                        {user.prenom?.charAt(0) || ''}{user.nom?.charAt(0) || ''}
+                                    </CAvatar>
+                                )}
                                 <span className={`status-indicator ${user.statut}`}></span>
                             </div>
                             <h4 className="mb-1">{user.prenom} {user.nom}</h4>

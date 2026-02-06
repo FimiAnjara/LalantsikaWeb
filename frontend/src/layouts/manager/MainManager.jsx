@@ -20,6 +20,7 @@ import {
     cilSettings,
     cilTask,
 } from '@coreui/icons'
+import { API_BASE_URL } from '../../config/api'
 import '@coreui/coreui/dist/css/coreui.min.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './MainManager.css'
@@ -30,6 +31,15 @@ export default function ManagerLayout() {
     const [expandedMenu, setExpandedMenu] = useState(null)
     const [loggingOut, setLoggingOut] = useState(false)
     const [user, setUser] = useState(null)
+
+    // Helper pour construire l'URL de la photo (locale ou externe)
+    const getPhotoUrl = (photoUrl) => {
+        if (!photoUrl) return null
+        if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+            return photoUrl
+        }
+        return `${API_BASE_URL}${photoUrl}`
+    }
 
     // Charger les données utilisateur au montage
     useEffect(() => {
@@ -280,7 +290,20 @@ export default function ManagerLayout() {
                     <div className="d-flex justify-content-end align-items-center w-100">
                         <div className="d-flex align-items-center gap-2">
                             <div className="user-avatar">
-                                <CIcon icon={cilUser} />
+                                {user?.photo_url ? (
+                                    <img 
+                                        src={getPhotoUrl(user.photo_url)} 
+                                        alt={user.prenom}
+                                        style={{ 
+                                            width: '40px', 
+                                            height: '40px', 
+                                            objectFit: 'cover', 
+                                            borderRadius: '50%' 
+                                        }} 
+                                    />
+                                ) : (
+                                    <CIcon icon={cilUser} />
+                                )}
                             </div>
                             <div className="user-info">
                                 <div className="user-name">

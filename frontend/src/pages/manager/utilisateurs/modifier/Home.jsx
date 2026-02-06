@@ -14,7 +14,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import { cilArrowLeft, cilCheckAlt, cilX, cilUser } from '@coreui/icons'
 import Modal from '../../../../components/Modal'
-import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
+import { ENDPOINTS, getAuthHeaders, API_BASE_URL } from '../../../../config/api'
 import './Modifier.css'
 
 export default function ModifierUtilisateur() {
@@ -33,8 +33,20 @@ export default function ModifierUtilisateur() {
         dtn: '',
         id_sexe: '',
         id_type_utilisateur: '',
+        photo: null,
+        current_photo_url: '',
     })
+    const [photoPreview, setPhotoPreview] = useState(null)
     const [errors, setErrors] = useState({})
+
+    // Helper pour construire l'URL de la photo (locale ou externe)
+    const getPhotoUrl = (photoUrl) => {
+        if (!photoUrl) return null
+        if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+            return photoUrl
+        }
+        return `${API_BASE_URL}${photoUrl}`
+    }
 
     // Récupérer les données de l'utilisateur
     useEffect(() => {
@@ -61,6 +73,8 @@ export default function ModifierUtilisateur() {
                     dtn: result.data.dtn || '',
                     id_sexe: result.data.sexe?.id_sexe || '',
                     id_type_utilisateur: result.data.type_utilisateur?.id_type_utilisateur || '',
+                    photo: null,
+                    current_photo_url: result.data.photo_url || '',
                 })
             } else {
                 setModal({
@@ -114,8 +128,26 @@ export default function ModifierUtilisateur() {
     }
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target
-        setFormData({ ...formData, [name]: value })
+        const { name, value, type, files } = e.target
+        
+        if (type === 'file') {
+            const file = files[0]
+            if (file) {
+                setFormData({
+                    ...formData,
+                    photo: file,
+                })
+                // Créer un aperçu de l'image
+                const reader = new FileReader()
+                reader.onloadend = () => {
+                    setPhotoPreview(reader.result)
+                }
+                reader.readAsDataURL(file)
+            }
+        } else {
+            setFormData({ ...formData, [name]: value })
+        }
+        
         // Effacer l'erreur du champ
         if (errors[name]) {
             setErrors({ ...errors, [name]: '' })
@@ -128,17 +160,34 @@ export default function ModifierUtilisateur() {
         setErrors({})
 
         try {
+            // Créer FormData pour l'upload de fichier
+            const formDataToSend = new FormData()
+            formDataToSend.append('_method', 'PUT') // Important pour Laravel
+            formDataToSend.append('nom', formData.nom)
+            formDataToSend.append('prenom', formData.prenom)
+            formDataToSend.append('email', formData.email)
+            formDataToSend.append('dtn', formData.dtn)
+            
+            if (formData.id_sexe) {
+                formDataToSend.append('id_sexe', parseInt(formData.id_sexe))
+            }
+            if (formData.id_type_utilisateur) {
+                formDataToSend.append('id_type_utilisateur', parseInt(formData.id_type_utilisateur))
+            }
+            if (formData.photo) {
+                formDataToSend.append('photo', formData.photo)
+            }
+
+            // Récupérer le token
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
             const response = await fetch(ENDPOINTS.USER(id), {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    nom: formData.nom,
-                    prenom: formData.prenom,
-                    email: formData.email,
-                    dtn: formData.dtn,
-                    id_sexe: formData.id_sexe ? parseInt(formData.id_sexe) : null,
-                    id_type_utilisateur: formData.id_type_utilisateur ? parseInt(formData.id_type_utilisateur) : null,
-                })
+                method: 'POST', // Laravel utilise POST avec _method pour PUT avec FormData
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    // Ne pas définir Content-Type, le navigateur le fera avec le boundary
+                },
+                body: formDataToSend,
             })
 
             const result = await response.json()
@@ -332,6 +381,63 @@ export default function ModifierUtilisateur() {
                                         </option>
                                     ))}
                                 </CFormSelect>
+                            </div>
+                        </div>
+
+                        {/* Photo Upload */}
+                        <div className="row mb-4">
+                            <div className="col-12">
+                                <CFormLabel htmlFor="photo" className="form-label">
+                                    Photo de profil
+                                </CFormLabel>
+                                <CFormInput
+                                    id="photo"
+                                    name="photo"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleInputChange}
+                                    className="form-input"
+                                />
+                                <small className="text-muted">Maximum 5MB - Formats acceptés: JPG, PNG, GIF</small>
+                                
+                                {/* Aperçu de la photo */}
+                                <div className="mt-3">
+                                    {photoPreview ? (
+                                        <div>
+                                            <p className="mb-2"><strong>Nouvelle photo :</strong></p>
+                                            <img 
+                                                src={photoPreview} 
+                                                alt="Aperçu" 
+                                                style={{ 
+                                                    width: '120px', 
+                                                    height: '120px', 
+                                                    objectFit: 'cover', 
+                                                    borderRadius: '50%',
+                                                    border: '3px solid #0f3460'
+                                                }} 
+                                            />
+                                        </div>
+                                    ) : formData.current_photo_url ? (
+                                        <div>
+                                            <p className="mb-2"><strong>Photo actuelle :</strong></p>
+                                            <img 
+                                                src={getPhotoUrl(formData.current_photo_url)} 
+                                                alt="Photo actuelle" 
+                                                style={{ 
+                                                    width: '120px', 
+                                                    height: '120px', 
+                                                    objectFit: 'cover', 
+                                                    borderRadius: '50%',
+                                                    border: '3px solid #e0e0e0'
+                                                }} 
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="text-muted">
+                                            <p>Aucune photo</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

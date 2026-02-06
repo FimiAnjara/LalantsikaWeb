@@ -35,6 +35,34 @@
     font-size: 0.9rem;
 }
 
+/* Avatar Image */
+.liste-utilisateur .avatar-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.liste-utilisateur .photo-thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e0e0e0;
+}
+
+.liste-utilisateur .avatar-circle-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #0f3460;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 /* Unlock Button */
 .liste-utilisateur .btn-unlock {
     background-color: #4caf50;

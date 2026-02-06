@@ -4,3 +4,4 @@ maps/fonts/NotoSansRegular/
 
 # Dependencies
 node_modules/
+/.env

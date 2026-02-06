@@ -10,6 +10,7 @@ use App\Models\HistoStatut;
 use App\Models\Statut;
 use App\Models\Entreprise;
 use App\Services\Firebase\FirebaseRestService;
+use App\Services\Notification\FcmService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -17,10 +18,12 @@ use Illuminate\Support\Facades\DB;
 class SyncController extends Controller
 {
     protected $firebaseRestService;
+    protected $fcmService;
 
-    public function __construct(FirebaseRestService $firebaseRestService)
+    public function __construct(FirebaseRestService $firebaseRestService, FcmService $fcmService)
     {
         $this->firebaseRestService = $firebaseRestService;
+        $this->fcmService = $fcmService;
     }
 
     /**
@@ -719,6 +722,8 @@ class SyncController extends Controller
                 }
             }
 
+            $city = $signalementData['city'] ?? null;
+
             // Parser la date
             $daty = null;
             if (isset($signalementData['daty'])) {
@@ -733,6 +738,7 @@ class SyncController extends Controller
                 'budget' => $signalementData['budget'] ?? null,
                 'description' => $signalementData['description'] ?? null,
                 'id_utilisateur' => $idUtilisateur,
+                'city' => $city,
                 'id_entreprise' => $signalementData['id_entreprise'] ?? null,
                 'synchronized' => true,
                 'last_sync_at' => now()
@@ -1107,9 +1113,61 @@ class SyncController extends Controller
 
             Log::info("✅ Histo_statut {$histoStatut->id_histo_statut} synchronisé vers Firebase");
 
+            // Envoyer une notification de changement de statut à l'utilisateur
+            $this->sendStatusChangeNotification($histoStatut);
+
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    /**
+     * Envoyer une notification push à l'utilisateur lors du changement de statut
+     * 
+     * @param HistoStatut $histoStatut L'historique de statut
+     * @return void
+     */
+    private function sendStatusChangeNotification(HistoStatut $histoStatut)
+    {
+        try {
+            // Charger les relations nécessaires
+            $histoStatut->load(['signalement.utilisateur', 'statut']);
+            
+            if (!$histoStatut->signalement || !$histoStatut->signalement->utilisateur) {
+                Log::warning("⚠️  Impossible d'envoyer la notification: signalement ou utilisateur non trouvé pour histo_statut {$histoStatut->id_histo_statut}");
+                return;
+            }
+            
+            $signalement = $histoStatut->signalement;
+            $utilisateur = $signalement->utilisateur;
+            $nouveauStatut = $histoStatut->statut ? $histoStatut->statut->libelle : 'Inconnu';
+            
+            // Préparer les données du signalement pour la notification
+            $signalementData = [
+                'id_signalement' => $signalement->id_signalement,
+                'id_histo_statut' => $histoStatut->id_histo_statut,
+                'id_statut' => $histoStatut->id_statut,
+                'city' => $signalement->city,
+                'description' => $histoStatut->description
+            ];
+            
+            // Envoyer la notification via FCM
+            $result = $this->fcmService->notifyStatusChangeWithLocation(
+                $utilisateur->id_utilisateur,
+                $nouveauStatut,
+                $signalementData
+            );
+            
+            if ($result['success']) {
+                Log::info("✅ Notification de changement de statut envoyée à l'utilisateur {$utilisateur->id_utilisateur} pour le signalement {$signalement->id_signalement}");
+            } else {
+                Log::warning("⚠️  Échec d'envoi de notification: {$result['error']}");
+            }
+            
+        } catch (\Exception $e) {
+            // Ne pas bloquer la synchronisation si l'envoi de notification échoue
+            Log::error("❌ Erreur lors de l'envoi de la notification de changement de statut: " . $e->getMessage());
         }
     }
 

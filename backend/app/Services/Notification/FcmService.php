@@ -5,7 +5,7 @@ namespace App\Services\Notification;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
-use App\Services\Firebase\FirestoreService;
+use App\Services\Firebase\FirebaseRestService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,7 +18,7 @@ class FcmService
     protected $firestore;
     protected $isAvailable = false;
 
-    public function __construct(FirestoreService $firestore)
+    public function __construct(FirebaseRestService $firestore)
     {
         $this->firestore = $firestore;
         
@@ -59,11 +59,21 @@ class FcmService
         try {
             Log::info("🔍 Recherche FCM token pour utilisateur: {$idUtilisateur}");
             
-            // Chercher par le champ id_utilisateur (pas par l'ID du document)
-            $userData = $this->firestore->getFromCollectionByField('utilisateurs', 'id_utilisateur', (int)$idUtilisateur);
+            // Utiliser queryCollection avec filtres pour chercher par id_utilisateur
+            $users = $this->firestore->queryCollection('utilisateurs', [
+                'id_utilisateur' => (int)$idUtilisateur
+            ]);
+            
+            if (empty($users)) {
+                Log::warning("⚠️  Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans Firestore collection 'utilisateurs'");
+                return null;
+            }
+            
+            // queryCollection retourne un tableau associatif [documentId => data]
+            // Récupérer le premier (et normalement seul) résultat
+            $userData = reset($users); // Récupère la première valeur
             
             if (!$userData) {
-                Log::warning("⚠️  Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans Firestore collection 'utilisateurs'");
                 return null;
             }
             
@@ -92,42 +102,34 @@ class FcmService
     public function updateUserFcmToken($idUtilisateur, string $fcmToken): bool
     {
         try {
-            // Chercher le document par le champ id_utilisateur
-            $userData = $this->firestore->getFromCollectionByField('utilisateurs', 'id_utilisateur', (int)$idUtilisateur);
+            // Chercher l'utilisateur par le champ id_utilisateur
+            $users = $this->firestore->queryCollection('utilisateurs', [
+                'id_utilisateur' => (int)$idUtilisateur
+            ]);
             
-            if (!$userData) {
+            if (empty($users)) {
                 Log::warning("Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans Firestore");
                 return false;
             }
-
-            // Récupérer l'ID du document Firestore (si disponible)
-            // Note: getFromCollectionByField retourne les données mais pas l'ID du document
-            // Il faut chercher le document pour avoir son ID
-            $query = $this->firestore->collection('utilisateurs')
-                ->where('id_utilisateur', '=', (int)$idUtilisateur)
-                ->documents();
             
-            $documentId = null;
-            foreach ($query as $document) {
-                if ($document->exists()) {
-                    $documentId = $document->id();
-                    break;
-                }
-            }
+            // queryCollection retourne un tableau associatif [documentId => data]
+            // Récupérer le premier (et normalement seul) résultat
+            $documentId = array_key_first($users);
+            $userData = $users[$documentId];
             
-            if (!$documentId) {
+            if (!$documentId || !$userData) {
                 Log::warning("Document ID non trouvé pour utilisateur {$idUtilisateur}");
                 return false;
             }
 
-            // Mettre à jour avec le nouveau token
-            $updateData = [
+            // Mettre à jour avec le nouveau token - fusionner avec les données existantes
+            $updateData = array_merge($userData, [
                 'fcm_token' => $fcmToken,
                 'fcm_token_updated_at' => date('c'),
                 'synchronized' => false
-            ];
+            ]);
             
-            $result = $this->firestore->updateInCollection('utilisateurs', $documentId, $updateData);
+            $result = $this->firestore->saveDocument('utilisateurs', $documentId, $updateData);
             
             if ($result) {
                 Log::info("✅ FCM token mis à jour pour user {$idUtilisateur} (document: {$documentId})");
@@ -400,6 +402,38 @@ class FcmService
             'type' => 'status_update',
             'signalement_id' => $signalementData['id_signalement'] ?? '',
             'new_status' => $newStatus,
+            'click_action' => 'OPEN_SIGNALEMENT'
+        ];
+        
+        return $this->sendToUser($idUtilisateur, $title, $body, $data);
+    }
+
+    /**
+     * Envoie une notification de changement de statut avec localisation
+     * 
+     * @param int|string $idUtilisateur L'ID de l'utilisateur à notifier
+     * @param string $nouveauStatut Le libellé du nouveau statut
+     * @param array $signalementData Données du signalement (city, id_signalement, description)
+     * @return array Résultat de l'envoi
+     */
+    public function notifyStatusChangeWithLocation($idUtilisateur, string $nouveauStatut, array $signalementData): array
+    {
+        $city = $signalementData['city'] ?? 'votre zone';
+        $title = 'Mise à jour de votre signalement';
+        $body = "Votre signalement près de {$city} a été modifié en \"{$nouveauStatut}\"";
+        
+        // Ajouter la description si présente
+        if (!empty($signalementData['description'])) {
+            $body .= ": " . $signalementData['description'];
+        }
+        
+        $data = [
+            'type' => 'status_change',
+            'signalement_id' => (string) ($signalementData['id_signalement'] ?? ''),
+            'id_histo_statut' => (string) ($signalementData['id_histo_statut'] ?? ''),
+            'nouveau_statut' => $nouveauStatut,
+            'id_statut' => (string) ($signalementData['id_statut'] ?? ''),
+            'city' => $city,
             'click_action' => 'OPEN_SIGNALEMENT'
         ];
         

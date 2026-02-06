@@ -15,8 +15,22 @@ class Signalement extends Model
         'surface',
         'budget',
         'description',
+        'photo',
         'id_entreprise',
         'id_utilisateur',
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+        'id_statut',
+=======
+        'city',
+>>>>>>> Stashed changes
+=======
+        'city',
+>>>>>>> Stashed changes
+=======
+        'city',
+>>>>>>> Stashed changes
         'point',
         'synchronized',
         'last_sync_at'
@@ -46,13 +60,5 @@ class Signalement extends Model
         return $this->belongsTo(Entreprise::class, 'id_entreprise', 'id_entreprise');
     }
 
-    public function histoStatuts()
-    {
-        return $this->hasMany(HistoStatut::class, 'id_signalement', 'id_signalement');
-    }
-
-    public function images()
-    {
-        return $this->hasMany(ImageSignalement::class, 'id_signalement', 'id_signalement');
-    }
+    // Si tu veux manipuler la géométrie, tu peux ajouter des méthodes ici
 }

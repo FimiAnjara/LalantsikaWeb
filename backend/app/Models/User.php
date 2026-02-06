@@ -32,6 +32,7 @@ class User extends Authenticatable implements JWTSubject
         'firebase_uid',
         'id_sexe',
         'id_type_utilisateur',
+        'fcm_token',
         'synchronized',
         'last_sync_at',
     ];

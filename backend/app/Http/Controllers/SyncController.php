@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Sexe;
 use App\Models\TypeUtilisateur;
-use App\Models\Signalement;
-use App\Models\HistoStatut;
 use App\Services\Firebase\FirebaseRestService;
 use App\Services\Notification\FcmService;
 use Illuminate\Http\Request;

@@ -1060,7 +1060,6 @@ class SyncController extends Controller
 
     /**
      * Synchroniser un seul histo_statut de PostgreSQL vers Firebase
-     * 
      */
     private function syncSingleHistoStatutToFirebase(HistoStatut $histoStatut)
     {
@@ -1162,6 +1161,10 @@ class SyncController extends Controller
             }
         } catch (\Exception $e) {
             Log::error("Erreur mise à jour statut signalement {$idSignalement} dans Firestore: " . $e->getMessage());
+            throw $e;
+        }
+    }
+}alement {$idSignalement} dans Firestore: " . $e->getMessage());
             throw $e;
         }
     }

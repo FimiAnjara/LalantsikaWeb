@@ -253,7 +253,10 @@ class UtilisateurService {
         updatedAt: serverTimestamp()
       });
       
+      console.log('✅ ============================================');
       console.log('✅ FCM token mis à jour pour utilisateur:', idUtilisateur);
+      console.log('🔑 Token FCM:', fcmToken);
+      console.log('✅ ============================================');
       return true;
     } catch (error) {
       console.error('❌ Erreur updateFcmToken:', error);

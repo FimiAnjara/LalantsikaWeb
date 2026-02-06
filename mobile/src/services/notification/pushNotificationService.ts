@@ -58,7 +58,9 @@ class PushNotificationService {
   private registerListeners(): void {
     // Quand on reçoit le token d'enregistrement
     PushNotifications.addListener('registration', (token: Token) => {
+      console.log('� ============================================');
       console.log('📱 FCM Token reçu:', token.value);
+      console.log('🔑 ============================================');
       this.currentToken = token.value;
     });
 
@@ -115,11 +117,13 @@ class PushNotificationService {
    */
   async getToken(): Promise<string | null> {
     if (!Capacitor.isNativePlatform()) {
+      console.log('ℹ️ getToken: Plateforme web, pas de FCM token');
       return null;
     }
 
     // Si déjà initialisé et token disponible
     if (this.currentToken) {
+      console.log('🔑 FCM Token actuel disponible:', this.currentToken);
       return this.currentToken;
     }
 

@@ -129,8 +129,31 @@ class AuthService {
         throw new Error('UTILISATEUR_NON_TROUVE');
       }
 
-      // 6. Mettre à jour l'UID Firebase
+      // 6. Mettre à jour l'UID Firebase (important si l'utilisateur change de téléphone)
       await utilisateurService.updateFirebaseUid(email, firebaseUser.uid);
+
+      // 6.5. Mettre à jour le FCM token à chaque connexion
+      // Import dynamique pour éviter les dépendances circulaires
+      const { pushNotificationService } = await import('../notification');
+      const fcmToken = await pushNotificationService.getToken();
+      
+      if (fcmToken && userData.id_utilisateur) {
+        console.log('📱 FCM Token actuel:', fcmToken);
+        console.log('📱 Mise à jour du FCM token pour utilisateur:', userData.id_utilisateur);
+        
+        const tokenUpdated = await utilisateurService.updateFcmToken(
+          userData.id_utilisateur, 
+          fcmToken
+        );
+        
+        if (tokenUpdated) {
+          console.log('✅ FCM token mis à jour avec succès dans Firestore');
+        } else {
+          console.warn('⚠️ Échec de la mise à jour du FCM token');
+        }
+      } else if (!fcmToken) {
+        console.log('ℹ️ Pas de FCM token disponible (mode web ou permissions refusées)');
+      }
 
       // 7. Obtenir le token
       const token = await firebaseUser.getIdToken();

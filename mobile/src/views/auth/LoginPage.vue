@@ -202,19 +202,8 @@ const handleGoogleLogin = async () => {
 const saveUserSession = async (response: any) => {
   await sessionService.startSession(response.token, response.user, rememberMe.value);
   
-  // Enregistrer le token FCM pour les notifications push
-  if (response.user?.id_utilisateur) {
-    // Ne pas bloquer la navigation, faire en background
-    pushNotificationService.registerTokenForUser(response.user.id_utilisateur)
-      .then((success) => {
-        if (success) {
-          console.log('✅ FCM token enregistré avec succès');
-        }
-      })
-      .catch((error) => {
-        console.error('⚠️ Erreur enregistrement FCM token:', error);
-      });
-  }
+  // Note: Le FCM token est déjà enregistré automatiquement dans authService.login()
+  // Pas besoin de le faire ici pour éviter la duplication
 };
 
 /* Gestion des erreurs de connexion */

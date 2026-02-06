@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute';
+import { UIProvider } from './context/UIContext';
 import './App.css'
 import MainLayout from './layouts/visiteur/MainLayout'
 import Home from './pages/visiteur/home/Home'
@@ -23,10 +24,11 @@ import ManagerLogin from './pages/manager/login/Login'
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Manager Login - No Layout */}
-        <Route path="/manager/login" element={<ManagerLogin />} />
+    <UIProvider>
+      <Router>
+        <Routes>
+          {/* Manager Login - No Layout */}
+          <Route path="/manager/login" element={<ManagerLogin />} />
 
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
@@ -99,8 +101,9 @@ function App() {
             } />
           </Route>
 
-      </Routes>
-    </Router>
+        </Routes>
+      </Router>
+    </UIProvider>
   )
 }
 

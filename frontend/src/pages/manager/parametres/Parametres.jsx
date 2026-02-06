@@ -9,10 +9,11 @@ import {
     CCol,
     CRow,
     CSpinner,
+    CAlert,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSave, cilSettings, cilSync } from '@coreui/icons'
-import Modal from '../../../components/Modal'
+import { SuccessModal } from '../../../components/ui'
 import './Parametres.css'
 
 export default function Parametres() {
@@ -23,7 +24,7 @@ export default function Parametres() {
 
     const [saved, setSaved] = useState(false)
     const [syncing, setSyncing] = useState(false)
-    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [syncSuccess, setSyncSuccess] = useState(false)
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -43,12 +44,7 @@ export default function Parametres() {
         setSyncing(true)
         setTimeout(() => {
             setSyncing(false)
-            setModal({
-                visible: true,
-                type: 'success',
-                title: 'Synchronisation réussie',
-                message: 'Les données ont été synchronisées avec succès avec le serveur distant.'
-            })
+            setSyncSuccess(true)
         }, 2000)
     }
 
@@ -173,12 +169,11 @@ export default function Parametres() {
                 </CCardBody>
             </CCard>
 
-            <Modal
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                onClose={() => setModal({ ...modal, visible: false })}
+            <SuccessModal
+                visible={syncSuccess}
+                title="Synchronisation réussie"
+                message="Les données ont été synchronisées avec succès avec le serveur distant."
+                onClose={() => setSyncSuccess(false)}
             />
         </div>
     )

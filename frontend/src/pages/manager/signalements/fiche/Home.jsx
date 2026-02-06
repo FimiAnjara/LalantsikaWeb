@@ -51,6 +51,9 @@ export default function SignalementFiche() {
     const [assignSurface, setAssignSurface] = useState('')
     const [assignLoading, setAssignLoading] = useState(false)
     const [entrepriseSearch, setEntrepriseSearch] = useState('')
+    
+    // Modal state for generic modal usage
+    const [modal, setModal] = useState({ visible: false, type: '', title: '', message: '' })
 
     // Signalement state
     const [signalement, setSignalement] = useState(null)
@@ -580,13 +583,24 @@ export default function SignalementFiche() {
                 </CCol>
             </CRow>
 
-            <Modal
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                onClose={() => setModal({ ...modal, visible: false })}
-            />
+            {/* Generic Modal based on type */}
+            {modal.visible && modal.type === 'success' && (
+                <SuccessModal
+                    visible={modal.visible}
+                    title={modal.title}
+                    message={modal.message}
+                    onClose={() => setModal({ ...modal, visible: false })}
+                />
+            )}
+            
+            {modal.visible && modal.type === 'danger' && (
+                <ErrorModal
+                    visible={modal.visible}
+                    title={modal.title}
+                    message={modal.message}
+                    onClose={() => setModal({ ...modal, visible: false })}
+                />
+            )}
 
             {/* Modal d'assignation - VERSION CORRIGÉE */}
             {assignModal.visible && (

@@ -21,6 +21,73 @@ use OpenApi\Attributes as OA;
 class SignalementController extends Controller
 {
     /**
+     * Liste publique des signalements pour les visiteurs (sans authentification)
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    #[OA\Get(
+        path: "/public/reports",
+        summary: "Liste publique des signalements pour les visiteurs",
+        tags: ["Signalements"],
+        responses: [
+            new OA\Response(response: 200, description: "Liste récupérée avec succès"),
+            new OA\Response(response: 500, description: "Erreur serveur")
+        ]
+    )]
+    public function indexPublic()
+    {
+        try {
+            $signalements = Signalement::select([
+                'id_signalement',
+                'description',
+                'daty',
+                'surface',
+                'budget',
+                'id_entreprise',
+                DB::raw('ST_Y(point::geometry) as lat'),
+                DB::raw('ST_X(point::geometry) as lon')
+            ])
+                ->with([
+                    'entreprise:id_entreprise,nom',
+                    'histoStatuts' => function ($query) {
+                        $query->latest('daty')
+                            ->with('statut:id_statut,libelle')
+                            ->limit(1);
+                    }
+                ])
+                ->get()
+                ->map(function ($signalement) {
+                    return [
+                        'id_signalement' => $signalement->id_signalement,
+                        'description' => $signalement->description,
+                        'daty_signalement' => $signalement->daty,
+                        'lat' => $signalement->lat,
+                        'lon' => $signalement->lon,
+                        'surface' => $signalement->surface,
+                        'budget' => $signalement->budget,
+                        'entreprise' => $signalement->entreprise,
+                        'dernier_statut' => $signalement->histoStatuts->first(),
+                    ];
+                });
+
+            return response()->json([
+                'code'=> 200,
+                'success' => true,
+                'message' => 'Public reports retrieved successfully',
+                'data' => $signalements
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching public reports: ' . $e->getMessage());
+            return response()->json([
+                'code' => 500,
+                'success' => false,
+                'message' => 'Error retrieving public reports: ' . $e->getMessage(),
+                'data' => []
+            ], 500);
+        }
+    }
+
+    /**
      * Liste tous les signalements avec leurs relations (paginée et filtrable)
      *
      * @param Request $request
@@ -101,9 +168,8 @@ class SignalementController extends Controller
                 'message' => 'Signalements récupérés avec succès',
                 'data' => $signalements
             ]);
-
         } catch (\Exception $e) {
-            
+
             return response()->json([
                 'code' => 500,
                 'success' => false,
@@ -173,7 +239,6 @@ class SignalementController extends Controller
                     'longitude' => $longitude,
                 ]
             ], 201);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'code' => 422,
@@ -370,10 +435,9 @@ class SignalementController extends Controller
                     'synchronized' => $signalement->synchronized ?? false,
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error("Erreur lors de la récupération du signalement: " . $e->getMessage());
-            
+
             return response()->json([
                 'code' => 404,
                 'success' => false,
@@ -383,7 +447,7 @@ class SignalementController extends Controller
         }
     }
 
-       /**
+    /**
      * Ajoute un historique de statut (histostatut) pour un signalement
      *
      * @param Request $request
@@ -441,33 +505,33 @@ class SignalementController extends Controller
 
             // Gestion des images (insertion dans image_signalement)
             $uploadedImages = [];
-            
+
             // Support pour les images multiples
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $imageFile) {
                     $imagePath = $imageFile->store('signalements/images', 'public');
-                    
+
                     $imageSignalement = new ImageSignalement();
                     $imageSignalement->id_histo_statut = $histo->id_histo_statut;
                     $imageSignalement->image = $imagePath;
                     $imageSignalement->save();
-                    
+
                     $uploadedImages[] = [
                         'id_image_signalement' => $imageSignalement->id_image_signalement,
                         'image' => url('storage/' . $imagePath),
                     ];
                 }
             }
-            
+
             // Support pour une seule image (ancien format - rétrocompatibilité)
             if ($request->hasFile('photo')) {
                 $imagePath = $request->file('photo')->store('signalements/images', 'public');
-                
+
                 $imageSignalement = new ImageSignalement();
                 $imageSignalement->id_histo_statut = $histo->id_histo_statut;
                 $imageSignalement->image = $imagePath;
                 $imageSignalement->save();
-                
+
                 $uploadedImages[] = [
                     'id_image_signalement' => $imageSignalement->id_image_signalement,
                     'image' => url('storage/' . $imagePath),
@@ -499,7 +563,7 @@ class SignalementController extends Controller
         }
     }
 
-      /**
+    /**
      * Récupère l'historique des statuts d'un signalement
      *
      * @param int $id
@@ -532,7 +596,7 @@ class SignalementController extends Controller
                             'image' => url('storage/' . $img->image),
                         ];
                     });
-                    
+
                     return [
                         'id_histo_statut' => $histo->id_histo_statut,
                         'daty' => $histo->daty,
@@ -595,10 +659,9 @@ class SignalementController extends Controller
                 'message' => 'Signalement supprimé avec succès',
                 'data' => null
             ]);
-
         } catch (\Exception $e) {
             Log::error("Erreur lors de la suppression du signalement: " . $e->getMessage());
-            
+
             return response()->json([
                 'code' => 500,
                 'success' => false,
@@ -633,10 +696,9 @@ class SignalementController extends Controller
                 'message' => 'Liste des statuts récupérée avec succès',
                 'data' => $statuts
             ]);
-
         } catch (\Exception $e) {
             Log::error("Erreur lors de la récupération des statuts: " . $e->getMessage());
-            
+
             return response()->json([
                 'code' => 500,
                 'success' => false,

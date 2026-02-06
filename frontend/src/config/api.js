@@ -6,7 +6,7 @@ export const API_URL = `${API_BASE_URL}/api`;
 
 // Endpoints
 export const ENDPOINTS = {
-    // Auth
+    // Authwcw
     LOGIN: `${API_URL}/auth/login`,
     REGISTER: `${API_URL}/auth/register`,
     LOGOUT: `${API_URL}/auth/logout`,
@@ -22,6 +22,7 @@ export const ENDPOINTS = {
 
     // Reports (Signalements)
     REPORTS: `${API_URL}/reports`,
+    REPORTS_PUBLIC: `${API_URL}/public/reports`,
     REPORT: (id) => `${API_URL}/reports/${id}`,
     REPORT_HISTO: (id) => `${API_URL}/reports/${id}/histostatut`,
 

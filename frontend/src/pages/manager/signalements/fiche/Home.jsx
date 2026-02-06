@@ -209,7 +209,7 @@ export default function SignalementFiche() {
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
             
-            // 1. Mettre à jour le signalement (id_entreprise, budget et surface)
+            // Mettre à jour le signalement (id_entreprise, budget et surface)
             const res = await fetch(ENDPOINTS.REPORT(id), {
                 method: 'PUT',
                 headers: {
@@ -229,46 +229,7 @@ export default function SignalementFiche() {
                 throw new Error(result.message || 'Erreur lors de la mise à jour')
             }
 
-            // 2. Récupérer l'id du statut "En cours"
-            const resStatut = await fetch(ENDPOINTS.STATUSES, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                }
-            })
-            const statutsResult = await resStatut.json()
-            if (!statutsResult.success || !statutsResult.data) {
-                throw new Error('Impossible de récupérer les statuts')
-            }
-            const statutEnCours = statutsResult.data.find(s => s.libelle === 'En cours')
-            if (!statutEnCours) {
-                throw new Error('Statut "En cours" non trouvé')
-            }
-
-            // 3. Créer un histo_statut avec le statut "En cours"
-            const entrepriseObj = entreprises.find(e => (e.id_entreprise || e.id) == selectedEntreprise)
-            const entrepriseNom = entrepriseObj ? (entrepriseObj.nom_entreprise || entrepriseObj.nom) : 'une entreprise'
-            
-            const formData = new FormData()
-            formData.append('id_statut', statutEnCours.id_statut)
-            formData.append('description', `Assigné à ${entrepriseNom} - Budget: ${Number(assignBudget).toLocaleString()} Ar`)
-            formData.append('daty', new Date().toISOString().slice(0, 16))
-
-            const resHisto = await fetch(ENDPOINTS.REPORT_HISTO(id), {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                },
-                body: formData
-            })
-            const histoResult = await resHisto.json()
-            
-            if (!histoResult.success) {
-                console.warn('Avertissement: Historique non créé', histoResult.message)
-            }
-
-            setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement assigné avec succès. Statut mis à jour en "En cours".' })
+            setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement assigné avec succès.' })
             setAssignModal({ visible: false })
             // Recharger le signalement
             setTimeout(() => {

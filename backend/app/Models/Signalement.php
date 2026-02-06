@@ -48,5 +48,13 @@ class Signalement extends Model
         return $this->belongsTo(Entreprise::class, 'id_entreprise', 'id_entreprise');
     }
 
-    // Si tu veux manipuler la géométrie, tu peux ajouter des méthodes ici
+    public function histoStatuts()
+    {
+        return $this->hasMany(HistoStatut::class, 'id_signalement', 'id_signalement');
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ImageSignalement::class, 'id_signalement', 'id_signalement');
+    }
 }

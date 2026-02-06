@@ -11,7 +11,7 @@ class Entreprise extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'nom_entreprise',
+        'nom',
         'adresse',
         'tel',
         'id_utilisateur',

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { CBadge, CCard, CCardBody, CCardHeader, CAlert, CRow, CCol } from '@coreui/react'
+import { CBadge, CCard, CCardBody, CCardHeader, CAlert, CRow, CCol, CSpinner } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
+import { ENDPOINTS } from '../../../config/api'
 import { 
     cilMap, 
     cilCalendar, 
@@ -22,41 +23,11 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const signalements = [
-    {
-        id: 1,
-        position: [-18.8792, 47.5079], // Analakely
-        problem: "Nid-de-poule majeur",
-        date: "2024-01-15",
-        status: "nouveau",
-        surface: 12,
-        budget: "500,000 Ar",
-        entreprise: "Axe Construction"
-    },
-    {
-        id: 2,
-        position: [-18.9100, 47.5200], // Anosy
-        problem: "Route affaissée",
-        date: "2024-01-10",
-        status: "en cours",
-        surface: 45,
-        budget: "2,500,000 Ar",
-        entreprise: "Colas M'car"
-    },
-    {
-        id: 3,
-        position: [-18.8600, 47.5300], // Ivandry
-        problem: "Fissures transversales",
-        date: "2023-12-20",
-        status: "terminé",
-        surface: 8,
-        budget: "200,000 Ar",
-        entreprise: "HERY TP"
-    }
-];
+
 
 const getStatusColor = (status) => {
-    switch (status) {
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
         case 'nouveau': return 'danger';
         case 'en cours': return 'warning';
         case 'terminé': return 'success';
@@ -66,6 +37,56 @@ const getStatusColor = (status) => {
 
 export default function Signalement() {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [signalements, setSignalements] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fonction pour récupérer les signalements depuis l'API
+    const fetchSignalements = async () => {
+        try {
+            setLoading(true);
+            setError(null); // Reset error state
+            
+            const response = await fetch(ENDPOINTS.REPORTS_PUBLIC, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            console.log('API Response:', result); // Debug log
+            
+            if (result.success) {
+                // Transformer les données pour le format attendu par la carte
+                const transformedData = result.data.map(signal => ({
+                    id: signal.id_signalement,
+                    position: [parseFloat(signal.lat || 0), parseFloat(signal.lon || 0)],
+                    problem: signal.description || 'Problème de route',
+                    date: signal.daty_signalement ? new Date(signal.daty_signalement).toLocaleDateString('fr-FR') : 'Non défini',
+                    status: signal.dernier_statut?.statut?.libelle || 'Nouveau',
+                    surface: signal.surface || 'N/A',
+                    budget: signal.budget ? Number(signal.budget).toLocaleString() + ' Ar' : 'Non défini',
+                    entreprise: signal.entreprise?.nom || 'Non assignée'
+                }));
+                
+                console.log('Transformed data:', transformedData); // Debug log
+                setSignalements(transformedData);
+            } else {
+                setError(`Erreur API: ${result.message || 'Erreur lors du chargement des signalements'}`);
+            }
+        } catch (err) {
+            console.error('Fetch error:', err); // Debug log
+            setError(`Erreur de connexion: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
@@ -80,6 +101,11 @@ export default function Signalement() {
         };
     }, []);
 
+    // Charger les signalements au montage du composant
+    useEffect(() => {
+        fetchSignalements();
+    }, []);
+
     return (
         <CCard className="shadow-sm border-0">
             <CCardHeader className="bg-navy text-white d-flex justify-content-between align-items-center py-3">
@@ -87,7 +113,9 @@ export default function Signalement() {
                     <CIcon icon={cilMap} className="me-2" size="xl" />
                     Carte des Signalements - Antananarivo
                 </h5>
-                <CBadge color="light" className="text-dark">3 points détectés</CBadge>
+                <CBadge color="light" className="text-dark">
+                    {loading ? 'Chargement...' : `${signalements.length} point${signalements.length !== 1 ? 's' : ''} détecté${signalements.length !== 1 ? 's' : ''}`}
+                </CBadge>
             </CCardHeader>
             <CCardBody className="p-0 overflow-hidden" style={{ borderRadius: '0 0 1rem 1rem', minHeight: '400px' }}>
                 {!isOnline ? (
@@ -102,6 +130,25 @@ export default function Signalement() {
                             Tentative de reconnexion automatique...
                         </CAlert>
                     </div>
+                ) : loading ? (
+                    <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5 bg-light" style={{ minHeight: '600px' }}>
+                        <CSpinner size="xl" className="mb-3" />
+                        <h3 className="text-secondary">Chargement de la carte...</h3>
+                        <p className="text-muted">Récupération des signalements en cours</p>
+                    </div>
+                ) : error ? (
+                    <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5 bg-light" style={{ minHeight: '600px' }}>
+                        <CAlert color="danger" className="text-center">
+                            <h4>Erreur de chargement</h4>
+                            <p>{error}</p>
+                            <button 
+                                className="btn btn-outline-danger"
+                                onClick={fetchSignalements}
+                            >
+                                Réessayer
+                            </button>
+                        </CAlert>
+                    </div>
                 ) : (
                     <MapContainer 
                         center={[-18.8792, 47.5079]} 
@@ -112,6 +159,16 @@ export default function Signalement() {
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
+                        
+                        {signalements.length === 0 ? (
+                            <div className="position-absolute top-50 start-50 translate-middle bg-white p-4 rounded shadow border">
+                                <div className="text-center">
+                                    <CIcon icon={cilLocationPin} size="xxl" className="text-muted mb-2" />
+                                    <h5 className="text-muted">Aucun signalement trouvé</h5>
+                                    <p className="text-muted mb-0">Aucun signalement n'a encore été enregistré</p>
+                                </div>
+                            </div>
+                        ) : null}
                         
                         {signalements.map((s) => (
                             <Marker key={s.id} position={s.position}>

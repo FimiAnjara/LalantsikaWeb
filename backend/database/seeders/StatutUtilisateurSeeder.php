@@ -18,16 +18,6 @@ class StatutUtilisateurSeeder extends Seeder
                 'etat' => 1, // Actif
                 'id_utilisateur' => 1,
             ],
-            [
-                'date_' => '2025-01-01 00:00:00',
-                'etat' => 1, // Actif
-                'id_utilisateur' => 2,
-            ],
-            [
-                'date_' => '2025-01-05 00:00:00',
-                'etat' => 1, // Actif
-                'id_utilisateur' => 3,
-            ],
         ]);
     }
 }

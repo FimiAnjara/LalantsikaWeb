@@ -1060,6 +1060,7 @@ class SyncController extends Controller
 
     /**
      * Synchroniser un seul histo_statut de PostgreSQL vers Firebase
+     * 
      */
     private function syncSingleHistoStatutToFirebase(HistoStatut $histoStatut)
     {

@@ -390,50 +390,24 @@ const editSignalement = () => {
   }
 };
 
-const formatDate = (daty: any): string => {
+const formatDate = (daty: string): string => {
   if (!daty) return '';
   try {
-    let date: Date;
-    
-    // Gérer les Timestamps Firestore (objet avec seconds/nanoseconds)
-    if (daty && typeof daty === 'object' && 'seconds' in daty) {
-      date = new Date(daty.seconds * 1000);
-    } else {
-      date = new Date(daty);
-    }
-    
-    // Vérifier si la date est valide
-    if (isNaN(date.getTime())) {
-      return '';
-    }
-    
+    const date = new Date(daty);
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'
     });
   } catch {
-    return '';
+    return daty;
   }
 };
 
-const formatDateShort = (daty: any): string => {
+const formatDateShort = (daty: string): string => {
   if (!daty) return '';
   try {
-    let date: Date;
-    
-    // Gérer les Timestamps Firestore (objet avec seconds/nanoseconds)
-    if (daty && typeof daty === 'object' && 'seconds' in daty) {
-      date = new Date(daty.seconds * 1000);
-    } else {
-      date = new Date(daty);
-    }
-    
-    // Vérifier si la date est valide
-    if (isNaN(date.getTime())) {
-      return '';
-    }
-    
+    const date = new Date(daty);
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short',
@@ -442,7 +416,7 @@ const formatDateShort = (daty: any): string => {
       minute: '2-digit'
     });
   } catch {
-    return '';
+    return daty;
   }
 };
 

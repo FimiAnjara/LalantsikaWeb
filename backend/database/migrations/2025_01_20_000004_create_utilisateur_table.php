@@ -39,9 +39,7 @@ return new class extends Migration
                 ->references('id_type_utilisateur')
                 ->on('type_utilisateur');
         });
-        DB::statement('ALTER TABLE utilisateur ADD COLUMN fcm_token VARCHAR(500) NULL');
-
-    }   
+    }
 
     /**
      * Reverse the migrations.

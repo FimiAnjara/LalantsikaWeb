@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Sexe;
 use App\Models\TypeUtilisateur;
+use App\Models\Signalement;
+use App\Models\HistoStatut;
+use App\Models\Statut;
+use App\Models\Entreprise;
 use App\Services\Firebase\FirebaseRestService;
-use App\Services\Notification\FcmService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -14,12 +17,10 @@ use Illuminate\Support\Facades\DB;
 class SyncController extends Controller
 {
     protected $firebaseRestService;
-    protected $fcmService;
 
-    public function __construct(FirebaseRestService $firebaseRestService, FcmService $fcmService)
+    public function __construct(FirebaseRestService $firebaseRestService)
     {
         $this->firebaseRestService = $firebaseRestService;
-        $this->fcmService = $fcmService;
     }
 
     /**
@@ -371,8 +372,6 @@ class SyncController extends Controller
             // Mettre à jour le firebase_uid dans PostgreSQL
             $utilisateur->firebase_uid = $firebaseUid;
 
-            $fcmToken = $utilisateur->fcm_token ?? null;
-
             // Préparer les données pour Firestore
             $firestoreData = $this->prepareFirestoreData($utilisateur, $firebaseUid);
 
@@ -437,328 +436,10 @@ class SyncController extends Controller
                 'libelle' => $utilisateur->typeUtilisateur->libelle
             ] : null,
             'adresse' => $utilisateur->adresse,
-            'fcm_token' => $utilisateur->fcm_token,
             'photo_profil' => $utilisateur->photo_profil,
             'last_sync_at' => now()->toIso8601String(),
             'updatedAt' => now()->toIso8601String()
         ];
-    }
-<<<<<<< Updated upstream
-=======
-
-    /**
-     * Synchroniser les FCM tokens depuis Firebase vers PostgreSQL
-     * Utile après qu'un utilisateur se connecte sur mobile et met à jour son token
-     * 
-     * @OA\Post(
-     *     path="/api/sync/fcm-tokens/from-firebase",
-     *     summary="Synchroniser les FCM tokens depuis Firebase vers PostgreSQL",
-     *     tags={"Synchronisation"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Synchronisation réussie"
-     *     )
-     * )
-     */
-    public function syncFcmTokensFromFirebase()
-    {
-        try {
-            Log::info("🔄 Début synchronisation FCM tokens depuis Firebase...");
-            
-            // Récupérer TOUS les utilisateurs de Firestore
-            $allUtilisateurs = $this->firebaseRestService->getCollection('utilisateurs');
-            
-            // Filtrer ceux qui ont un fcm_token et sont marqués comme non synchronisés
-            $utilisateursWithToken = array_filter($allUtilisateurs, function($doc) {
-                return isset($doc['fcm_token']) && 
-                       !empty($doc['fcm_token']) &&
-                       (!isset($doc['synchronized']) || $doc['synchronized'] === false);
-            });
-            
-            Log::info("📊 Utilisateurs avec FCM token non synchronisés: " . count($utilisateursWithToken));
-
-            $synced = 0;
-            $failed = 0;
-            $errors = [];
-
-            foreach ($utilisateursWithToken as $firebaseDocId => $userData) {
-                try {
-                    if (!isset($userData['id_utilisateur'])) {
-                        Log::warning("⚠️  Document {$firebaseDocId} n'a pas de id_utilisateur");
-                        continue;
-                    }
-
-                    $idUtilisateur = $userData['id_utilisateur'];
-                    $fcmToken = $userData['fcm_token'];
-
-                    // Mettre à jour dans PostgreSQL
-                    $user = User::where('id_utilisateur', $idUtilisateur)->first();
-                    
-                    if ($user) {
-                        $user->fcm_token = $fcmToken;
-                        $user->save();
-                        
-                        Log::info("✅ FCM token synchronisé pour user {$idUtilisateur}");
-                        $synced++;
-
-                        // Marquer comme synchronisé dans Firestore
-                        $this->firebaseRestService->saveDocument(
-                            'utilisateurs',
-                            $firebaseDocId,
-                            array_merge($userData, [
-                                'synchronized' => true,
-                                'last_sync_at' => now()->toIso8601String()
-                            ])
-                        );
-                    } else {
-                        Log::warning("⚠️  Utilisateur {$idUtilisateur} non trouvé dans PostgreSQL");
-                        $failed++;
-                        $errors[] = [
-                            'id' => $idUtilisateur,
-                            'error' => 'Utilisateur non trouvé dans PostgreSQL'
-                        ];
-                    }
-                } catch (\Exception $e) {
-                    $failed++;
-                    $errors[] = [
-                        'id' => $userData['id_utilisateur'] ?? 'unknown',
-                        'error' => $e->getMessage()
-                    ];
-                    Log::error("❌ Erreur sync FCM token pour user: " . $e->getMessage());
-                }
-            }
-
-            Log::info("✅ Sync FCM tokens terminée: {$synced} réussis, {$failed} échecs");
-
-            return response()->json([
-                'success' => true,
-                'message' => "Synchronisation FCM tokens terminée",
-                'data' => [
-                    'total' => count($utilisateursWithToken),
-                    'synced' => $synced,
-                    'failed' => $failed,
-                    'errors' => $errors
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur synchronisation FCM tokens depuis Firebase: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la synchronisation',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Synchroniser les FCM tokens depuis Firebase vers PostgreSQL
-     * Utile après qu'un utilisateur se connecte sur mobile et met à jour son token
-     * 
-     * @OA\Post(
-     *     path="/api/sync/fcm-tokens/from-firebase",
-     *     summary="Synchroniser les FCM tokens depuis Firebase vers PostgreSQL",
-     *     tags={"Synchronisation"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Synchronisation réussie"
-     *     )
-     * )
-     */
-    public function syncFcmTokensFromFirebase()
-    {
-        try {
-            Log::info("🔄 Début synchronisation FCM tokens depuis Firebase...");
-            
-            // Récupérer TOUS les utilisateurs de Firestore
-            $allUtilisateurs = $this->firebaseRestService->getCollection('utilisateurs');
-            
-            // Filtrer ceux qui ont un fcm_token et sont marqués comme non synchronisés
-            $utilisateursWithToken = array_filter($allUtilisateurs, function($doc) {
-                return isset($doc['fcm_token']) && 
-                       !empty($doc['fcm_token']) &&
-                       (!isset($doc['synchronized']) || $doc['synchronized'] === false);
-            });
-            
-            Log::info("📊 Utilisateurs avec FCM token non synchronisés: " . count($utilisateursWithToken));
-
-            $synced = 0;
-            $failed = 0;
-            $errors = [];
-
-            foreach ($utilisateursWithToken as $firebaseDocId => $userData) {
-                try {
-                    if (!isset($userData['id_utilisateur'])) {
-                        Log::warning("⚠️  Document {$firebaseDocId} n'a pas de id_utilisateur");
-                        continue;
-                    }
-
-                    $idUtilisateur = $userData['id_utilisateur'];
-                    $fcmToken = $userData['fcm_token'];
-
-                    // Mettre à jour dans PostgreSQL
-                    $user = User::where('id_utilisateur', $idUtilisateur)->first();
-                    
-                    if ($user) {
-                        $user->fcm_token = $fcmToken;
-                        $user->save();
-                        
-                        Log::info("✅ FCM token synchronisé pour user {$idUtilisateur}");
-                        $synced++;
-
-                        // Marquer comme synchronisé dans Firestore
-                        $this->firebaseRestService->saveDocument(
-                            'utilisateurs',
-                            $firebaseDocId,
-                            array_merge($userData, [
-                                'synchronized' => true,
-                                'last_sync_at' => now()->toIso8601String()
-                            ])
-                        );
-                    } else {
-                        Log::warning("⚠️  Utilisateur {$idUtilisateur} non trouvé dans PostgreSQL");
-                        $failed++;
-                        $errors[] = [
-                            'id' => $idUtilisateur,
-                            'error' => 'Utilisateur non trouvé dans PostgreSQL'
-                        ];
-                    }
-                } catch (\Exception $e) {
-                    $failed++;
-                    $errors[] = [
-                        'id' => $userData['id_utilisateur'] ?? 'unknown',
-                        'error' => $e->getMessage()
-                    ];
-                    Log::error("❌ Erreur sync FCM token pour user: " . $e->getMessage());
-                }
-            }
-
-            Log::info("✅ Sync FCM tokens terminée: {$synced} réussis, {$failed} échecs");
-
-            return response()->json([
-                'success' => true,
-                'message' => "Synchronisation FCM tokens terminée",
-                'data' => [
-                    'total' => count($utilisateursWithToken),
-                    'synced' => $synced,
-                    'failed' => $failed,
-                    'errors' => $errors
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur synchronisation FCM tokens depuis Firebase: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la synchronisation',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Synchroniser les FCM tokens depuis Firebase vers PostgreSQL
-     * Utile après qu'un utilisateur se connecte sur mobile et met à jour son token
-     * 
-     * @OA\Post(
-     *     path="/api/sync/fcm-tokens/from-firebase",
-     *     summary="Synchroniser les FCM tokens depuis Firebase vers PostgreSQL",
-     *     tags={"Synchronisation"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Synchronisation réussie"
-     *     )
-     * )
-     */
-    public function syncFcmTokensFromFirebase()
-    {
-        try {
-            Log::info("🔄 Début synchronisation FCM tokens depuis Firebase...");
-            
-            // Récupérer TOUS les utilisateurs de Firestore
-            $allUtilisateurs = $this->firebaseRestService->getCollection('utilisateurs');
-            
-            // Filtrer ceux qui ont un fcm_token et sont marqués comme non synchronisés
-            $utilisateursWithToken = array_filter($allUtilisateurs, function($doc) {
-                return isset($doc['fcm_token']) && 
-                       !empty($doc['fcm_token']) &&
-                       (!isset($doc['synchronized']) || $doc['synchronized'] === false);
-            });
-            
-            Log::info("📊 Utilisateurs avec FCM token non synchronisés: " . count($utilisateursWithToken));
-
-            $synced = 0;
-            $failed = 0;
-            $errors = [];
-
-            foreach ($utilisateursWithToken as $firebaseDocId => $userData) {
-                try {
-                    if (!isset($userData['id_utilisateur'])) {
-                        Log::warning("⚠️  Document {$firebaseDocId} n'a pas de id_utilisateur");
-                        continue;
-                    }
-
-                    $idUtilisateur = $userData['id_utilisateur'];
-                    $fcmToken = $userData['fcm_token'];
-
-                    // Mettre à jour dans PostgreSQL
-                    $user = User::where('id_utilisateur', $idUtilisateur)->first();
-                    
-                    if ($user) {
-                        $user->fcm_token = $fcmToken;
-                        $user->save();
-                        
-                        Log::info("✅ FCM token synchronisé pour user {$idUtilisateur}");
-                        $synced++;
-
-                        // Marquer comme synchronisé dans Firestore
-                        $this->firebaseRestService->saveDocument(
-                            'utilisateurs',
-                            $firebaseDocId,
-                            array_merge($userData, [
-                                'synchronized' => true,
-                                'last_sync_at' => now()->toIso8601String()
-                            ])
-                        );
-                    } else {
-                        Log::warning("⚠️  Utilisateur {$idUtilisateur} non trouvé dans PostgreSQL");
-                        $failed++;
-                        $errors[] = [
-                            'id' => $idUtilisateur,
-                            'error' => 'Utilisateur non trouvé dans PostgreSQL'
-                        ];
-                    }
-                } catch (\Exception $e) {
-                    $failed++;
-                    $errors[] = [
-                        'id' => $userData['id_utilisateur'] ?? 'unknown',
-                        'error' => $e->getMessage()
-                    ];
-                    Log::error("❌ Erreur sync FCM token pour user: " . $e->getMessage());
-                }
-            }
-
-            Log::info("✅ Sync FCM tokens terminée: {$synced} réussis, {$failed} échecs");
-
-            return response()->json([
-                'success' => true,
-                'message' => "Synchronisation FCM tokens terminée",
-                'data' => [
-                    'total' => count($utilisateursWithToken),
-                    'synced' => $synced,
-                    'failed' => $failed,
-                    'errors' => $errors
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur synchronisation FCM tokens depuis Firebase: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la synchronisation',
-                'error' => $e->getMessage()
-            ], 500);
-        }
     }
 
     /**
@@ -1037,7 +718,6 @@ class SyncController extends Controller
                     $point = DB::raw("ST_SetSRID(ST_MakePoint({$lng}, {$lat}), 4326)");
                 }
             }
-            $city = $signalementData['city'] ?? null;
 
             // Parser la date
             $daty = null;
@@ -1053,7 +733,6 @@ class SyncController extends Controller
                 'budget' => $signalementData['budget'] ?? null,
                 'description' => $signalementData['description'] ?? null,
                 'id_utilisateur' => $idUtilisateur,
-                'city' => $city,
                 'id_entreprise' => $signalementData['id_entreprise'] ?? null,
                 'synchronized' => true,
                 'last_sync_at' => now()
@@ -1429,88 +1108,9 @@ class SyncController extends Controller
 
             Log::info("✅ Histo_statut {$histoStatut->id_histo_statut} synchronisé vers Firebase");
 
-            // Envoyer une notification au propriétaire du signalement
-            $this->notifySignalementOwner($histoStatut);
-
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
-        }
-    }
-
-    /**
-     * Notifier le propriétaire du signalement après un changement de statut
-     * 
-     * @param HistoStatut $histoStatut L'historique de statut qui vient d'être créé
-     */
-    private function notifySignalementOwner(HistoStatut $histoStatut)
-    {
-        try {
-            // Récupérer le signalement avec ses relations
-            $signalement = Signalement::with(['utilisateur'])
-                ->find($histoStatut->id_signalement);
-
-            if (!$signalement) {
-                Log::warning("⚠️  Signalement {$histoStatut->id_signalement} non trouvé pour notification");
-                return;
-            }
-
-            if (!$signalement->utilisateur) {
-                Log::warning("⚠️  Utilisateur propriétaire non trouvé pour signalement {$signalement->id_signalement}");
-                return;
-            }
-
-            // Récupérer le libellé du statut
-            $statutLibelle = $histoStatut->statut ? $histoStatut->statut->libelle : 'Statut modifié';
-
-            // Extraire la localisation du signalement
-            $location = $this->extractSignalementLocation($signalement);
-
-            // Envoyer la notification
-            $result = $this->fcmService->notifySignalementStatusChange(
-                $signalement->id_utilisateur,
-                $signalement->id_signalement,
-                $statutLibelle,
-                $location
-            );
-
-            if ($result['success']) {
-                Log::info("✅ Notification envoyée au propriétaire (user: {$signalement->id_utilisateur}) du signalement {$signalement->id_signalement}");
-            } else {
-                Log::warning("⚠️  Échec notification: " . ($result['error'] ?? 'Erreur inconnue'));
-            }
-
-        } catch (\Exception $e) {
-            // Ne pas faire échouer la synchronisation si la notification échoue
-            Log::error("❌ Erreur lors de l'envoi de notification: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Extraire la localisation d'un signalement pour la notification
-     * 
-     * @param Signalement $signalement
-     * @return string|null La localisation formatée ou null
-     */
-    private function extractSignalementLocation(Signalement $signalement): ?string
-    {
-        try {
-            // Si le signalement a une adresse textuelle
-            if (!empty($signalement->city)) {
-                return $signalement->city;
-            }
-
-            // Si on a un point géographique, on pourrait faire un reverse geocoding
-            // mais pour l'instant on retourne juste un message générique
-            if ($signalement->point) {
-                return "votre localisation";
-            }
-
-            return null;
-            
-        } catch (\Exception $e) {
-            Log::error("Erreur extraction localisation: " . $e->getMessage());
-            return null;
         }
     }
 
@@ -1565,5 +1165,4 @@ class SyncController extends Controller
             throw $e;
         }
     }
->>>>>>> Stashed changes
 }

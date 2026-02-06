@@ -8,76 +8,21 @@ use Illuminate\Support\Facades\Hash;
 
 class UtilisateurSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         DB::table('utilisateur')->insert([
             [
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                'identifiant' => 'manager',
-                'mdp' => Hash::make('manager123'),
-                'nom' => 'Rakoto',
-                'prenom' => 'Jean',
-                'dtn' => '1990-05-15',
-=======
-                'identifiant' => 'manager1',
-                'mdp' => Hash::make('manager123'),
-=======
-                'identifiant' => 'manager1',
-                'mdp' => Hash::make('manager123'),
->>>>>>> Stashed changes
-=======
-                'identifiant' => 'manager1',
-                'mdp' => Hash::make('manager123'),
->>>>>>> Stashed changes
-                'nom' => 'Admin',
-                'prenom' => 'Lalana',
-                'dtn' => '1995-03-10',
->>>>>>> Stashed changes
-                'email' => 'manager@example.com',
-                'firebase_uid' => null,
-                'id_sexe' => 1,
-                'id_type_utilisateur' => 1,
-                'synchronized' => false,
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                'last_sync_at' => null,
-            ],
-            [
                 'identifiant' => 'user1',
-                'mdp' => Hash::make('user123'),
+                'mdp' => Hash::make('manager123'),
                 'nom' => 'Randria',
                 'prenom' => 'Paul',
                 'dtn' => '1995-03-10',
-                'email' => 'paul.randria@gmail.com',
+                'email' => 'manager@example.com',
+                'photo_url' => '/storage/utilisateur/management.png',
                 'firebase_uid' => null,
                 'id_sexe' => 1,
-                'id_type_utilisateur' => 2,
-                'synchronized' => false,
-                'last_sync_at' => null,
-            ],
-            [
-                'identifiant' => 'user2',
-                'mdp' => Hash::make('user123'),
-                'nom' => 'Rasoamanarivo',
-                'prenom' => 'Hanta',
-                'dtn' => '1988-12-01',
-                'email' => 'hanta.rasoa@yahoo.fr',
-                'firebase_uid' => null,
-                'id_sexe' => 2,
-                'id_type_utilisateur' => 2,
-                'synchronized' => false,
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+                'id_type_utilisateur' => 1,
+                'synchronized' => true,
                 'last_sync_at' => null,
             ],
         ]);

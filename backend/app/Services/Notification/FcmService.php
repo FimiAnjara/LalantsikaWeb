@@ -5,7 +5,7 @@ namespace App\Services\Notification;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
-use App\Services\Firebase\FirebaseRestService;
+use App\Services\Firebase\FirestoreService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -15,12 +15,12 @@ use Illuminate\Support\Facades\Log;
 class FcmService
 {
     protected $messaging;
-    protected $firebaseRest;
+    protected $firestore;
     protected $isAvailable = false;
 
-    public function __construct(FirebaseRestService $firebaseRest)
+    public function __construct(FirestoreService $firestore)
     {
-        $this->firebaseRest = $firebaseRest;
+        $this->firestore = $firestore;
         
         try {
             $serviceAccountPath = storage_path('app/firebase/service-account.json');
@@ -57,24 +57,19 @@ class FcmService
     public function getUserFcmToken($idUtilisateur): ?string
     {
         try {
-            Log::info("🔍 Recherche FCM token pour utilisateur: {$idUtilisateur} (Firestore REST API)");
+            Log::info("🔍 Recherche FCM token pour utilisateur: {$idUtilisateur}");
             
-            // Utiliser queryCollection pour chercher par id_utilisateur
-            $results = $this->firebaseRest->queryCollection('utilisateurs', [
-                'id_utilisateur' => (int)$idUtilisateur
-            ]);
+            // Chercher par le champ id_utilisateur (pas par l'ID du document)
+            $userData = $this->firestore->getFromCollectionByField('utilisateurs', 'id_utilisateur', (int)$idUtilisateur);
             
-            if (empty($results)) {
-                Log::warning("⚠️  Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans Firestore");
+            if (!$userData) {
+                Log::warning("⚠️  Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans Firestore collection 'utilisateurs'");
                 return null;
             }
             
-            // Récupérer le premier résultat
-            $userData = reset($results);
+            Log::info("✅ Utilisateur trouvé dans Firestore, données: " . json_encode($userData));
             
-            Log::info("✅ Utilisateur trouvé dans Firestore (REST API)");
-            
-            if (isset($userData['fcm_token']) && !empty($userData['fcm_token'])) {
+            if (isset($userData['fcm_token'])) {
                 Log::info("✅ FCM token trouvé pour user {$idUtilisateur}: " . substr($userData['fcm_token'], 0, 20) . "...");
                 return $userData['fcm_token'];
             }
@@ -88,42 +83,7 @@ class FcmService
     }
 
     /**
-     * Récupère le FCM token d'un utilisateur depuis PostgreSQL
-     * Alternative à getUserFcmToken() qui ne nécessite pas gRPC
-     * 
-     * @param int|string $idUtilisateur L'ID de l'utilisateur
-     * @return string|null Le token FCM ou null si non trouvé
-     */
-    public function getUserFcmTokenFromPostgres($idUtilisateur): ?string
-    {
-        try {
-            Log::info("🔍 Recherche FCM token pour utilisateur: {$idUtilisateur} (PostgreSQL)");
-            
-            // Récupérer l'utilisateur depuis PostgreSQL
-            $user = \App\Models\User::where('id_utilisateur', (int)$idUtilisateur)->first();
-            
-            if (!$user) {
-                Log::warning("⚠️  Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans PostgreSQL");
-                return null;
-            }
-            
-            Log::info("✅ Utilisateur trouvé dans PostgreSQL: {$user->email}");
-            
-            if (!empty($user->fcm_token)) {
-                Log::info("✅ FCM token trouvé pour user {$idUtilisateur}: " . substr($user->fcm_token, 0, 20) . "...");
-                return $user->fcm_token;
-            }
-            
-            Log::warning("⚠️  Utilisateur {$idUtilisateur} existe mais n'a pas de fcm_token");
-            return null;
-        } catch (\Exception $e) {
-            Log::error("❌ Erreur récupération FCM token pour user {$idUtilisateur}: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Met à jour le FCM token d'un utilisateur dans Firestore ET PostgreSQL
+     * Met à jour le FCM token d'un utilisateur dans Firestore
      * 
      * @param int|string $idUtilisateur L'ID de l'utilisateur
      * @param string $fcmToken Le nouveau token FCM
@@ -132,68 +92,50 @@ class FcmService
     public function updateUserFcmToken($idUtilisateur, string $fcmToken): bool
     {
         try {
-            $firestoreSuccess = false;
-            $postgresSuccess = false;
-
-            // 1. Mettre à jour dans Firestore (via REST API)
             // Chercher le document par le champ id_utilisateur
-            $results = $this->firebaseRest->queryCollection('utilisateurs', [
-                'id_utilisateur' => (int)$idUtilisateur
-            ]);
+            $userData = $this->firestore->getFromCollectionByField('utilisateurs', 'id_utilisateur', (int)$idUtilisateur);
             
-            if (!empty($results)) {
-                // Récupérer le document ID (clé du tableau)
-                $documentId = key($results);
-                $userData = reset($results);
-                
-                if ($documentId) {
-                    // Mettre à jour le document avec le nouveau token
-                    $userData['fcm_token'] = $fcmToken;
-                    $userData['synchronized'] = false;
-                    
-                    $firestoreSuccess = $this->firebaseRest->saveDocument('utilisateurs', $documentId, $userData);
-                    
-                    if ($firestoreSuccess) {
-                        Log::info("✅ Firestore (REST): FCM token mis à jour pour user {$idUtilisateur} (document: {$documentId})");
-                    } else {
-                        Log::error("❌ Firestore (REST): Échec mise à jour FCM token pour user {$idUtilisateur}");
-                    }
-                } else {
-                    Log::warning("⚠️  Document ID non trouvé dans Firestore pour utilisateur {$idUtilisateur}");
-                }
-            } else {
-                Log::warning("⚠️  Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans Firestore");
+            if (!$userData) {
+                Log::warning("Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans Firestore");
+                return false;
             }
 
-            // 2. Mettre à jour dans PostgreSQL
-            $user = \App\Models\User::where('id_utilisateur', (int)$idUtilisateur)->first();
+            // Récupérer l'ID du document Firestore (si disponible)
+            // Note: getFromCollectionByField retourne les données mais pas l'ID du document
+            // Il faut chercher le document pour avoir son ID
+            $query = $this->firestore->collection('utilisateurs')
+                ->where('id_utilisateur', '=', (int)$idUtilisateur)
+                ->documents();
             
-            if ($user) {
-                $user->fcm_token = $fcmToken;
-                $user->synchronized = false;  // Marquer comme non synchronisé pour forcer une future sync
-                $postgresSuccess = $user->save();
-                
-                if ($postgresSuccess) {
-                    Log::info("✅ PostgreSQL: FCM token mis à jour pour user {$idUtilisateur}");
-                } else {
-                    Log::error("❌ PostgreSQL: Échec mise à jour FCM token pour user {$idUtilisateur}");
+            $documentId = null;
+            foreach ($query as $document) {
+                if ($document->exists()) {
+                    $documentId = $document->id();
+                    break;
                 }
-            } else {
-                Log::warning("⚠️  Utilisateur avec id_utilisateur={$idUtilisateur} non trouvé dans PostgreSQL");
+            }
+            
+            if (!$documentId) {
+                Log::warning("Document ID non trouvé pour utilisateur {$idUtilisateur}");
+                return false;
             }
 
-            // Considérer comme succès si au moins une base de données a été mise à jour
-            $success = $firestoreSuccess || $postgresSuccess;
+            // Mettre à jour avec le nouveau token
+            $updateData = [
+                'fcm_token' => $fcmToken,
+                'fcm_token_updated_at' => date('c'),
+                'synchronized' => false
+            ];
             
-            if ($success) {
-                Log::info("✅ FCM token mis à jour avec succès pour utilisateur {$idUtilisateur} (Firestore: " . ($firestoreSuccess ? 'OK' : 'SKIP') . ", PostgreSQL: " . ($postgresSuccess ? 'OK' : 'SKIP') . ")");
-            } else {
-                Log::error("❌ Échec total de mise à jour FCM token pour utilisateur {$idUtilisateur}");
+            $result = $this->firestore->updateInCollection('utilisateurs', $documentId, $updateData);
+            
+            if ($result) {
+                Log::info("✅ FCM token mis à jour pour user {$idUtilisateur} (document: {$documentId})");
             }
             
-            return $success;
+            return $result;
         } catch (\Exception $e) {
-            Log::error("❌ Erreur mise à jour FCM token pour user {$idUtilisateur}: " . $e->getMessage());
+            Log::error("Erreur mise à jour FCM token pour user {$idUtilisateur}: " . $e->getMessage());
             return false;
         }
     }
@@ -217,18 +159,7 @@ class FcmService
         }
 
         try {
-            // Utiliser PostgreSQL par défaut (pas besoin de gRPC)
             $fcmToken = $this->getUserFcmToken($idUtilisateur);
-            
-            // Fallback sur Firestore si pas trouvé dans PostgreSQL
-            if (!$fcmToken) {
-                Log::info("⚠️  Token non trouvé dans PostgreSQL, tentative Firestore...");
-                try {
-                    $fcmToken = $this->getUserFcmToken($idUtilisateur);
-                } catch (\Exception $e) {
-                    Log::warning("⚠️  Firestore inaccessible (gRPC non installé): " . $e->getMessage());
-                }
-            }
             
             if (!$fcmToken) {
                 return [
@@ -473,53 +404,5 @@ class FcmService
         ];
         
         return $this->sendToUser($idUtilisateur, $title, $body, $data);
-    }
-
-    /**
-     * Envoie une notification de changement de statut d'un signalement
-     * 
-     * @param int|string $idUtilisateur L'ID du propriétaire du signalement
-     * @param int $idSignalement L'ID du signalement
-     * @param string $statutLibelle Le libellé du nouveau statut
-     * @param string|null $location Le lieu/adresse du signalement (optionnel)
-     * @return array Résultat de l'envoi
-     */
-    public function notifySignalementStatusChange($idUtilisateur, int $idSignalement, string $statutLibelle, ?string $location = null): array
-    {
-        if (!$this->isAvailable) {
-            return [
-                'success' => false,
-                'error' => 'FCM Service not available'
-            ];
-        }
-
-        try {
-            $title = 'Changement de statut';
-            
-            // Construire le message selon la présence de la localisation
-            if ($location) {
-                $body = "Le statut de votre signalement près de {$location} a été modifié en {$statutLibelle}";
-            } else {
-                $body = "Le statut de votre signalement a été modifié en {$statutLibelle}";
-            }
-            
-            $data = [
-                'type' => 'signalement_status_change',
-                'signalement_id' => (string)$idSignalement,
-                'statut' => $statutLibelle,
-                'click_action' => 'OPEN_SIGNALEMENT'
-            ];
-            
-            Log::info("📲 Envoi notification changement statut - User: {$idUtilisateur}, Signalement: {$idSignalement}, Statut: {$statutLibelle}");
-            
-            return $this->sendToUser($idUtilisateur, $title, $body, $data);
-            
-        } catch (\Exception $e) {
-            Log::error("❌ Erreur notification changement statut: " . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
     }
 }

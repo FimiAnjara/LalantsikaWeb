@@ -1164,8 +1164,4 @@ class SyncController extends Controller
             throw $e;
         }
     }
-}alement {$idSignalement} dans Firestore: " . $e->getMessage());
-            throw $e;
-        }
-    }
 }

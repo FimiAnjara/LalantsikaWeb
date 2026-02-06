@@ -1,26 +1,7 @@
 import { 
-  collection, 
-  doc, 
-  addDoc, 
-  getDoc, 
-  getDocs, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit,
-  Timestamp,
-  DocumentData,
-  QueryConstraint
-} from 'firebase/firestore';
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, Timestamp, DocumentData, QueryConstraint } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { 
-  Signalement, 
-  CreateSignalementData, 
-  UpdateSignalementData,
-  UtilisateurRef 
-} from '@/models/Signalement';
+import { Signalement, CreateSignalementData, UpdateSignalementData, UtilisateurRef } from '@/models/Signalement';
 import { STATUT_OPTIONS, Statut } from '@/models/Statut';
 import { Point } from '@/models/Point';
 import { auth } from '../firebase/config';
@@ -97,7 +78,7 @@ class SignalementService {
   }
 
   /**
-   * Créer un nouveau signalement + historique de statut
+   * Créer un nouveau signalement + historique de statut avec photos
    */
   async createSignalement(data: CreateSignalementData): Promise<Signalement | null> {
     try {
@@ -131,14 +112,6 @@ class SignalementService {
         signalement.surface = data.surface;
       }
       
-      // Upload de la photo vers Firebase Storage si c'est du base64
-      if (data.photo) {
-        console.log('📸 Traitement de la photo...');
-        const photoUrl = await storageService.ensureImageUrl(data.photo, 'signalements');
-        signalement.photo = photoUrl;
-        console.log('📸 Photo URL:', photoUrl);
-      }
-      
       if (data.city) {
         signalement.city = data.city;
       }
@@ -149,17 +122,43 @@ class SignalementService {
       console.log('📝 Utilisateur stocké dans le signalement:', JSON.stringify(currentUser, null, 2));
       console.log('📝 Firebase UID stocké:', currentUser.firebase_uid);
 
-      // historique
+      // Préparer les images uploadées pour l'historique
+      const uploadedImages: string[] = [];
+      
+      // Gérer les photos multiples (nouveau format)
+      if (data.photos && data.photos.length > 0) {
+        console.log(`📸 Upload de ${data.photos.length} photo(s)...`);
+        for (let i = 0; i < data.photos.length; i++) {
+          const photoUrl = await storageService.ensureImageUrl(data.photos[i], 'signalements');
+          uploadedImages.push(photoUrl);
+          console.log(`📸 Photo ${i + 1} URL:`, photoUrl);
+        }
+      } else if (data.photo) {
+        // Ancienne compatibilité: photo unique
+        console.log('📸 Traitement de la photo unique...');
+        const photoUrl = await storageService.ensureImageUrl(data.photo, 'signalements');
+        uploadedImages.push(photoUrl);
+        console.log('📸 Photo URL:', photoUrl);
+      }
+
+      // Créer l'historique de statut avec les images
       const histoStatutRef = collection(db, 'histo_statuts');
-      await addDoc(histoStatutRef, {
+      const histoData: Record<string, any> = {
         daty: now,
         description: 'Signalement créé',
         statut: statut,
         firebase_signalement_id: docRef.id,
         synchronized: false,
         last_sync_at: now
-      });
-      console.log('Historique de statut créé pour le signalement:', docRef.id);
+      };
+      
+      // Ajouter les images à l'historique
+      if (uploadedImages.length > 0) {
+        histoData.images = uploadedImages;
+      }
+      
+      await addDoc(histoStatutRef, histoData);
+      console.log('Historique de statut créé avec', uploadedImages.length, 'image(s) pour le signalement:', docRef.id);
 
       // Retourner le signalement complet avec son ID Firebase
       const result: Signalement = {

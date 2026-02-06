@@ -49,7 +49,7 @@ export interface Signalement {
  * - point (latitude/longitude)
  * - description
  * - surface (optionnel)
- * - photo (optionnel)
+ * - photos (optionnel - tableau de photos)
  * - daty (automatique)
  * - utilisateur (automatique)
  * 
@@ -60,7 +60,8 @@ export interface CreateSignalementData {
   longitude: number;
   description: string;
   surface?: number;
-  photo?: string;
+  photo?: string; // Ancienne propriété pour compatibilité
+  photos?: string[]; // Nouveau: tableau de photos (URLs ou base64)
   city?: string; // Nom de la ville/localité (reverse geocoding)
 }
 
@@ -72,6 +73,7 @@ export interface UpdateSignalementData {
   surface?: number;
   budget?: number;
   photo?: string;
+  photos?: string[]; // Nouveau: tableau de photos
   id_statut?: number;
   id_entreprise?: number;
 }

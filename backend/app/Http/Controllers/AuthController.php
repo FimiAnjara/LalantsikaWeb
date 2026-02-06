@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
+use App\Services\Firebase\StorageService;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(
@@ -20,6 +21,13 @@ use OpenApi\Attributes as OA;
 )]
 class AuthController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(StorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
+
     /** 
      * Register a new user (Utilisateur uniquement - pas Manager)
      * Enregistrement PostgreSQL uniquement
@@ -79,6 +87,7 @@ class AuthController extends Controller
             'dtn' => 'required|date',
             'email' => 'required|email|max:50|unique:utilisateur,email',
             'id_sexe' => 'required|integer|exists:sexe,id_sexe',
+            'photo' => 'nullable|image|max:5120', // 5MB max, optionnel
         ]);
 
         if ($validator->fails()) {
@@ -91,6 +100,28 @@ class AuthController extends Controller
         }
 
         try {
+            $photoUrl = null;
+
+            // Upload de la photo si présente
+            if ($request->hasFile('photo')) {
+                Log::info("📸 Upload de la photo de profil...");
+                
+                $file = $request->file('photo');
+                $uploadResult = $this->storageService->uploadFile(
+                    $file->getContent(),
+                    'utilisateurs',
+                    $request->identifiant . '_' . time(),
+                    $file->getMimeType()
+                );
+
+                if ($uploadResult['success']) {
+                    $photoUrl = $uploadResult['url'];
+                    Log::info("✅ Photo uploadée: {$photoUrl}");
+                } else {
+                    Log::warning("⚠️ Échec upload photo: " . ($uploadResult['error'] ?? 'Erreur inconnue'));
+                }
+            }
+
             // Créer l'utilisateur dans PostgreSQL
             $user = User::create([
                 'identifiant' => $request->identifiant,
@@ -99,6 +130,7 @@ class AuthController extends Controller
                 'prenom' => $request->prenom, 
                 'dtn' => $request->dtn,
                 'email' => $request->email,
+                'photo_url' => $photoUrl,
                 'id_sexe' => $request->id_sexe,
                 'id_type_utilisateur' => 2, 
             ]);

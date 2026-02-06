@@ -22,7 +22,6 @@ import {
 } from '@coreui/icons'
 import '@coreui/coreui/dist/css/coreui.min.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
-import { ENDPOINTS, getAuthHeaders } from '../../config/api'
 import './MainManager.css'
 
 export default function ManagerLayout() {
@@ -100,9 +99,9 @@ export default function ManagerLayout() {
         setLoggingOut(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            
+
             // Appeler l'API de déconnexion
-            await fetch(ENDPOINTS.LOGOUT, {
+            await fetch('http://localhost:8000/api/auth/logout', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -131,7 +130,7 @@ export default function ManagerLayout() {
                 <div className="sidebar-header">
                     <div className="sidebar-brand d-flex align-items-center justify-content-center">
                         <img
-                            src="/assets/logo/login/logo.png"
+                            src="/assets/logo/login/logo1.png"
                             alt="LALANTSIKA"
                             height="60"
                             width="60"
@@ -238,6 +237,15 @@ export default function ManagerLayout() {
                         >
                             <CIcon icon={cilSettings} className="nav-icon" />
                             Parametres
+                        </a>
+                    </li>
+                    <li className="nav-item">
+                        <a
+                            href="/manager/synchro"
+                            className={`nav-link ${isActive('/manager/synchro') ? 'active' : ''}`}
+                        >
+                            <CIcon icon={cilCloudDownload} className="nav-icon" />
+                            Synchronisation
                         </a>
                     </li>
 

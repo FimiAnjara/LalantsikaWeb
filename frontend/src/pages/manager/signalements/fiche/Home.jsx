@@ -201,15 +201,21 @@ export default function SignalementFiche() {
             setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez saisir un budget valide." })
             return
         }
-        if (!assignSurface || isNaN(assignSurface) || Number(assignSurface) <= 0) {
-            setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez saisir une surface valide." })
-            return
-        }
         setAssignLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
             
-            // Mettre à jour le signalement (id_entreprise, budget et surface)
+            // Mettre à jour le signalement (id_entreprise et budget seulement, pas de changement de statut)
+            const updateData = {
+                id_entreprise: selectedEntreprise,
+                budget: assignBudget
+            }
+            
+            // Ajouter la surface seulement si elle est renseignée
+            if (assignSurface && !isNaN(assignSurface) && Number(assignSurface) > 0) {
+                updateData.surface = assignSurface
+            }
+            
             const res = await fetch(ENDPOINTS.REPORT(id), {
                 method: 'PUT',
                 headers: {
@@ -217,11 +223,7 @@ export default function SignalementFiche() {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    id_entreprise: selectedEntreprise,
-                    budget: assignBudget,
-                    surface: assignSurface
-                })
+                body: JSON.stringify(updateData)
             })
             const result = await res.json()
             
@@ -676,21 +678,6 @@ export default function SignalementFiche() {
                                         )}
                                     </div>
 
-                                    <div className="mb-3">
-                                        <label className="form-label fw-medium">Surface (m²)</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            value={assignSurface}
-                                            onChange={e => setAssignSurface(e.target.value)}
-                                            min="0"
-                                            step="0.1"
-                                            placeholder="Ex: 25.5"
-                                            disabled={assignLoading}
-                                        />
-                                        <div className="form-text">Surface en mètres carrés</div>
-                                    </div>
-
                                     <div className="mb-4">
                                         <label className="form-label fw-medium">Budget (Ar)</label>
                                         <input
@@ -719,7 +706,7 @@ export default function SignalementFiche() {
                                         type="button"
                                         className="btn btn-primary px-4"
                                         onClick={confirmAssign}
-                                        disabled={assignLoading || !selectedEntreprise || !assignBudget || !assignSurface}
+                                        disabled={assignLoading || !selectedEntreprise || !assignBudget}
                                     >
                                         {assignLoading ? (
                                             <>

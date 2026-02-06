@@ -15,10 +15,8 @@ class Signalement extends Model
         'surface',
         'budget',
         'description',
-        'photo',
         'id_entreprise',
         'id_utilisateur',
-        'id_statut',
         'point',
         'synchronized',
         'last_sync_at'

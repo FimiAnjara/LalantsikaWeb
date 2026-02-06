@@ -1,14 +1,9 @@
-/**
- * Types d'utilisateurs dans l'application
- * 1 = Utilisateur, 2 = Manager
- */
-export enum UserType {
-  UTILISATEUR = 1,
-  MANAGER = 2
-}
+import { Sexe } from './Sexe';
+import { TypeUtilisateur, TypeUtilisateurEnum } from './TypeUtilisateur';
 
 /**
  * Interface représentant un utilisateur dans Firestore
+ * Les relations (sexe, type_utilisateur) sont stockées en objets imbriqués
  */
 export interface User {
   uid: string;
@@ -18,12 +13,12 @@ export interface User {
   nom: string;
   prenom: string;
   dtn: string; // Date de naissance
-  id_sexe: number; // 1 = Homme, 2 = Femme, etc.
-  id_type_utilisateur: UserType;
-  photoUrl?: string; // Photo de profil (URL Firebase Storage)
+  sexe: Sexe; // Objet imbriqué
+  type_utilisateur: TypeUtilisateur; // Objet imbriqué
+  photoUrl?: string;
   createdAt?: Date;
   updatedAt?: Date;
-  last_sync_at?: string;
+  last_sync_at?: string | null;
 }
 
 /**
@@ -35,8 +30,8 @@ export interface CreateUserData {
   nom: string;
   prenom: string;
   dtn: string;
-  id_sexe: number;
-  id_type_utilisateur: UserType;
+  sexe: Sexe;
+  type_utilisateur: TypeUtilisateur;
 }
 
 /**
@@ -58,5 +53,12 @@ export const getFullName = (user: User): string => {
  * Vérifier si l'utilisateur est un Manager
  */
 export const isManager = (user: User): boolean => {
-  return user.id_type_utilisateur === UserType.MANAGER;
+  return user.type_utilisateur.id_type_utilisateur === TypeUtilisateurEnum.MANAGER;
+};
+
+/**
+ * Vérifier si l'utilisateur est un Utilisateur standard
+ */
+export const isUtilisateur = (user: User): boolean => {
+  return user.type_utilisateur.id_type_utilisateur === TypeUtilisateurEnum.UTILISATEUR;
 };

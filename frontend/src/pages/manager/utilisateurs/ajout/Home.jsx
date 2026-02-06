@@ -152,13 +152,11 @@ export default function AjoutUtilisateur() {
     const handleNextStep = () => {
         if (validateStep1()) {
             setStep(2)
-            setMessage({ type: '', text: '' })
         }
     }
 
     const handlePreviousStep = () => {
         setStep(1)
-        setMessage({ type: '', text: '' })
     }
 
     const handleSubmit = async (e) => {
@@ -169,7 +167,6 @@ export default function AjoutUtilisateur() {
         }
 
         setLoading(true)
-        setMessage({ type: '', text: '' })
 
         try {
             // Récupérer le token du localStorage ou sessionStorage
@@ -179,9 +176,9 @@ export default function AjoutUtilisateur() {
             console.log('Token (premiers 50 chars):', token?.substring(0, 50))
             
             if (!token) {
-                setMessage({ 
-                    type: 'danger', 
-                    text: 'Session expirée. Veuillez vous reconnecter.'
+                setErrorModal({ 
+                    visible: true, 
+                    message: 'Session expirée. Veuillez vous reconnecter.'
                 })
                 setLoading(false)
                 return
@@ -216,9 +213,14 @@ export default function AjoutUtilisateur() {
             if (!response.ok) {
                 const error = new Error(data.message || 'Erreur lors de l\'enregistrement')
                 // Ajouter les erreurs de validation du serveur
-                if (data.data?.errors) {
+                if (!data.success) {
                     error.validationErrors = data.data.errors
                 }
+                throw error
+            }
+            if (!data.success) {
+                const error = new Error(data.message || 'Erreur lors de l\'enregistrement')
+                error.validationErrors = data.data.errors
                 throw error
             }
 

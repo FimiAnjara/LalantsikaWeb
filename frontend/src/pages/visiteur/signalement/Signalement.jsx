@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
+import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { CBadge, CCard, CCardBody, CCardHeader, CAlert, CRow, CCol, CSpinner } from '@coreui/react'
@@ -15,15 +16,22 @@ import {
     cilWifiSignalOff
 } from '@coreui/icons'
 
-// Correction des icônes par défaut de Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Icônes personnalisées par statut
+const createStatusIcon = (status) => {
+    const statusLower = status.toLowerCase();
+    let iconFile = 'nouveau.png';
+    if (statusLower === 'en cours') iconFile = 'en cours.png';
+    else if (statusLower === 'terminé') iconFile = 'terminé.png';
 
-
+    return new L.Icon({
+        iconUrl: `/assets/icone/${iconFile}`,
+        iconSize: [50, 50],
+        iconAnchor: [25, 50],
+        tooltipAnchor: [0, -50],
+        shadowUrl: null,
+        shadowSize: null,
+    });
+};
 
 const getStatusColor = (status) => {
     const statusLower = status.toLowerCase();
@@ -35,11 +43,60 @@ const getStatusColor = (status) => {
     }
 };
 
+// Composant pour contrôler le zoom/pan de la carte
+function MapController({ center, zoom }) {
+    const map = useMap()
+    useEffect(() => {
+        if (center) {
+            map.flyTo(center, zoom || 15, { duration: 1.5 })
+        }
+    }, [center, zoom, map])
+    return null
+}
+
 export default function Signalement() {
+    const [searchParams, setSearchParams] = useSearchParams()
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [signalements, setSignalements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [searchLocation, setSearchLocation] = useState(null);
+    const [searchName, setSearchName] = useState('');
+    const [searchError, setSearchError] = useState(null);
+
+    // Géocoder la ville recherchée via Nominatim (OpenStreetMap)
+    useEffect(() => {
+        const query = searchParams.get('q')
+        if (!query) {
+            setSearchLocation(null)
+            setSearchName('')
+            setSearchError(null)
+            return
+        }
+
+        const geocode = async () => {
+            try {
+                setSearchError(null)
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=mg&limit=1`,
+                    { headers: { 'Accept-Language': 'fr' } }
+                )
+                const results = await response.json()
+                if (results.length > 0) {
+                    const { lat, lon, display_name } = results[0]
+                    setSearchLocation([parseFloat(lat), parseFloat(lon)])
+                    setSearchName(display_name.split(',')[0])
+                } else {
+                    setSearchError(`Aucun résultat pour "${query}"`)
+                    setSearchLocation(null)
+                }
+            } catch (err) {
+                console.error('Geocoding error:', err)
+                setSearchError('Erreur lors de la recherche de localisation')
+            }
+        }
+        geocode()
+    }, [searchParams])
 
     // Fonction pour récupérer les signalements depuis l'API
     const fetchSignalements = async () => {
@@ -150,15 +207,30 @@ export default function Signalement() {
                         </CAlert>
                     </div>
                 ) : (
+                    <>
+                    {searchError && (
+                        <CAlert color="warning" className="m-3 mb-0 d-flex align-items-center justify-content-between">
+                            <span>{searchError}</span>
+                            <button className="btn btn-sm btn-outline-warning" onClick={() => { setSearchParams({}); setSearchError(null); }}>Effacer</button>
+                        </CAlert>
+                    )}
+                    {searchName && !searchError && (
+                        <CAlert color="info" className="m-3 mb-0 d-flex align-items-center justify-content-between">
+                            <span>📍 Résultat : <strong>{searchName}</strong></span>
+                            <button className="btn btn-sm btn-outline-info" onClick={() => { setSearchParams({}); setSearchLocation(null); setSearchName(''); }}>Effacer</button>
+                        </CAlert>
+                    )}
                     <MapContainer 
                         center={[-18.8792, 47.5079]} 
                         zoom={13} 
                         style={{ height: '700px', width: '100%' }}
                     >
+                        <MapController center={searchLocation} zoom={15} />
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
+                    
                         
                         {signalements.length === 0 ? (
                             <div className="position-absolute top-50 start-50 translate-middle bg-white p-4 rounded shadow border">
@@ -171,67 +243,43 @@ export default function Signalement() {
                         ) : null}
                         
                         {signalements.map((s) => (
-                            <Marker key={s.id} position={s.position}>
-                                <Tooltip direction="top" offset={[0, -20]} opacity={1}>
-                                    <div style={{ minWidth: '600px', padding: '20px' }}>
-                                        <h3 className="fw-bold mb-4 border-bottom pb-3 text-primary d-flex align-items-center">
-                                            <CIcon icon={cilLocationPin} className="me-2" size="xxl" />
+                            <Marker key={s.id} position={s.position} icon={createStatusIcon(s.status)}>
+                                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                                    <div style={{ minWidth: '250px', padding: '8px' }}>
+                                        <h6 className="fw-bold mb-2 pb-2 border-bottom text-primary d-flex align-items-center" style={{ fontSize: '0.85rem' }}>
+                                            <CIcon icon={cilLocationPin} className="me-1" />
                                             {s.problem}
-                                        </h3>
+                                        </h6>
                                         
-                                        <CRow className="g-3">
-                                            {/* Première ligne d'infos */}
-                                            <CCol xs={6}>
-                                                <div className="d-flex align-items-center bg-white p-3 border rounded shadow-sm h-100">
-                                                    <CIcon icon={cilCalendar} className="me-3 text-secondary" size="xl" />
-                                                    <div>
-                                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.75rem' }}>Signalé le</div>
-                                                        <div className="fw-bold fs-5">{s.date}</div>
-                                                    </div>
-                                                </div>
-                                            </CCol>
-                                            <CCol xs={6}>
-                                                <div className="d-flex align-items-center bg-white p-3 border rounded shadow-sm h-100">
-                                                    <CIcon icon={cilResizeBoth} className="me-3 text-secondary" size="xl" />
-                                                    <div>
-                                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.75rem' }}>Surface</div>
-                                                        <div className="fw-bold fs-5">{s.surface} m²</div>
-                                                    </div>
-                                                </div>
-                                            </CCol>
-
-                                            {/* Deuxième ligne d'infos */}
-                                            <CCol xs={6}>
-                                                <div className="d-flex align-items-center bg-white p-3 border rounded shadow-sm h-100">
-                                                    <CIcon icon={cilMoney} className="me-3 text-secondary" size="xl" />
-                                                    <div>
-                                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.75rem' }}>Budget</div>
-                                                        <div className="fw-bold fs-5 text-success">{s.budget}</div>
-                                                    </div>
-                                                </div>
-                                            </CCol>
-                                            <CCol xs={6}>
-                                                <div className="d-flex align-items-center bg-white p-3 border rounded shadow-sm h-100">
-                                                    <CIcon icon={cilBuilding} className="me-3 text-secondary" size="xl" />
-                                                    <div>
-                                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.75rem' }}>Entreprise</div>
-                                                        <div className="fw-bold fs-5 text-truncate" style={{ maxWidth: '150px' }}>{s.entreprise}</div>
-                                                    </div>
-                                                </div>
-                                            </CCol>
-
-                                            {/* Statut en bas (pleine largeur pour garder de la clarté) */}
-                                            <CCol xs={12}>
-                                                <CBadge color={getStatusColor(s.status)} className="w-100 py-3 text-uppercase shadow-sm fs-5">
-                                                    Statut actuel : {s.status}
+                                        <div className="d-flex flex-column gap-1" style={{ fontSize: '0.78rem' }}>
+                                            <div className="d-flex justify-content-between">
+                                                <span className="text-muted"><CIcon icon={cilCalendar} size="sm" className="me-1" />Date</span>
+                                                <span className="fw-semibold">{s.date}</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between">
+                                                <span className="text-muted"><CIcon icon={cilResizeBoth} size="sm" className="me-1" />Surface</span>
+                                                <span className="fw-semibold">{s.surface} m²</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between">
+                                                <span className="text-muted"><CIcon icon={cilMoney} size="sm" className="me-1" />Budget</span>
+                                                <span className="fw-semibold text-success">{s.budget}</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between">
+                                                <span className="text-muted"><CIcon icon={cilBuilding} size="sm" className="me-1" />Entreprise</span>
+                                                <span className="fw-semibold">{s.entreprise}</span>
+                                            </div>
+                                            <div className="mt-1">
+                                                <CBadge color={getStatusColor(s.status)} className="w-100 py-1 text-uppercase" style={{ fontSize: '0.7rem' }}>
+                                                    {s.status}
                                                 </CBadge>
-                                            </CCol>
-                                        </CRow>
+                                            </div>
+                                        </div>
                                     </div>
                                 </Tooltip>
                             </Marker>
                         ))}
                     </MapContainer>
+                    </>
                 )}
             </CCardBody>
         </CCard>

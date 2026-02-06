@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
     CCard, 
     CCardBody, 
@@ -13,7 +13,9 @@ import {
     CTableHeaderCell,
     CTableRow,
     CProgress,
-    CBadge
+    CBadge,
+    CSpinner,
+    CAlert
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
@@ -25,48 +27,21 @@ import {
     cilReload,
     cilBell
 } from '@coreui/icons'
-
-const signalements = [
-    {
-        id: 1,
-        problem: "Nid-de-poule majeur",
-        date: "2024-01-15",
-        status: "nouveau",
-        surface: 12,
-        budget: 500000,
-        entreprise: "Axe Construction"
-    },
-    {
-        id: 2,
-        problem: "Route affaissée",
-        date: "2024-01-10",
-        status: "en cours",
-        surface: 45,
-        budget: 2500000,
-        entreprise: "Colas M'car"
-    },
-    {
-        id: 3,
-        problem: "Fissures transversales",
-        date: "2023-12-20",
-        status: "terminé",
-        surface: 8,
-        budget: 2000000,
-        entreprise: "HERY TP"
-    }
-];
+import { ENDPOINTS } from '../../../config/api'
 
 const getStatusBadge = (status) => {
-    switch (status) {
+    const statusLower = (status || '').toLowerCase();
+    switch (statusLower) {
         case 'nouveau': return <CBadge color="danger" shape="rounded-pill"><CIcon icon={cilBell} className="me-1" />Nouveau</CBadge>;
         case 'en cours': return <CBadge color="warning" shape="rounded-pill"><CIcon icon={cilReload} className="me-1" />En cours</CBadge>;
         case 'terminé': return <CBadge color="success" shape="rounded-pill"><CIcon icon={cilCheckCircle} className="me-1" />Terminé</CBadge>;
-        default: return <CBadge color="secondary">{status}</CBadge>;
+        default: return <CBadge color="secondary">{status || 'Inconnu'}</CBadge>;
     }
 };
 
 const getProgressValue = (status) => {
-    switch (status) {
+    const statusLower = (status || '').toLowerCase();
+    switch (statusLower) {
         case 'nouveau': return 0;
         case 'en cours': return 50;
         case 'terminé': return 100;
@@ -75,10 +50,68 @@ const getProgressValue = (status) => {
 };
 
 export default function Recap() {
+    const [signalements, setSignalements] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const fetchSignalements = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await fetch(ENDPOINTS.REPORTS_PUBLIC, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const result = await response.json();
+            if (result.success) {
+                const data = result.data.map(s => ({
+                    id: s.id_signalement,
+                    problem: s.description || 'Problème de route',
+                    date: s.daty_signalement ? new Date(s.daty_signalement).toLocaleDateString('fr-FR') : 'N/A',
+                    status: s.dernier_statut?.statut?.libelle || 'Nouveau',
+                    surface: parseFloat(s.surface) || 0,
+                    budget: parseFloat(s.budget) || 0,
+                    entreprise: s.entreprise?.nom || 'Non assignée'
+                }));
+                setSignalements(data);
+            } else {
+                setError(result.message || 'Erreur lors du chargement');
+            }
+        } catch (err) {
+            setError(`Erreur de connexion: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchSignalements(); }, []);
+
     const totalPoints = signalements.length;
     const totalSurface = signalements.reduce((acc, s) => acc + s.surface, 0);
     const totalBudget = signalements.reduce((acc, s) => acc + s.budget, 0);
-    const averageProgress = Math.round(signalements.reduce((acc, s) => acc + getProgressValue(s.status), 0) / totalPoints);
+    const averageProgress = totalPoints > 0 
+        ? Math.round(signalements.reduce((acc, s) => acc + getProgressValue(s.status), 0) / totalPoints) 
+        : 0;
+
+    if (loading) {
+        return (
+            <div className="d-flex flex-column align-items-center justify-content-center py-5">
+                <CSpinner className="mb-3" />
+                <h5 className="text-secondary">Chargement du récapitulatif...</h5>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <CAlert color="danger" className="text-center">
+                <h4>Erreur de chargement</h4>
+                <p>{error}</p>
+                <button className="btn btn-outline-danger" onClick={fetchSignalements}>Réessayer</button>
+            </CAlert>
+        );
+    }
 
     return (
         <div className="recap-page">
@@ -134,6 +167,7 @@ export default function Recap() {
                         <CTableHead color="light">
                             <CTableRow>
                                 <CTableHeaderCell className="ps-4">Problème</CTableHeaderCell>
+                                <CTableHeaderCell>Date</CTableHeaderCell>
                                 <CTableHeaderCell>Entreprise</CTableHeaderCell>
                                 <CTableHeaderCell>Surface</CTableHeaderCell>
                                 <CTableHeaderCell>Budget</CTableHeaderCell>
@@ -146,7 +180,9 @@ export default function Recap() {
                                 <CTableRow key={s.id}>
                                     <CTableDataCell className="ps-4">
                                         <div className="fw-bold">{s.problem}</div>
-                                        <div className="small text-secondary">{s.date}</div>
+                                    </CTableDataCell>
+                                    <CTableDataCell>
+                                        <div className="small fw-semibold">{s.date}</div>
                                     </CTableDataCell>
                                     <CTableDataCell>{s.entreprise}</CTableDataCell>
                                     <CTableDataCell>{s.surface} m²</CTableDataCell>
@@ -158,7 +194,7 @@ export default function Recap() {
                                                 <CProgress 
                                                     height={6} 
                                                     value={getProgressValue(s.status)} 
-                                                    color={s.status === 'terminé' ? 'success' : s.status === 'en cours' ? 'warning' : 'danger'}
+                                                    color={s.status.toLowerCase() === 'terminé' ? 'success' : s.status.toLowerCase() === 'en cours' ? 'warning' : 'danger'}
                                                 />
                                             </div>
                                             <span className="small fw-semibold">{getProgressValue(s.status)}%</span>

@@ -127,7 +127,7 @@ class AuthController extends Controller
                 'identifiant' => $request->identifiant,
                 'mdp' => Hash::make($request->mdp),
                 'nom' => $request->nom,
-                'prenom' => $request->prenom,
+                'prenom' => $request->prenom, 
                 'dtn' => $request->dtn,
                 'email' => $request->email,
                 'photo_url' => $photoUrl,

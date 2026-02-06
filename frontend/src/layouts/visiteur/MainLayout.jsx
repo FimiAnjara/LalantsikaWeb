@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
     CButton,
     CCollapse,
@@ -32,9 +32,19 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 
 export default function MainLayout() {
     const [visible, setVisible] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
     const location = useLocation()
+    const navigate = useNavigate()
 
     const isActive = (path) => location.pathname === path
+
+    const handleSearch = (e) => {
+        e.preventDefault()
+        if (searchQuery.trim()) {
+            navigate(`/visiteur/signalement?q=${encodeURIComponent(searchQuery.trim())}`)
+            setSearchQuery('')
+        }
+    }
 
     return (
         <div className="main-layout bg-light">
@@ -83,12 +93,14 @@ export default function MainLayout() {
                                 </CNavLink>
                             </CNavItem>
                         </CNavbarNav>
-                        <CForm className="d-flex ms-auto align-items-center">
+                        <CForm className="d-flex ms-auto align-items-center" onSubmit={handleSearch}>
                             <CFormInput
                                 type="search"
                                 className="me-2 rounded-pill bg-dark border-secondary text-white px-3"
-                                placeholder="Rechercher..."
+                                placeholder="Rechercher une ville..."
                                 size="sm"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                             />
                             <CButton
                                 type="submit"

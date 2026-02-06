@@ -11,6 +11,7 @@ use App\Http\Controllers\SignalementController;
 
 // Routes publiques (sans authentification)
 Route::get('/reports', [SignalementController::class, 'index']);
+Route::get('/public/reports', [SignalementController::class, 'indexPublic']); // Route publique pour les visiteurs
 Route::get('/reports/{id}', [SignalementController::class, 'show']);
 Route::get('/statuses', [SignalementController::class, 'getStatuts']);
 

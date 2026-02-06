@@ -644,6 +644,24 @@
                 ]
             }
         },
+        "/public/reports": {
+            "get": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Liste publique des signalements pour les visiteurs",
+                "description": "Liste publique des signalements pour les visiteurs (sans authentification)",
+                "operationId": "f02e1d1b28e49f725c8132ed71581c58",
+                "responses": {
+                    "200": {
+                        "description": "Liste récupérée avec succès"
+                    },
+                    "500": {
+                        "description": "Erreur serveur"
+                    }
+                }
+            }
+        },
         "/reports": {
             "get": {
                 "tags": [

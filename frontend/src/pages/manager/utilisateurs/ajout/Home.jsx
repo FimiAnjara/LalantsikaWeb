@@ -11,8 +11,8 @@ import {
     CRow,
     CInputGroup,
     CInputGroupText,
-    CAlert,
     CProgress,
+    CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
@@ -26,6 +26,7 @@ import {
     cilChevronRight,
     cilChevronLeft,
 } from '@coreui/icons'
+import { ErrorModal, SuccessModal } from '../../../../components/ui'
 import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Ajout.css'
 
@@ -46,7 +47,8 @@ export default function AjoutUtilisateur() {
     })
     const [photoPreview, setPhotoPreview] = useState(null)
     const [loading, setLoading] = useState(false)
-    const [message, setMessage] = useState({ type: '', text: '' })
+    const [successModal, setSuccessModal] = useState({ visible: false, message: '' })
+    const [errorModal, setErrorModal] = useState({ visible: false, message: '' })
     const [errors, setErrors] = useState({})
 
     // Debug: Afficher l'état du token au chargement
@@ -220,9 +222,9 @@ export default function AjoutUtilisateur() {
                 throw error
             }
 
-            setMessage({ 
-                type: 'success', 
-                text: 'Utilisateur créé avec succès! ' + (data.data?.sync_message || '') 
+            setSuccessModal({ 
+                visible: true, 
+                message: 'Utilisateur créé avec succès! ' + (data.data?.sync_message || '') 
             })
             
             // Réinitialiser le formulaire et revenir à l'étape 1
@@ -240,10 +242,6 @@ export default function AjoutUtilisateur() {
             setPhotoPreview(null)
             setStep(1)
             setErrors({})
-
-            setTimeout(() => {
-                setMessage({ type: '', text: '' })
-            }, 3000)
         } catch (error) {
             // Si l'erreur contient des erreurs de validation du serveur
             if (error.validationErrors) {
@@ -258,9 +256,9 @@ export default function AjoutUtilisateur() {
                     setStep(1)
                 }
             }
-            setMessage({ 
-                type: 'danger', 
-                text: error.message || 'Une erreur est survenue'
+            setErrorModal({ 
+                visible: true, 
+                message: error.message || 'Une erreur est survenue'
             })
         } finally {
             setLoading(false)
@@ -292,12 +290,7 @@ export default function AjoutUtilisateur() {
                     </div>
                     <CProgress value={step * 50} className="mt-2" />
                 </CCardHeader>
-                <CCardBody className="p-4">
-                    {message.text && (
-                        <CAlert color={message.type} className="mb-3">
-                            {message.text}
-                        </CAlert>
-                    )}
+                <CCardBody className="p-3 p-md-4">
                     <CForm onSubmit={handleSubmit}>
                         {step === 1 ? (
                             <>
@@ -550,6 +543,22 @@ export default function AjoutUtilisateur() {
                     </CForm>
                 </CCardBody>
             </CCard>
+
+            {/* Success Modal */}
+            <SuccessModal
+                visible={successModal.visible}
+                title="Succès"
+                message={successModal.message}
+                onClose={() => setSuccessModal({ visible: false, message: '' })}
+            />
+
+            {/* Error Modal */}
+            <ErrorModal
+                visible={errorModal.visible}
+                title="Erreur"
+                message={errorModal.message}
+                onClose={() => setErrorModal({ visible: false, message: '' })}
+            />
         </div>
     )
 }

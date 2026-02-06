@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CCard, CCardHeader, CCardBody, CBadge, CButton, CFormSelect, CFormInput, CRow, CCol } from '@coreui/react'
+import { CCard, CCardHeader, CCardBody, CBadge, CButton, CFormSelect, CFormInput, CRow, CCol, CAlert } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilMap, cilUser, cilFilter, cilCheckCircle, cilWarning, cilXCircle, cilSync, cilList } from '@coreui/icons'
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { LoadingSpinner } from '../../../../components/ui'
 import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Carte.css'
 
@@ -151,8 +152,8 @@ export default function SignalementCarte() {
 
     return (
         <div className="signalement-carte">
-            {loading && <div className="text-center my-4">Chargement des signalements...</div>}
-            {error && <div className="alert alert-danger my-4">{error}</div>}
+            {loading && <LoadingSpinner message="Chargement des signalements..." />}
+            {error && <CAlert color="danger" className="my-4">{error}</CAlert>}
             <div className="page-header d-flex align-items-center gap-3 mb-4">
                 <div className="header-icon">
                     <CIcon icon={cilMap} size="lg" />

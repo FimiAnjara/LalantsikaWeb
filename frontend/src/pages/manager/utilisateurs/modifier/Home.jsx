@@ -13,14 +13,15 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilArrowLeft, cilCheckAlt, cilX, cilUser } from '@coreui/icons'
-import Modal from '../../../../components/Modal'
+import { ErrorModal, SuccessModal, LoadingSpinner } from '../../../../components/ui'
 import { ENDPOINTS, getAuthHeaders, API_BASE_URL } from '../../../../config/api'
 import './Modifier.css'
 
 export default function ModifierUtilisateur() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
+    const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [sexes, setSexes] = useState([])
@@ -77,18 +78,16 @@ export default function ModifierUtilisateur() {
                     current_photo_url: result.data.photo_url || '',
                 })
             } else {
-                setModal({
+                setErrorModal({
                     visible: true,
-                    type: 'danger',
                     title: 'Erreur',
                     message: result.message || 'Utilisateur non trouvé'
                 })
             }
         } catch (error) {
             console.error('Erreur:', error)
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
                 title: 'Erreur',
                 message: 'Impossible de charger les données de l\'utilisateur'
             })
@@ -193,9 +192,8 @@ export default function ModifierUtilisateur() {
             const result = await response.json()
 
             if (result.success) {
-                setModal({
+                setSuccessModal({
                     visible: true,
-                    type: 'success',
                     title: 'Succès',
                     message: 'Utilisateur modifié avec succès'
                 })
@@ -208,18 +206,16 @@ export default function ModifierUtilisateur() {
                 if (result.data?.errors) {
                     setErrors(result.data.errors)
                 }
-                setModal({
+                setErrorModal({
                     visible: true,
-                    type: 'danger',
                     title: 'Erreur',
                     message: result.message || 'Erreur lors de la modification'
                 })
             }
         } catch (error) {
             console.error('Erreur:', error)
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
                 title: 'Erreur',
                 message: 'Erreur lors de la modification'
             })
@@ -233,11 +229,7 @@ export default function ModifierUtilisateur() {
     }
 
     if (loading) {
-        return (
-            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-                <CSpinner color="primary" />
-            </div>
-        )
+        return <LoadingSpinner message="Chargement de l'utilisateur..." />
     }
 
     return (
@@ -471,12 +463,19 @@ export default function ModifierUtilisateur() {
             </CCard>
 
             {/* Success Modal */}
-            <Modal
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                onClose={() => setModal({ ...modal, visible: false })}
+            <SuccessModal
+                visible={successModal.visible}
+                title={successModal.title}
+                message={successModal.message}
+                onClose={() => setSuccessModal({ ...successModal, visible: false })}
+            />
+
+            {/* Error Modal */}
+            <ErrorModal
+                visible={errorModal.visible}
+                title={errorModal.title}
+                message={errorModal.message}
+                onClose={() => setErrorModal({ ...errorModal, visible: false })}
             />
         </div>
     )

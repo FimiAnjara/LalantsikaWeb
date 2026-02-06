@@ -24,7 +24,7 @@ import {
     cilArrowRight,
     cilX,
 } from '@coreui/icons'
-import Modal from '../../../../components/Modal'
+import { LoadingSpinner, ErrorModal, SuccessModal, ConfirmModal } from '../../../../components/ui'
 import { API_BASE_URL, ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Fiche.css'
 
@@ -39,7 +39,8 @@ const STATUT_FLOW = {
 export default function SignalementFiche() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [errorModal, setErrorModal] = useState({ visible: false, message: '' })
+    const [successModal, setSuccessModal] = useState({ visible: false, message: '' })
     const [histoStatuts, setHistoStatuts] = useState([])
     const [loadingHisto, setLoadingHisto] = useState(true)
     const [deleteModal, setDeleteModal] = useState({ visible: false })
@@ -299,7 +300,7 @@ export default function SignalementFiche() {
     }
 
 
-    if (loading) return <div className="fiche-signalement"><div className="text-center p-5">Chargement...</div></div>
+    if (loading) return <LoadingSpinner isLoading={true} message="Chargement du signalement..." />
     if (error) return <div className="fiche-signalement"><div className="alert alert-danger m-4">{error}</div></div>
     if (!signalement) return null
 

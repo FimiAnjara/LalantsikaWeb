@@ -5,7 +5,11 @@ import {
     CContainer,
     CBreadcrumb,
     CBreadcrumbItem,
-    CSpinner
+    CSpinner,
+    COffcanvas,
+    COffcanvasHeader,
+    COffcanvasBody,
+    CCloseButton,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -13,12 +17,11 @@ import {
     cilAccountLogout,
     cilCloudDownload,
     cilPeople,
-    cilPlus,
-    cilList,
     cilArrowRight,
     cilUser,
     cilSettings,
     cilTask,
+    cilMenu,
 } from '@coreui/icons'
 import { API_BASE_URL } from '../../config/api'
 import '@coreui/coreui/dist/css/coreui.min.css'
@@ -31,6 +34,8 @@ export default function ManagerLayout() {
     const [expandedMenu, setExpandedMenu] = useState(null)
     const [loggingOut, setLoggingOut] = useState(false)
     const [user, setUser] = useState(null)
+    const [sidebarVisible, setSidebarVisible] = useState(false)
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 992)
 
     // Helper pour construire l'URL de la photo (locale ou externe)
     const getPhotoUrl = (photoUrl) => {
@@ -40,6 +45,19 @@ export default function ManagerLayout() {
         }
         return `${API_BASE_URL}${photoUrl}`
     }
+
+    // Détecter le changement de taille d'écran
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 992
+            setIsMobile(mobile)
+            if (!mobile) {
+                setSidebarVisible(false)
+            }
+        }
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     // Charger les données utilisateur au montage
     useEffect(() => {
@@ -67,6 +85,17 @@ export default function ManagerLayout() {
 
     const toggleMenu = (menu) => {
         setExpandedMenu(expandedMenu === menu ? null : menu)
+    }
+
+    // Fermer le sidebar mobile lors de la navigation
+    const handleNavClick = (e, href) => {
+        if (href.startsWith('#')) {
+            e.preventDefault()
+            return
+        }
+        if (isMobile) {
+            setSidebarVisible(false)
+        }
     }
 
     const getBreadcrumbs = () => {
@@ -111,7 +140,7 @@ export default function ManagerLayout() {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
 
             // Appeler l'API de déconnexion
-            await fetch('http://localhost:8000/api/auth/logout', {
+            await fetch(`${API_BASE_URL}/api/auth/logout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -133,179 +162,225 @@ export default function ManagerLayout() {
 
     const breadcrumbs = getBreadcrumbs()
 
-    return (
-        <div className="d-flex vh-100">
-            {/* Sidebar */}
-            <div className="manager-sidebar d-flex flex-column">
-                <div className="sidebar-header">
-                    <div className="sidebar-brand d-flex align-items-center justify-content-center">
-                        <img
-                            src="/assets/logo/login/logo1.png"
-                            alt="LALANTSIKA"
-                            height="60"
-                            width="60"
-                        />
-                    </div>
-                </div>
-                <ul className="sidebar-nav flex-grow-1">
-                    <li className="nav-title">General</li>
-                    <li className="nav-item">
-                        <a
-                            href="/manager/home"
-                            className={`nav-link ${isActive('/manager/home') ? 'active' : ''}`}
-                        >
-                            <CIcon icon={cilChartPie} className="nav-icon" />
-                            Tableau de bord
-                        </a>
-                    </li>
-                    <li className="nav-item nav-group-parent">
-                        <a
-                            href="#"
-                            onClick={(e) => {
-                                e.preventDefault()
-                                toggleMenu('utilisateur')
-                            }}
-                            className={`nav-link ${isMenuActive('/manager/utilisateurs') ? 'parent-active' : ''}`}
-                        >
-                            <CIcon icon={cilPeople} className="nav-icon" />
-                            Utilisateur
-                            <CIcon
-                                icon={cilArrowRight}
-                                className={`ms-auto arrow-icon ${expandedMenu === 'utilisateur' ? 'expanded' : ''}`}
-                            />
-                        </a>
-                        <ul
-                            className="nav-group-items"
-                            style={{
-                                display: expandedMenu === 'utilisateur' ? 'block' : 'none'
-                            }}
-                        >
-                            <li className="nav-item">
-                                <a
-                                    href="/manager/utilisateurs/ajout"
-                                    className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}
-                                >
-                                    Ajouter
-                                </a>
-                            </li>
-                            <li className="nav-item">
-                                <a
-                                    href="/manager/utilisateurs/liste"
-                                    className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}
-                                >
-                                    Liste
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    <li className="nav-item nav-group-parent">
-                        <a
-                            href="#"
-                            onClick={(e) => {
-                                e.preventDefault()
-                                toggleMenu('signalement')
-                            }}
-                            className={`nav-link ${isMenuActive('/manager/signalements') ? 'parent-active' : ''}`}
-                        >
-                            <CIcon icon={cilTask} className="nav-icon" />
-                            Signalement
-                            <CIcon
-                                icon={cilArrowRight}
-                                className={`ms-auto arrow-icon ${expandedMenu === 'signalement' ? 'expanded' : ''}`}
-                            />
-                        </a>
-                        <ul
-                            className="nav-group-items"
-                            style={{
-                                display: expandedMenu === 'signalement' ? 'block' : 'none'
-                            }}
-                        >
-                            <li className="nav-item">
-                                <a
-                                    href="/manager/signalements/liste"
-                                    className={`nav-link ${isActive('/manager/signalements/liste') ? 'active' : ''}`}
-                                >
-                                    Liste
-                                </a>
-                            </li>
-                            <li className="nav-item">
-                                <a
-                                    href="/manager/signalements/carte"
-                                    className={`nav-link ${isActive('/manager/signalements/carte') ? 'active' : ''}`}
-                                >
-                                    Carte
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li className="nav-title">Parametres</li>
-                    <li className="nav-item">
-                        <a
-                            href="/manager/parametres"
-                            className={`nav-link ${isActive('/manager/parametres') ? 'active' : ''}`}
-                        >
-                            <CIcon icon={cilSettings} className="nav-icon" />
-                            Parametres
-                        </a>
-                    </li>
-                    <li className="nav-item">
-                        <a
-                            href="/manager/synchro"
-                            className={`nav-link ${isActive('/manager/synchro') ? 'active' : ''}`}
-                        >
-                            <CIcon icon={cilCloudDownload} className="nav-icon" />
-                            Synchronisation
-                        </a>
-                    </li>
-
-                </ul>
-                <div className="sidebar-footer">
-                    <CButton
-                        color="danger"
-                        size="sm"
-                        className="w-100 d-flex align-items-center justify-content-center btn-logout"
-                        onClick={handleLogout}
-                        disabled={loggingOut}
+    // Contenu du sidebar (réutilisé pour desktop et mobile)
+    const SidebarContent = () => (
+        <>
+            <ul className="sidebar-nav flex-grow-1">
+                <li className="nav-title">General</li>
+                <li className="nav-item">
+                    <a
+                        href="/manager/home"
+                        onClick={(e) => handleNavClick(e, '/manager/home')}
+                        className={`nav-link ${isActive('/manager/home') ? 'active' : ''}`}
                     >
-                        {loggingOut ? (
-                            <>
-                                <CSpinner size="sm" className="me-2" />
-                                Déconnexion...
-                            </>
-                        ) : (
-                            <>
-                                <CIcon icon={cilAccountLogout} className="me-2" />
-                                Déconnexion
-                            </>
-                        )}
-                    </CButton>
-                </div>
+                        <CIcon icon={cilChartPie} className="nav-icon" />
+                        Tableau de bord
+                    </a>
+                </li>
+                <li className="nav-item nav-group-parent">
+                    <a
+                        href="#"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            toggleMenu('utilisateur')
+                        }}
+                        className={`nav-link ${isMenuActive('/manager/utilisateurs') ? 'parent-active' : ''}`}
+                    >
+                        <CIcon icon={cilPeople} className="nav-icon" />
+                        Utilisateur
+                        <CIcon
+                            icon={cilArrowRight}
+                            className={`ms-auto arrow-icon ${expandedMenu === 'utilisateur' ? 'expanded' : ''}`}
+                        />
+                    </a>
+                    <ul
+                        className="nav-group-items"
+                        style={{
+                            display: expandedMenu === 'utilisateur' ? 'block' : 'none'
+                        }}
+                    >
+                        <li className="nav-item">
+                            <a
+                                href="/manager/utilisateurs/ajout"
+                                onClick={(e) => handleNavClick(e, '/manager/utilisateurs/ajout')}
+                                className={`nav-link ${isActive('/manager/utilisateurs/ajout') ? 'active' : ''}`}
+                            >
+                                Ajouter
+                            </a>
+                        </li>
+                        <li className="nav-item">
+                            <a
+                                href="/manager/utilisateurs/liste"
+                                onClick={(e) => handleNavClick(e, '/manager/utilisateurs/liste')}
+                                className={`nav-link ${isActive('/manager/utilisateurs/liste') ? 'active' : ''}`}
+                            >
+                                Liste
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li className="nav-item nav-group-parent">
+                    <a
+                        href="#"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            toggleMenu('signalement')
+                        }}
+                        className={`nav-link ${isMenuActive('/manager/signalements') ? 'parent-active' : ''}`}
+                    >
+                        <CIcon icon={cilTask} className="nav-icon" />
+                        Signalement
+                        <CIcon
+                            icon={cilArrowRight}
+                            className={`ms-auto arrow-icon ${expandedMenu === 'signalement' ? 'expanded' : ''}`}
+                        />
+                    </a>
+                    <ul
+                        className="nav-group-items"
+                        style={{
+                            display: expandedMenu === 'signalement' ? 'block' : 'none'
+                        }}
+                    >
+                        <li className="nav-item">
+                            <a
+                                href="/manager/signalements/liste"
+                                onClick={(e) => handleNavClick(e, '/manager/signalements/liste')}
+                                className={`nav-link ${isActive('/manager/signalements/liste') ? 'active' : ''}`}
+                            >
+                                Liste
+                            </a>
+                        </li>
+                        <li className="nav-item">
+                            <a
+                                href="/manager/signalements/carte"
+                                onClick={(e) => handleNavClick(e, '/manager/signalements/carte')}
+                                className={`nav-link ${isActive('/manager/signalements/carte') ? 'active' : ''}`}
+                            >
+                                Carte
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li className="nav-title">Parametres</li>
+                <li className="nav-item">
+                    <a
+                        href="/manager/parametres"
+                        onClick={(e) => handleNavClick(e, '/manager/parametres')}
+                        className={`nav-link ${isActive('/manager/parametres') ? 'active' : ''}`}
+                    >
+                        <CIcon icon={cilSettings} className="nav-icon" />
+                        Parametres
+                    </a>
+                </li>
+                <li className="nav-item">
+                    <a
+                        href="/manager/synchro"
+                        onClick={(e) => handleNavClick(e, '/manager/synchro')}
+                        className={`nav-link ${isActive('/manager/synchro') ? 'active' : ''}`}
+                    >
+                        <CIcon icon={cilCloudDownload} className="nav-icon" />
+                        Synchronisation
+                    </a>
+                </li>
+            </ul>
+
+            <div className="sidebar-footer">
+                <CButton
+                    color="danger"
+                    size="sm"
+                    className="w-100 d-flex align-items-center justify-content-center btn-logout"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                >
+                    {loggingOut ? (
+                        <>
+                            <CSpinner size="sm" className="me-2" />
+                            Déconnexion...
+                        </>
+                    ) : (
+                        <>
+                            <CIcon icon={cilAccountLogout} className="me-2" />
+                            Déconnexion
+                        </>
+                    )}
+                </CButton>
             </div>
+        </>
+    )
+
+    return (
+        <div className="d-flex vh-100 manager-layout">
+            {/* Sidebar Desktop */}
+            {!isMobile && (
+                <div className="manager-sidebar d-flex flex-column">
+                    <div className="sidebar-header">
+                        <div className="sidebar-brand d-flex align-items-center justify-content-center">
+                            <img
+                                src="/assets/logo/login/logo1.png"
+                                alt="LALANTSIKA"
+                                height="60"
+                                width="60"
+                            />
+                        </div>
+                    </div>
+                    <SidebarContent />
+                </div>
+            )}
+
+            {/* Sidebar Mobile (Offcanvas) */}
+            <COffcanvas
+                visible={sidebarVisible}
+                onHide={() => setSidebarVisible(false)}
+                placement="start"
+                className="manager-sidebar-mobile"
+            >
+                <COffcanvasHeader className="border-bottom">
+                    <img
+                        src="/assets/logo/login/logo1.png"
+                        alt="LALANTSIKA"
+                        height="40"
+                        width="40"
+                    />
+                    <CCloseButton className="text-reset" onClick={() => setSidebarVisible(false)} />
+                </COffcanvasHeader>
+                <COffcanvasBody className="p-0">
+                    <div className="d-flex flex-column h-100">
+                        <SidebarContent />
+                    </div>
+                </COffcanvasBody>
+            </COffcanvas>
 
             {/* Main Content */}
-            <div className="flex-grow-1 d-flex flex-column">
+            <div className="flex-grow-1 d-flex flex-column main-content-wrapper">
                 {/* Header */}
-                <div className="manager-header" style={{ width: '100%' }}>
-                    <div className="d-flex justify-content-end align-items-center w-100">
-                        <div className="d-flex align-items-center gap-2">
+                <div className="manager-header">
+                    <div className="d-flex justify-content-between align-items-center w-100">
+                        {/* Menu hamburger pour mobile */}
+                        {isMobile && (
+                            <CButton
+                                color="light"
+                                variant="ghost"
+                                onClick={() => setSidebarVisible(true)}
+                                className="menu-toggle-btn"
+                            >
+                                <CIcon icon={cilMenu} size="lg" />
+                            </CButton>
+                        )}
+
+                        <div className="d-flex align-items-center gap-2 ms-auto">
                             <div className="user-avatar">
                                 {user?.photo_url ? (
                                     <img 
                                         src={getPhotoUrl(user.photo_url)} 
                                         alt={user.prenom}
-                                        style={{ 
-                                            width: '40px', 
-                                            height: '40px', 
-                                            objectFit: 'cover', 
-                                            borderRadius: '50%' 
-                                        }} 
+                                        className="user-avatar-img"
                                     />
                                 ) : (
                                     <CIcon icon={cilUser} />
                                 )}
                             </div>
-                            <div className="user-info">
+                            <div className="user-info d-none d-sm-block">
                                 <div className="user-name">
                                     {user ? `${user.prenom} ${user.nom}` : 'Manager'}
                                 </div>
@@ -315,9 +390,9 @@ export default function ManagerLayout() {
                 </div>
 
                 {/* Content Area */}
-                <main className="flex-grow-1 overflow-auto" style={{ backgroundColor: '#f5f5f5' }}>
-                    <CContainer fluid className="p-4">
-                        <CBreadcrumb style={{ '--cui-breadcrumb-divider': '">"' }} className="ms-2 mb-3">
+                <main className="flex-grow-1 overflow-auto content-area">
+                    <CContainer fluid className="p-2 p-sm-3 p-lg-4">
+                        <CBreadcrumb style={{ '--cui-breadcrumb-divider': '">"' }} className="ms-2 mb-3 d-none d-sm-flex">
                             {breadcrumbs.map((breadcrumb, index) => (
                                 <CBreadcrumbItem
                                     key={index}
@@ -329,7 +404,7 @@ export default function ManagerLayout() {
                                 </CBreadcrumbItem>
                             ))}
                         </CBreadcrumb>
-                        <div className="bg-white rounded-4 shadow-sm p-4">
+                        <div className="bg-white rounded-3 shadow-sm p-2 p-sm-3 p-lg-4 content-card">
                             <Outlet />
                         </div>
                     </CContainer>

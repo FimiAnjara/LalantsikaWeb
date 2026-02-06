@@ -1,0 +1,85 @@
+/* ===========================================
+   Unified Modal Styles - CoreUI Base Colors
+   =========================================== */
+
+.unified-modal .modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.unified-modal .modal-header {
+    padding: 1.25rem 1.5rem 0.5rem;
+}
+
+.unified-modal .modal-body {
+    padding: 0.75rem 1.5rem;
+}
+
+.unified-modal .modal-footer {
+    padding: 0.75rem 1.5rem 1.25rem;
+    gap: 0.5rem;
+}
+
+/* Icon Wrapper */
+.modal-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Error Modal Specific */
+.error-modal .modal-content {
+    border-top: 4px solid var(--cui-danger);
+}
+
+/* Success Modal Specific */
+.success-modal .modal-content {
+    border-top: 4px solid var(--cui-success);
+}
+
+/* Confirm Modal Specific */
+.confirm-modal-warning .modal-content {
+    border-top: 4px solid var(--cui-warning);
+}
+
+.confirm-modal-danger .modal-content {
+    border-top: 4px solid var(--cui-danger);
+}
+
+.confirm-modal-info .modal-content {
+    border-top: 4px solid var(--cui-info);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 576px) {
+    .unified-modal .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .unified-modal .modal-header {
+        padding: 1rem 1rem 0.5rem;
+    }
+
+    .unified-modal .modal-body {
+        padding: 0.5rem 1rem;
+    }
+
+    .unified-modal .modal-footer {
+        padding: 0.5rem 1rem 1rem;
+        flex-direction: column;
+    }
+
+    .unified-modal .modal-footer .btn {
+        width: 100%;
+    }
+
+    .modal-icon-wrapper {
+        width: 40px;
+        height: 40px;
+    }
+}

@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import {
     CCard,
     CCardBody,
+    CCardHeader,
     CButton,
     CSpinner,
     CProgress,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSync, cilReload, cilCloudUpload, cilCloudDownload, cilCheckCircle } from '@coreui/icons'
-import MessageModal from '../../../components/MessageModal'
+import { ErrorModal, SuccessModal } from '../../../components/ui'
 import api from '../../../services/api'
 import './Synchro.css'
 
@@ -18,13 +19,8 @@ export default function Synchro() {
     const [firebaseStatus, setFirebaseStatus] = useState(null)
     const [histoToFirebaseStatus, setHistoToFirebaseStatus] = useState(null)
     const [statusLoading, setStatusLoading] = useState(true)
-    const [modal, setModal] = useState({
-        visible: false,
-        type: 'success',
-        title: '',
-        message: '',
-        autoClose: true
-    })
+    const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
+    const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
 
     // Charger le statut de synchronisation au montage
     useEffect(() => {
@@ -146,23 +142,27 @@ export default function Synchro() {
                 message += '\n⚠️ Erreurs:\n' + results.errors.map(e => `   • ${e}`).join('\n')
             }
 
-            setModal({
-                visible: true,
-                type: hasErrors ? 'warning' : 'success',
-                title: hasErrors ? 'Synchronisation partielle' : 'Synchronisation terminée',
-                message: message || 'Aucune donnée à synchroniser',
-                autoClose: !hasErrors
-            })
+            if (hasErrors) {
+                setErrorModal({
+                    visible: true,
+                    title: 'Synchronisation partielle',
+                    message: message || 'Des erreurs sont survenues pendant la synchronisation'
+                })
+            } else {
+                setSuccessModal({
+                    visible: true,
+                    title: 'Synchronisation terminée',
+                    message: message || 'Aucune donnée à synchroniser'
+                })
+            }
 
             await fetchAllStatus()
         } catch (err) {
             console.error('Erreur synchronisation:', err)
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'error',
                 title: 'Erreur de synchronisation',
-                message: err.response?.data?.message || 'Impossible de synchroniser',
-                autoClose: false
+                message: err.response?.data?.message || 'Impossible de synchroniser'
             })
         } finally {
             setSyncing(false)
@@ -209,6 +209,10 @@ export default function Synchro() {
 
             {/* Contenu principal */}
             <CCard className="sync-card">
+                <CCardHeader className="sync-card-header">
+                    <CIcon icon={cilSync} className="me-2" />
+                    Synchronisation des données
+                </CCardHeader>
                 <CCardBody className="p-4">
                     {statusLoading ? (
                         <div className="text-center py-5">
@@ -318,15 +322,20 @@ export default function Synchro() {
                 </CCardBody>
             </CCard>
 
-            {/* Message Modal */}
-            <MessageModal
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                autoClose={modal.autoClose}
-                autoCloseDelay={4000}
-                onClose={() => setModal({ ...modal, visible: false })}
+            {/* Success Modal */}
+            <SuccessModal
+                visible={successModal.visible}
+                title={successModal.title}
+                message={successModal.message}
+                onClose={() => setSuccessModal({ ...successModal, visible: false })}
+            />
+
+            {/* Error Modal */}
+            <ErrorModal
+                visible={errorModal.visible}
+                title={errorModal.title}
+                message={errorModal.message}
+                onClose={() => setErrorModal({ ...errorModal, visible: false })}
             />
         </div>
     )

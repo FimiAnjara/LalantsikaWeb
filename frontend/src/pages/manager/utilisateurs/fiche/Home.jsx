@@ -9,7 +9,6 @@ import {
     CAvatar,
     CButton,
     CBadge,
-    CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -23,15 +22,16 @@ import {
     cilCalendar,
     cilSync,
 } from '@coreui/icons'
-import Modal from '../../../../components/Modal'
+import { ErrorModal, SuccessModal, ConfirmModal, LoadingSpinner } from '../../../../components/ui'
 import { ENDPOINTS, getAuthHeaders, API_BASE_URL } from '../../../../config/api'
 import './Fiche.css'
 
 export default function FicheUtilisateur() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
-    const [actionModal, setActionModal] = useState({ visible: false, type: 'warning', title: '', message: '', action: null })
+    const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
+    const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
+    const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', type: 'warning', onConfirm: null })
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState(false)
 
@@ -78,18 +78,16 @@ export default function FicheUtilisateur() {
                     photo_url: result.data.photo_url,
                 })
             } else {
-                setModal({
+                setErrorModal({
                     visible: true,
-                    type: 'danger',
                     title: 'Erreur',
                     message: result.message || 'Utilisateur non trouvé'
                 })
             }
         } catch (error) {
             console.error('Erreur:', error)
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
                 title: 'Erreur',
                 message: 'Impossible de charger les données de l\'utilisateur'
             })
@@ -123,12 +121,12 @@ export default function FicheUtilisateur() {
 
     const handleToggleStatus = () => {
         const isActif = user.statut === 'actif'
-        setActionModal({
+        setConfirmModal({
             visible: true,
             type: isActif ? 'warning' : 'info',
             title: isActif ? 'Bloquer l\'utilisateur' : 'Débloquer l\'utilisateur',
             message: `Êtes-vous sûr de vouloir ${isActif ? 'bloquer' : 'débloquer'} cet utilisateur ?`,
-            action: async () => {
+            onConfirm: async () => {
                 setActionLoading(true)
                 try {
                     const endpoint = isActif ? 'block' : 'unblock'
@@ -141,24 +139,21 @@ export default function FicheUtilisateur() {
 
                     if (result.success) {
                         setUser({ ...user, statut: isActif ? 'bloque' : 'actif' })
-                        setModal({
+                        setSuccessModal({
                             visible: true,
-                            type: 'success',
                             title: 'Succès',
                             message: result.message || `Utilisateur ${isActif ? 'bloqué' : 'débloqué'} avec succès.`
                         })
                     } else {
-                        setModal({
+                        setErrorModal({
                             visible: true,
-                            type: 'danger',
                             title: 'Erreur',
                             message: result.message || 'Une erreur est survenue'
                         })
                     }
                 } catch (error) {
-                    setModal({
+                    setErrorModal({
                         visible: true,
-                        type: 'danger',
                         title: 'Erreur',
                         message: 'Impossible de modifier le statut'
                     })
@@ -170,12 +165,12 @@ export default function FicheUtilisateur() {
     }
 
     const handleDelete = () => {
-        setActionModal({
+        setConfirmModal({
             visible: true,
             type: 'danger',
             title: 'Supprimer l\'utilisateur',
             message: 'Cette action est irréversible. Voulez-vous vraiment supprimer cet utilisateur ?',
-            action: async () => {
+            onConfirm: async () => {
                 setActionLoading(true)
                 try {
                     const response = await fetch(ENDPOINTS.USER(id), {
@@ -188,17 +183,15 @@ export default function FicheUtilisateur() {
                     if (result.success) {
                         navigate('/manager/utilisateurs/liste')
                     } else {
-                        setModal({
+                        setErrorModal({
                             visible: true,
-                            type: 'danger',
                             title: 'Erreur',
                             message: result.message || 'Impossible de supprimer l\'utilisateur'
                         })
                     }
                 } catch (error) {
-                    setModal({
+                    setErrorModal({
                         visible: true,
-                        type: 'danger',
                         title: 'Erreur',
                         message: 'Erreur lors de la suppression'
                     })
@@ -210,11 +203,7 @@ export default function FicheUtilisateur() {
     }
 
     if (loading) {
-        return (
-            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-                <CSpinner color="primary" />
-            </div>
-        )
+        return <LoadingSpinner message="Chargement de l'utilisateur..." />
     }
 
     if (!user) {
@@ -376,26 +365,28 @@ export default function FicheUtilisateur() {
                 </CCol>
             </CRow>
 
-            <Modal
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                onClose={() => setModal({ ...modal, visible: false })}
+            <ErrorModal
+                visible={errorModal.visible}
+                title={errorModal.title}
+                message={errorModal.message}
+                onClose={() => setErrorModal({ ...errorModal, visible: false })}
             />
 
-            <Modal
-                visible={actionModal.visible}
-                type={actionModal.type}
-                title={actionModal.title}
-                message={actionModal.message}
-                onClose={() => setActionModal({ ...actionModal, visible: false })}
-                onConfirm={() => {
-                    actionModal.action()
-                    setActionModal({ ...actionModal, visible: false })
-                }}
-                confirmText="Continuer"
-                closeText="Annuler"
+            <SuccessModal
+                visible={successModal.visible}
+                title={successModal.title}
+                message={successModal.message}
+                onClose={() => setSuccessModal({ ...successModal, visible: false })}
+            />
+
+            <ConfirmModal
+                visible={confirmModal.visible}
+                type={confirmModal.type}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isLoading={actionLoading}
+                onClose={() => setConfirmModal({ ...confirmModal, visible: false })}
+                onConfirm={confirmModal.onConfirm}
             />
         </div>
     )

@@ -18,29 +18,24 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 })
 
-// Custom icon with logo.png and colored background by status
+// Icônes personnalisées par statut
 const createStatusIcon = (status) => {
-    // Utilise la même logique de couleur que getStatutBadgeColor
-    let color = '#6c757d'
-    if (!status) color = '#6c757d'
-    else {
-        const label = status.trim().toLowerCase()
-        if (label === 'en attente') color = '#ff9800'
-        else if (label === 'en cours') color = '#2196f3'
-        else if (label === 'validé' || label === 'valide') color = '#ff9800'
-        else if (label === 'rejeté' || label === 'rejete') color = '#e55353'
-        else if (label === 'terminé' || label === 'termine') color = '#4caf50'
+    let iconFile = 'nouveau.png'
+    if (status) {
+        const label = typeof status === 'string' ? status.trim().toLowerCase() : ''
+        if (label === 'en cours') iconFile = 'en cours.png'
+        else if (label === 'terminé' || label === 'termine') iconFile = 'terminé.png'
+        else if (label === 'validé' || label === 'valide') iconFile = 'en cours.png'
+        else iconFile = 'nouveau.png' // en attente, rejeté, etc.
     }
-    return L.divIcon({
-        className: 'custom-marker',
-        html: `
-            <div class="marker-logo-container" style="background:${color};border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px #0002;">
-                <img src="/assets/logo/login/logo.png" alt="logo" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 2px #fff8);" />
-            </div>
-        `,
-        iconSize: [44, 44],
-        iconAnchor: [22, 44],
-        popupAnchor: [0, -44]
+    return new L.Icon({
+        iconUrl: `/assets/icone/${iconFile}`,
+        iconSize: [50, 50],
+        iconAnchor: [25, 50],
+        tooltipAnchor: [0, -50],
+        popupAnchor: [0, -50],
+        shadowUrl: null,
+        shadowSize: null,
     })
 }
 

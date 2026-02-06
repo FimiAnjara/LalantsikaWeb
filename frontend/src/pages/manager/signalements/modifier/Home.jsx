@@ -14,7 +14,7 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilArrowLeft, cilSave, cilCheckCircle } from '@coreui/icons'
-import Modal from '../../../../components/Modal'
+import { ErrorModal, SuccessModal, LoadingSpinner } from '../../../../components/ui'
 import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './Modifier.css'
 
@@ -22,7 +22,8 @@ import './Modifier.css'
 export default function SignalementModifier() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
+    const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
     const [signalement, setSignalement] = useState(null)
     const [statuts, setStatuts] = useState([])
     const [selectedStatut, setSelectedStatut] = useState('')
@@ -117,18 +118,16 @@ export default function SignalementModifier() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!selectedStatut) {
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
                 title: 'Erreur',
                 message: 'Veuillez sélectionner un statut.'
             });
             return;
         }
         if (!description.trim()) {
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
                 title: 'Erreur',
                 message: 'Veuillez saisir une description.'
             });
@@ -164,9 +163,8 @@ export default function SignalementModifier() {
             if (!result.success) {
                 throw new Error(result.message || "Erreur lors de l'ajout du statut");
             }
-            setModal({
+            setSuccessModal({
                 visible: true,
-                type: 'success',
                 title: 'Statut ajouté',
                 message: 'Le nouveau statut a été ajouté à l\'historique.'
             });
@@ -174,9 +172,8 @@ export default function SignalementModifier() {
                 navigate(`/manager/signalements/fiche/${id}`);
             }, 1200);
         } catch (e) {
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
                 title: 'Erreur',
                 message: e.message || "Erreur lors de l'ajout du statut."
             });
@@ -185,7 +182,7 @@ export default function SignalementModifier() {
         }
     };
 
-    if (loading) return <div className="modifier-signalement"><div className="text-center p-5">Chargement...</div></div>
+    if (loading) return <LoadingSpinner message="Chargement du signalement..." />
     if (error) return <div className="modifier-signalement"><div className="alert alert-danger m-4">{error}</div></div>
     if (!signalement) return null
 
@@ -310,12 +307,18 @@ export default function SignalementModifier() {
                 </CCol>
             </CRow>
 
-            <Modal
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                onClose={() => setModal({ ...modal, visible: false })}
+            <SuccessModal
+                visible={successModal.visible}
+                title={successModal.title}
+                message={successModal.message}
+                onClose={() => setSuccessModal({ ...successModal, visible: false })}
+            />
+
+            <ErrorModal
+                visible={errorModal.visible}
+                title={errorModal.title}
+                message={errorModal.message}
+                onClose={() => setErrorModal({ ...errorModal, visible: false })}
             />
         </div>
     )

@@ -12,9 +12,10 @@ import {
     CCol,
     CInputGroup,
     CInputGroupText,
+    CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilLockLocked, cilUser, cilCheckAlt } from '@coreui/icons'
+import { cilLockLocked, cilUser } from '@coreui/icons'
 import { ENDPOINTS } from '../../../config/api'
 import './Login.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -233,8 +234,17 @@ export default function ManagerLogin() {
                                         minHeight: '50px',
                                     }}
                                 >
-                                    <CIcon icon={cilLockLocked} className="me-2" />
-                                    {isLoading ? 'Connexion en cours...' : 'Se connecter'}
+                                    {isLoading ? (
+                                        <>
+                                            <CSpinner size="sm" className="me-2" />
+                                            Connexion en cours...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CIcon icon={cilLockLocked} className="me-2" />
+                                            Se connecter
+                                        </>
+                                    )}
                                 </CButton>
                             </CForm>
 

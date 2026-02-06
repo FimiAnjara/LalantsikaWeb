@@ -113,8 +113,28 @@
     cursor: not-allowed;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* ===========================================
+   Responsive Design
+   =========================================== */
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .generic-table {
+        font-size: 0.9rem;
+    }
+
+    .generic-table th,
+    .generic-table td {
+        padding: 0.875rem 0.75rem;
+    }
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+    .generic-table-card {
+        border-radius: 8px;
+    }
+
     .generic-table {
         font-size: 0.85rem;
     }
@@ -122,20 +142,27 @@
     .generic-table th,
     .generic-table td {
         padding: 0.75rem 0.5rem;
+        white-space: nowrap;
     }
 
     .table-header {
         padding: 1rem;
     }
 
+    .table-header h5 {
+        font-size: 1rem;
+    }
+
     .table-header .d-flex {
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.75rem;
     }
 
     .table-count-badge {
         width: 100%;
         text-align: center;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
     }
 
     .pagination-container {
@@ -145,10 +172,51 @@
     .pagination-control {
         flex-wrap: wrap;
         justify-content: center;
+        gap: 0.25rem;
     }
 
     .pagination-control .page-link {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 575.98px) {
+    .generic-table {
+        font-size: 0.75rem;
+    }
+
+    .generic-table th,
+    .generic-table td {
+        padding: 0.5rem 0.35rem;
+    }
+
+    .table-header {
+        padding: 0.75rem;
+    }
+
+    .table-header h5 {
+        font-size: 0.9rem;
+    }
+
+    .table-count-badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.6rem;
+    }
+
+    .pagination-container {
+        padding: 0.75rem;
+    }
+
+    .pagination-control .page-link {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    /* Hide long pagination text on small screens */
+    .pagination-control .page-item:first-child .page-link,
+    .pagination-control .page-item:last-child .page-link {
+        font-size: 0.7rem;
     }
 }

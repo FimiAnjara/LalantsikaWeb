@@ -15,8 +15,8 @@ import {
     CBadge,
     CProgress,
     CButton,
-    CSpinner,
 } from '@coreui/react'
+import { LoadingSpinner } from '../../../components/ui'
 import CIcon from '@coreui/icons-react'
 import {
     cilPeople,
@@ -241,11 +241,7 @@ export default function ManagerHome() {
     }
 
     if (loading) {
-        return (
-            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-                <CSpinner color="primary" />
-            </div>
-        )
+        return <LoadingSpinner isLoading={true} message="Chargement des statistiques..." />
     }
 
     return (

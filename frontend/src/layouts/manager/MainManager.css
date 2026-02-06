@@ -1,9 +1,24 @@
 /* Manager Layout - White Sidebar with Blue Accents */
+.manager-layout {
+    min-height: 100vh;
+}
+
 .manager-sidebar {
     background-color: #ffffff !important;
     width: 250px;
+    min-width: 250px;
     overflow-y: auto;
     border-right: 1px solid #e0e0e0;
+}
+
+/* Mobile Sidebar (Offcanvas) */
+.manager-sidebar-mobile {
+    width: 280px !important;
+    max-width: 85vw;
+}
+
+.manager-sidebar-mobile .offcanvas-body {
+    padding: 0;
 }
 
 .manager-sidebar .sidebar-header {
@@ -144,11 +159,46 @@
 .manager-header {
     background-color: #ffffff !important;
     border-bottom: 1px solid #e0e0e0;
-    padding: 1rem;
-    min-height: 92px;
+    padding: 0.75rem 1rem;
+    min-height: 60px;
     display: flex;
     align-items: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    width: 100%;
+}
+
+/* Main content wrapper */
+.main-content-wrapper {
+    min-width: 0; /* Fix for flexbox overflow */
+}
+
+/* Content area */
+.content-area {
+    background-color: #f5f5f5;
+}
+
+.content-card {
+    min-height: calc(100vh - 180px);
+}
+
+/* Menu toggle button */
+.menu-toggle-btn {
+    padding: 0.5rem;
+    border: none;
+    background: transparent;
+}
+
+.menu-toggle-btn:hover,
+.menu-toggle-btn:focus {
+    background-color: #f0f0f0 !important;
+}
+
+/* User avatar image */
+.user-avatar-img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 50%;
 }
 
 .manager-header > div {
@@ -197,7 +247,6 @@
 .user-avatar {
     width: 40px;
     height: 40px;
-    background-color: #0f3460;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -265,4 +314,45 @@
 
 .arrow-icon.expanded {
     transform: rotate(90deg);
+}
+
+/* ===========================================
+   Responsive Styles
+   =========================================== */
+
+/* Tablet and below */
+@media (max-width: 991.98px) {
+    .manager-sidebar {
+        display: none;
+    }
+
+    .manager-header {
+        padding: 0.5rem 1rem;
+        min-height: 56px;
+    }
+
+    .content-card {
+        min-height: calc(100vh - 120px);
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .manager-header {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+    }
+
+    .user-avatar-img {
+        width: 36px;
+        height: 36px;
+    }
+
+    .content-card {
+        border-radius: 8px !important;
+    }
 }

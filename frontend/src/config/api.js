@@ -31,6 +31,10 @@ export const ENDPOINTS = {
 
     // Companies
     COMPANIES: `${API_URL}/companies`,
+
+    // Parametres
+    PARAMETRES: `${API_URL}/parametres`,
+    PARAMETRES_SYNC: `${API_URL}/parametres/sync`,
 };
 
 // Helper pour les requêtes authentifiées

@@ -19,7 +19,7 @@ import { cilList, cilSearch, cilPeople, cilCheckAlt, cilSync, cilCloudDownload }
 import ActionButtons from '../../../../components/ActionButtons'
 import GenericTable from '../../../../components/GenericTable'
 import Modal from '../../../../components/Modal'
-import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
+import { ENDPOINTS, getAuthHeaders, API_BASE_URL } from '../../../../config/api'
 import '../../../../styles/ListStyles.css'
 import './Liste.css'
 
@@ -33,6 +33,17 @@ export default function ListeUtilisateur() {
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null })
     const [unblockModal, setUnblockModal] = useState({ visible: false, id: null })
     const [currentPage, setCurrentPage] = useState(1)
+
+    // Helper pour construire l'URL de la photo (locale ou externe)
+    const getPhotoUrl = (photoUrl) => {
+        if (!photoUrl) return null
+        // Si l'URL commence par http, c'est une URL externe (imgBB, etc.)
+        if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+            return photoUrl
+        }
+        // Sinon, c'est un chemin local Laravel
+        return `${API_BASE_URL}${photoUrl}`
+    }
     const [loading, setLoading] = useState(true)
     const itemsPerPage = 10
     const [utilisateurs, setUtilisateurs] = useState([])
@@ -300,12 +311,12 @@ export default function ListeUtilisateur() {
             {loading ? (
                 <div className="d-flex justify-content-center align-items-center py-5">
                     <CSpinner color="primary" />
-                    <span className="ms-2">Chargement des utilisateurs...</span>
                 </div>
             ) : (
             <GenericTable
                 title="Liste des utilisateurs"
                 columns={[
+                    { key: 'photo', label: 'Photo' },
                     { key: 'identifiant', label: 'Identifiant' },
                     { key: 'fullname', label: 'Nom complet' },
                     { key: 'email', label: 'Email' },
@@ -319,13 +330,21 @@ export default function ListeUtilisateur() {
                 renderRow={(user) => (
                     <CTableRow key={user.id_utilisateur}>
                         <CTableDataCell>
+                            <div className="avatar-img">
+                                {user.photo_url ? (
+                                    <img src={getPhotoUrl(user.photo_url)} alt={user.prenom} className="photo-thumbnail" />
+                                ) : (
+                                    <div className="avatar-circle-small">
+                                        {user.prenom?.charAt(0) || ''}{user.nom?.charAt(0) || ''}
+                                    </div>
+                                )}
+                            </div>
+                        </CTableDataCell>
+                        <CTableDataCell>
                             <strong>{user.identifiant || '-'}</strong>
                         </CTableDataCell>
                         <CTableDataCell>
                             <div className="d-flex align-items-center gap-2">
-                                <div className="avatar-circle">
-                                    {user.prenom?.charAt(0) || ''}{user.nom?.charAt(0) || ''}
-                                </div>
                                 <div>
                                     <div className="fw-medium">
                                         {(user.prenom || '') + ' ' + (user.nom || '')}

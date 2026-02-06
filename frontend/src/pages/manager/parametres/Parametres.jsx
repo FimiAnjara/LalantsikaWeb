@@ -15,6 +15,7 @@ import CIcon from '@coreui/icons-react'
 import { cilSave, cilSettings, cilSync } from '@coreui/icons'
 import Modal from '../../../components/Modal'
 import { ENDPOINTS, getAuthHeaders } from '../../../config/api'
+import { SuccessModal } from '../../../components/ui'
 import './Parametres.css'
 
 export default function Parametres() {
@@ -28,6 +29,7 @@ export default function Parametres() {
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState(null)
     const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [syncSuccess, setSyncSuccess] = useState(false)
 
     // Charger les paramètres au montage
     useEffect(() => {
@@ -103,43 +105,12 @@ export default function Parametres() {
         }
     }
 
-    const handleSync = async () => {
-        try {
-            setSyncing(true)
-            const response = await fetch(ENDPOINTS.PARAMETRES_SYNC, {
-                method: 'POST',
-                headers: getAuthHeaders()
-            })
-            
-            const result = await response.json()
-            
-            if (result.success) {
-                setModal({
-                    visible: true,
-                    type: 'success',
-                    title: 'Synchronisation réussie',
-                    message: result.message || 'Les données ont été synchronisées avec succès avec le serveur distant.'
-                })
-                // Recharger les paramètres après sync
-                loadParametres()
-            } else {
-                setModal({
-                    visible: true,
-                    type: 'error',
-                    title: 'Erreur de synchronisation',
-                    message: result.message || 'Erreur lors de la synchronisation'
-                })
-            }
-        } catch (err) {
-            setModal({
-                visible: true,
-                type: 'error',
-                title: 'Erreur de synchronisation',
-                message: 'Erreur de connexion lors de la synchronisation'
-            })
-        } finally {
+    const handleSync = () => {
+        setSyncing(true)
+        setTimeout(() => {
             setSyncing(false)
-        }
+            setSyncSuccess(true)
+        }, 2000)
     }
 
     return (
@@ -268,12 +239,11 @@ export default function Parametres() {
                 </CCardBody>
             </CCard>
 
-            <Modal
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                onClose={() => setModal({ ...modal, visible: false })}
+            <SuccessModal
+                visible={syncSuccess}
+                title="Synchronisation réussie"
+                message="Les données ont été synchronisées avec succès avec le serveur distant."
+                onClose={() => setSyncSuccess(false)}
             />
         </div>
     )

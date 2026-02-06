@@ -15,7 +15,7 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilArrowLeft, cilSave, cilCloudUpload, cilX } from '@coreui/icons'
-import Modal from '../../../../components/Modal'
+import { ErrorModal, SuccessModal, LoadingSpinner } from '../../../../components/ui'
 import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import './ChangerStatut.css'
 
@@ -38,7 +38,8 @@ export default function ChangerStatut() {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     
-    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
+    const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
     const [signalement, setSignalement] = useState(null)
     const [statuts, setStatuts] = useState([])
     const [nextStatuts, setNextStatuts] = useState([])
@@ -172,9 +173,8 @@ export default function ChangerStatut() {
         e.preventDefault()
         
         if (!selectedStatut) {
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
                 title: 'Erreur',
                 message: 'Veuillez sélectionner un statut.'
             })
@@ -212,9 +212,8 @@ export default function ChangerStatut() {
             
             const selectedStatutObj = nextStatuts.find(s => s.id_statut === parseInt(selectedStatut))
             
-            setModal({
+            setSuccessModal({
                 visible: true,
-                type: 'success',
                 title: 'Statut mis à jour',
                 message: `Le signalement est maintenant "${selectedStatutObj?.libelle}".`
             })
@@ -224,9 +223,8 @@ export default function ChangerStatut() {
             }, 1500)
             
         } catch (e) {
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
                 title: 'Erreur',
                 message: e.message || "Erreur lors du changement de statut."
             })
@@ -236,14 +234,7 @@ export default function ChangerStatut() {
     }
 
     if (loading) {
-        return (
-            <div className="changer-statut">
-                <div className="text-center p-5">
-                    <div className="spinner-border text-primary" role="status"></div>
-                    <p className="mt-3">Chargement...</p>
-                </div>
-            </div>
-        )
+        return <LoadingSpinner message="Chargement du signalement..." />
     }
     
     if (error) {
@@ -498,12 +489,18 @@ export default function ChangerStatut() {
                 </CCol>
             </CRow>
 
-            <Modal
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                onClose={() => setModal({ ...modal, visible: false })}
+            <SuccessModal
+                visible={successModal.visible}
+                title={successModal.title}
+                message={successModal.message}
+                onClose={() => setSuccessModal({ ...successModal, visible: false })}
+            />
+
+            <ErrorModal
+                visible={errorModal.visible}
+                title={errorModal.title}
+                message={errorModal.message}
+                onClose={() => setErrorModal({ ...errorModal, visible: false })}
             />
         </div>
     )

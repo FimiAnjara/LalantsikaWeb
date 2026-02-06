@@ -1,5 +1,5 @@
 /* ================================================
-   SYNC PAGE - Modern Clean Design
+   SYNC PAGE - Clean Design (CoreUI Colors)
    ================================================ */
 
 /* Page Container */
@@ -12,23 +12,23 @@
 /* Header */
 .sync-header {
     padding-bottom: 1.5rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .sync-icon {
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, #0f3460 0%, #1a4a7c 100%);
-    border-radius: 14px;
+    width: 50px;
+    height: 50px;
+    background-color: #0f3460;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    box-shadow: 0 4px 15px rgba(15, 52, 96, 0.25);
 }
 
 .sync-header h2 {
     color: #1a1a2e;
+    font-weight: 700;
     font-size: 1.5rem;
 }
 
@@ -36,13 +36,25 @@
 .sync-card {
     border: none;
     border-radius: 16px;
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     background: white;
+    overflow: hidden;
+}
+
+.sync-card-header {
+    background-color: #0f3460;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 1rem 1.5rem;
+    border: none;
+    display: flex;
+    align-items: center;
 }
 
 /* Success Banner */
 .sync-success-banner {
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    background-color: #d4edda;
     color: #155724;
     padding: 1rem 1.25rem;
     border-radius: 12px;
@@ -50,6 +62,7 @@
     align-items: center;
     font-weight: 600;
     font-size: 0.95rem;
+    border-left: 4px solid #2eb85c;
 }
 
 /* Sync Items */
@@ -58,10 +71,12 @@
     border-radius: 12px;
     padding: 1rem 1.25rem;
     transition: all 0.2s ease;
+    border: 1px solid #e0e0e0;
 }
 
 .sync-item:hover {
     background: #f1f3f5;
+    border-color: #d0d0d0;
 }
 
 .sync-item-header {
@@ -74,8 +89,9 @@
 }
 
 .sync-item-header .fw-semibold {
-    color: #1a1a2e;
+    color: #0f3460;
     font-size: 0.95rem;
+    font-weight: 600;
 }
 
 .sync-item-header .text-muted {
@@ -89,7 +105,7 @@
     background: white;
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
-    border: 1px solid #e9ecef;
+    border: 1px solid #e0e0e0;
 }
 
 /* Progress Bars */
@@ -112,27 +128,31 @@
 }
 
 .sync-btn {
-    background: linear-gradient(135deg, #0f3460 0%, #1a4a7c 100%);
+    background-color: #0f3460;
     border: none;
     font-weight: 600;
     padding: 0.875rem 2rem;
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.25s ease;
+    transition: all 0.2s ease;
     flex: 1;
     min-width: 200px;
+    color: white;
 }
 
 .sync-btn:hover:not(:disabled) {
+    background-color: #1a1a2e;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(15, 52, 96, 0.35);
+    box-shadow: 0 4px 15px rgba(15, 52, 96, 0.3);
+    color: white;
 }
 
 .sync-btn:disabled {
-    background: #adb5bd;
+    background-color: #6c757d;
     cursor: not-allowed;
+    opacity: 0.8;
 }
 
 /* Responsive */
@@ -325,7 +345,7 @@
 
 /* Stat Boxes */
 .parametres-page .stat-box {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background-color: #f8f9fa;
     border-radius: 12px;
     padding: 1rem;
     text-align: center;
@@ -354,7 +374,7 @@
 }
 
 .parametres-page .stat-box.stat-synced {
-    background: linear-gradient(135deg, #e8f4fd 0%, #d1e9fc 100%);
+    background-color: #e8f4fd;
     border-color: #d1e9fc;
 }
 
@@ -363,8 +383,8 @@
 }
 
 .parametres-page .stat-box.stat-pending {
-    background: linear-gradient(135deg, #e3e8f0 0%, #d4dbe8 100%);
-    border-color: #d4dbe8;
+    background-color: #f8f9fa;
+    border-color: #e0e0e0;
 }
 
 .parametres-page .stat-box.stat-pending .stat-value {
@@ -372,8 +392,8 @@
 }
 
 .parametres-page .stat-box.stat-firebase {
-    background: linear-gradient(135deg, #dceaf8 0%, #c9dff5 100%);
-    border-color: #c9dff5;
+    background-color: #e8f0f8;
+    border-color: #d0e0f0;
 }
 
 .parametres-page .stat-box.stat-firebase .stat-value {

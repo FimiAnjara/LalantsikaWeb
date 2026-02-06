@@ -9,6 +9,7 @@ use App\Models\Sexe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 use OpenApi\Attributes as OA;
 
@@ -90,6 +91,7 @@ class UserController extends Controller
                     'prenom' => $user->prenom,
                     'email' => $user->email,
                     'dtn' => $user->dtn ? $user->dtn->format('Y-m-d') : null,
+                    'photo_url' => $user->photo_url,
                     'sexe' => $user->sexe ? $user->sexe->libelle : null,
                     'type_utilisateur' => $user->typeUtilisateur ? $user->typeUtilisateur->libelle : null,
                     'synchronized' => $user->synchronized ?? false,
@@ -172,6 +174,7 @@ class UserController extends Controller
                     'prenom' => $user->prenom,
                     'email' => $user->email,
                     'dtn' => $user->dtn ? $user->dtn->format('Y-m-d') : null,
+                    'photo_url' => $user->photo_url,
                     'sexe' => $user->sexe,
                     'type_utilisateur' => $user->typeUtilisateur,
                     'synchronized' => $user->synchronized ?? false,
@@ -238,6 +241,7 @@ class UserController extends Controller
                 'dtn' => 'sometimes|date',
                 'id_sexe' => 'sometimes|exists:sexe,id_sexe',
                 'id_type_utilisateur' => 'sometimes|exists:type_utilisateur,id_type_utilisateur',
+                'photo' => 'sometimes|image|max:5120', // 5MB max
             ]);
 
             // Mettre à jour les champs
@@ -247,6 +251,25 @@ class UserController extends Controller
             if (isset($validated['dtn'])) $user->dtn = $validated['dtn'];
             if (isset($validated['id_sexe'])) $user->id_sexe = $validated['id_sexe'];
             if (isset($validated['id_type_utilisateur'])) $user->id_type_utilisateur = $validated['id_type_utilisateur'];
+
+            // Upload de la nouvelle photo si présente
+            if ($request->hasFile('photo')) {
+                $file = $request->file('photo');
+                $filename = $user->identifiant . '_' . time() . '.' . $file->getClientOriginalExtension();
+                
+                // Supprimer l'ancienne photo locale si elle existe
+                if ($user->photo_url && str_starts_with($user->photo_url, '/storage/')) {
+                    $oldPath = str_replace('/storage/', 'public/', $user->photo_url);
+                    \Illuminate\Support\Facades\Storage::delete($oldPath);
+                }
+                
+                // Stocker la nouvelle photo
+                $path = $file->storeAs('public/utilisateur', $filename);
+                if ($path) {
+                    $user->photo_url = '/storage/utilisateur/' . $filename;
+                    Log::info("✅ Photo mise à jour: {$user->photo_url}");
+                }
+            }
 
             $user->save();
 
@@ -266,6 +289,7 @@ class UserController extends Controller
                     'prenom' => $user->prenom,
                     'email' => $user->email,
                     'dtn' => $user->dtn ? $user->dtn->format('Y-m-d') : null,
+                    'photo_url' => $user->photo_url,
                     'sexe' => $user->sexe,
                     'type_utilisateur' => $user->typeUtilisateur,
                 ]

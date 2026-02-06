@@ -8,9 +8,6 @@ use Illuminate\Support\Facades\Hash;
 
 class UtilisateurSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         DB::table('utilisateur')->insert([
@@ -21,13 +18,13 @@ class UtilisateurSeeder extends Seeder
                 'prenom' => 'Paul',
                 'dtn' => '1995-03-10',
                 'email' => 'manager@example.com',
+                'photo_url' => '/storage/utilisateur/management.png',
                 'firebase_uid' => null,
                 'id_sexe' => 1,
                 'id_type_utilisateur' => 1,
                 'synchronized' => true,
                 'last_sync_at' => null,
             ],
-
         ]);
     }
 }

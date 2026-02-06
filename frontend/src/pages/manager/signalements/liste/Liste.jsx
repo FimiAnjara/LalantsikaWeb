@@ -11,13 +11,12 @@ import {
     CBadge,
     CPagination,
     CPaginationItem,
-    CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSearch } from '@coreui/icons'
 import ActionButtons from '../../../../components/ActionButtons'
 import GenericTable from '../../../../components/GenericTable'
-import Modal from '../../../../components/Modal'
+import { LoadingSpinner, ErrorModal, SuccessModal, ConfirmModal } from '../../../../components/ui'
 import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
 import '../../../../styles/ListStyles.css'
 import './Liste.css'
@@ -31,7 +30,8 @@ export default function SignalementListe() {
     const [filterBudgetMax, setFilterBudgetMax] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
-    const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
+    const [errorModal, setErrorModal] = useState({ visible: false, message: '' })
+    const [successModal, setSuccessModal] = useState({ visible: false, message: '' })
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null })
     const [signalements, setSignalements] = useState([])
     const [loading, setLoading] = useState(true)
@@ -58,19 +58,15 @@ export default function SignalementListe() {
                 const items = Array.isArray(result.data) ? result.data : result.data.items || []
                 setSignalements(items)
             } else {
-                setModal({
+                setErrorModal({
                     visible: true,
-                    type: 'danger',
-                    title: 'Erreur',
                     message: result.message || 'Erreur lors du chargement des signalements'
                 })
             }
         } catch (error) {
             console.error('Erreur:', error)
-            setModal({
+            setErrorModal({
                 visible: true,
-                type: 'danger',
-                title: 'Erreur',
                 message: 'Impossible de charger les signalements'
             })
         } finally {
@@ -145,25 +141,19 @@ export default function SignalementListe() {
                 if (result.success) {
                     setSignalements(signalements.filter((sig) => sig.id_signalement !== deleteModal.id))
                     setDeleteModal({ visible: false, id: null })
-                    setModal({
+                    setSuccessModal({
                         visible: true,
-                        type: 'success',
-                        title: 'Succès',
                         message: 'Signalement supprimé avec succès'
                     })
                 } else {
-                    setModal({
+                    setErrorModal({
                         visible: true,
-                        type: 'danger',
-                        title: 'Erreur',
                         message: result.message || 'Impossible de supprimer le signalement'
                     })
                 }
             } catch (error) {
-                setModal({
+                setErrorModal({
                     visible: true,
-                    type: 'danger',
-                    title: 'Erreur',
                     message: 'Erreur lors de la suppression'
                 })
             } finally {
@@ -183,11 +173,7 @@ export default function SignalementListe() {
     }
 
     if (loading) {
-        return (
-            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-                <CSpinner color="primary" />
-            </div>
-        )
+        return <LoadingSpinner isLoading={true} message="Chargement des signalements..." />
     }
 
     return (
@@ -353,17 +339,24 @@ export default function SignalementListe() {
                 </div>
             )}
 
-            {/* Modal for success messages */}
-            <Modal 
-                visible={modal.visible}
-                type={modal.type}
-                title={modal.title}
-                message={modal.message}
-                onClose={() => setModal({ ...modal, visible: false })}
+            {/* Error Modal */}
+            <ErrorModal
+                visible={errorModal.visible}
+                title="Erreur"
+                message={errorModal.message}
+                onClose={() => setErrorModal({ visible: false, message: '' })}
             />
 
-            {/* Modal for delete confirmation */}
-            <Modal
+            {/* Success Modal */}
+            <SuccessModal
+                visible={successModal.visible}
+                title="Succès"
+                message={successModal.message}
+                onClose={() => setSuccessModal({ visible: false, message: '' })}
+            />
+
+            {/* Confirm Delete Modal */}
+            <ConfirmModal
                 visible={deleteModal.visible}
                 type="danger"
                 title="Supprimer le signalement"
@@ -372,6 +365,7 @@ export default function SignalementListe() {
                 onConfirm={confirmDelete}
                 confirmText="Supprimer"
                 closeText="Annuler"
+                isLoading={actionLoading}
             />
         </div>
     )

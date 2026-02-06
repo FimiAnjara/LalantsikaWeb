@@ -320,6 +320,304 @@
                 ]
             }
         },
+        "/notifications/send": {
+            "post": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Envoyer une notification push à un utilisateur",
+                "description": "Envoyer une notification à un utilisateur",
+                "operationId": "088e9c35c886513afc6d109728d82295",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_utilisateur",
+                                    "title",
+                                    "body"
+                                ],
+                                "properties": {
+                                    "id_utilisateur": {
+                                        "description": "ID de l'utilisateur",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "title": {
+                                        "description": "Titre de la notification",
+                                        "type": "string",
+                                        "example": "Nouveau message"
+                                    },
+                                    "body": {
+                                        "description": "Corps de la notification",
+                                        "type": "string",
+                                        "example": "Vous avez reçu un nouveau message"
+                                    },
+                                    "data": {
+                                        "description": "Données supplémentaires",
+                                        "type": "object",
+                                        "example": {
+                                            "type": "message",
+                                            "id": "123"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Notification envoyée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Notification sent successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Données invalides"
+                    },
+                    "500": {
+                        "description": "Erreur serveur"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/notifications/send-multiple": {
+            "post": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Envoyer une notification push à plusieurs utilisateurs",
+                "description": "Envoyer une notification à plusieurs utilisateurs",
+                "operationId": "814468e239f645dc2cf39f2c19ae3196",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_utilisateurs",
+                                    "title",
+                                    "body"
+                                ],
+                                "properties": {
+                                    "id_utilisateurs": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Annonce"
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "example": "Nouvelle mise à jour disponible"
+                                    },
+                                    "data": {
+                                        "type": "object",
+                                        "example": {
+                                            "type": "announcement"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Résultat de l'envoi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "success": {
+                                            "type": "integer",
+                                            "example": 2
+                                        },
+                                        "failed": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/notifications/send-to-token": {
+            "post": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Envoyer une notification directement à un token FCM",
+                "description": "Envoyer une notification directement à un token FCM (pour test)",
+                "operationId": "b9d326cd52e0650c1d51f4f145977a9f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "token",
+                                    "title",
+                                    "body"
+                                ],
+                                "properties": {
+                                    "token": {
+                                        "description": "Token FCM du device",
+                                        "type": "string",
+                                        "example": "fcm_token_here"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Test"
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "example": "Ceci est un test"
+                                    },
+                                    "data": {
+                                        "type": "object",
+                                        "example": {
+                                            "test": "true"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Notification envoyée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/notifications/update-token": {
+            "post": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Mettre à jour le token FCM d'un utilisateur",
+                "description": "Mettre à jour le token FCM d'un utilisateur",
+                "operationId": "004f5f3f7792249906022ec211b0858a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_utilisateur",
+                                    "fcm_token"
+                                ],
+                                "properties": {
+                                    "id_utilisateur": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "fcm_token": {
+                                        "type": "string",
+                                        "example": "fcm_token_here"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token mis à jour avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/notifications/status": {
+            "get": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Vérifier le statut du service de notifications",
+                "description": "Vérifier si le service FCM est disponible",
+                "operationId": "5d6221dc77bb17c5f8ddf53eb713b77b",
+                "responses": {
+                    "200": {
+                        "description": "Statut du service",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "available": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "FCM Service is available"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/sexes": {
             "get": {
                 "tags": [
@@ -966,6 +1264,10 @@
         {
             "name": "Auth",
             "description": "Authentification et gestion de session"
+        },
+        {
+            "name": "Notifications",
+            "description": "Gestion des notifications push"
         },
         {
             "name": "Sexes",

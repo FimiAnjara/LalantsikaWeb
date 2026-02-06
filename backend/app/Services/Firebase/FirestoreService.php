@@ -26,32 +26,21 @@ class FirestoreService
                 throw new \Exception('Firebase credentials file not found at: ' . $serviceAccountPath);
             }
 
-            Log::info('✅ Credentials file found, initializing Factory...');
+            Log::info('✅ Credentials file found, initializing Factory with REST client...');
 
-            try {
-                // Essayer avec gRPC (défaut)
-                $factory = (new Factory)
-                    ->withServiceAccount($serviceAccountPath);
-                
-                Log::info('✅ Factory created, creating Firestore instance with REST...');
-                
-                $this->firestore = $factory->createFirestore();
-                $this->isAvailable = true;
-                
-                Log::info('✅ Firestore initialized successfully');
-            } catch (\Exception $grpcError) {
-                Log::warning('⚠️  gRPC initialization failed, trying REST: ' . $grpcError->getMessage());
-                
-                // Fallback: essayer sans gRPC
-                $factory = (new Factory)
-                    ->withServiceAccount($serviceAccountPath);
-                    
-                
-                $this->firestore = $factory->createFirestore();
-                $this->isAvailable = true;
-                
-                Log::info('✅ Firestore initialized with REST fallback');
-            }
+            // Force l'utilisation du client REST (pas gRPC)
+            $factory = (new Factory)
+                ->withServiceAccount($serviceAccountPath)
+                ->withFirestoreClientConfig([
+                    'preferRest' => true,
+                ]);
+            
+            Log::info('✅ Factory created, creating Firestore instance with REST API...');
+            
+            $this->firestore = $factory->createFirestore();
+            $this->isAvailable = true;
+            
+            Log::info('✅ Firestore initialized successfully with REST');
         } catch (\Exception $e) {
             Log::error('❌ Firestore initialization FAILED: ' . $e->getMessage());
             Log::error('Exception class: ' . get_class($e));

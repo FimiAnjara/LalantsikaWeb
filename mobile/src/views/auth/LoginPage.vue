@@ -113,6 +113,7 @@ import {
 } from 'ionicons/icons';
 import router from '@/router';
 import { authService, googleAuthService, sessionService } from '@/services/auth';
+import { pushNotificationService } from '@/services/notification';
 import { toastService } from '@/services/toast';
 import { getFullName, isManager } from '@/models/User';
 import { useBackgroundAnimation } from '@/composables/useBackgroundAnimation';
@@ -200,6 +201,20 @@ const handleGoogleLogin = async () => {
 /* Sauvegarder la session utilisateur */
 const saveUserSession = async (response: any) => {
   await sessionService.startSession(response.token, response.user, rememberMe.value);
+  
+  // Enregistrer le token FCM pour les notifications push
+  if (response.user?.id_utilisateur) {
+    // Ne pas bloquer la navigation, faire en background
+    pushNotificationService.registerTokenForUser(response.user.id_utilisateur)
+      .then((success) => {
+        if (success) {
+          console.log('✅ FCM token enregistré avec succès');
+        }
+      })
+      .catch((error) => {
+        console.error('⚠️ Erreur enregistrement FCM token:', error);
+      });
+  }
 };
 
 /* Gestion des erreurs de connexion */

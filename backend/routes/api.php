@@ -14,3 +14,4 @@ require __DIR__.'/signalement.php';
 require __DIR__.'/entreprise.php';
 require __DIR__.'/upload.php';
 require __DIR__.'/sync.php';
+require __DIR__.'/notification.php';

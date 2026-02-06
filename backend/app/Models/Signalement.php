@@ -18,7 +18,11 @@ class Signalement extends Model
         'photo',
         'id_entreprise',
         'id_utilisateur',
+<<<<<<< Updated upstream
         'id_statut',
+=======
+        'city',
+>>>>>>> Stashed changes
         'point',
         'synchronized',
         'last_sync_at'

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Sexe;
 use App\Models\TypeUtilisateur;
 use App\Services\Firebase\FirebaseRestService;
+use App\Services\Notification\FcmService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -13,10 +14,12 @@ use Illuminate\Support\Facades\DB;
 class SyncController extends Controller
 {
     protected $firebaseRestService;
+    protected $fcmService;
 
-    public function __construct(FirebaseRestService $firebaseRestService)
+    public function __construct(FirebaseRestService $firebaseRestService, FcmService $fcmService)
     {
         $this->firebaseRestService = $firebaseRestService;
+        $this->fcmService = $fcmService;
     }
 
     /**
@@ -368,6 +371,8 @@ class SyncController extends Controller
             // Mettre à jour le firebase_uid dans PostgreSQL
             $utilisateur->firebase_uid = $firebaseUid;
 
+            $fcmToken = $utilisateur->fcm_token ?? null;
+
             // Préparer les données pour Firestore
             $firestoreData = $this->prepareFirestoreData($utilisateur, $firebaseUid);
 
@@ -432,9 +437,923 @@ class SyncController extends Controller
                 'libelle' => $utilisateur->typeUtilisateur->libelle
             ] : null,
             'adresse' => $utilisateur->adresse,
+            'fcm_token' => $utilisateur->fcm_token,
             'photo_profil' => $utilisateur->photo_profil,
             'last_sync_at' => now()->toIso8601String(),
             'updatedAt' => now()->toIso8601String()
         ];
     }
+<<<<<<< Updated upstream
+=======
+
+    /**
+     * Synchroniser les FCM tokens depuis Firebase vers PostgreSQL
+     * Utile après qu'un utilisateur se connecte sur mobile et met à jour son token
+     * 
+     * @OA\Post(
+     *     path="/api/sync/fcm-tokens/from-firebase",
+     *     summary="Synchroniser les FCM tokens depuis Firebase vers PostgreSQL",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation réussie"
+     *     )
+     * )
+     */
+    public function syncFcmTokensFromFirebase()
+    {
+        try {
+            Log::info("🔄 Début synchronisation FCM tokens depuis Firebase...");
+            
+            // Récupérer TOUS les utilisateurs de Firestore
+            $allUtilisateurs = $this->firebaseRestService->getCollection('utilisateurs');
+            
+            // Filtrer ceux qui ont un fcm_token et sont marqués comme non synchronisés
+            $utilisateursWithToken = array_filter($allUtilisateurs, function($doc) {
+                return isset($doc['fcm_token']) && 
+                       !empty($doc['fcm_token']) &&
+                       (!isset($doc['synchronized']) || $doc['synchronized'] === false);
+            });
+            
+            Log::info("📊 Utilisateurs avec FCM token non synchronisés: " . count($utilisateursWithToken));
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($utilisateursWithToken as $firebaseDocId => $userData) {
+                try {
+                    if (!isset($userData['id_utilisateur'])) {
+                        Log::warning("⚠️  Document {$firebaseDocId} n'a pas de id_utilisateur");
+                        continue;
+                    }
+
+                    $idUtilisateur = $userData['id_utilisateur'];
+                    $fcmToken = $userData['fcm_token'];
+
+                    // Mettre à jour dans PostgreSQL
+                    $user = User::where('id_utilisateur', $idUtilisateur)->first();
+                    
+                    if ($user) {
+                        $user->fcm_token = $fcmToken;
+                        $user->save();
+                        
+                        Log::info("✅ FCM token synchronisé pour user {$idUtilisateur}");
+                        $synced++;
+
+                        // Marquer comme synchronisé dans Firestore
+                        $this->firebaseRestService->saveDocument(
+                            'utilisateurs',
+                            $firebaseDocId,
+                            array_merge($userData, [
+                                'synchronized' => true,
+                                'last_sync_at' => now()->toIso8601String()
+                            ])
+                        );
+                    } else {
+                        Log::warning("⚠️  Utilisateur {$idUtilisateur} non trouvé dans PostgreSQL");
+                        $failed++;
+                        $errors[] = [
+                            'id' => $idUtilisateur,
+                            'error' => 'Utilisateur non trouvé dans PostgreSQL'
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'id' => $userData['id_utilisateur'] ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("❌ Erreur sync FCM token pour user: " . $e->getMessage());
+                }
+            }
+
+            Log::info("✅ Sync FCM tokens terminée: {$synced} réussis, {$failed} échecs");
+
+            return response()->json([
+                'success' => true,
+                'message' => "Synchronisation FCM tokens terminée",
+                'data' => [
+                    'total' => count($utilisateursWithToken),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur synchronisation FCM tokens depuis Firebase: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser les signalements depuis Firebase vers PostgreSQL
+     * 
+     * @OA\Post(
+     *     path="/api/sync/signalements/from-firebase",
+     *     summary="Synchroniser les signalements depuis Firebase vers PostgreSQL",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation réussie"
+     *     )
+     * )
+     */
+    public function syncSignalementsFromFirebase()
+    {
+        try {
+            // Récupérer les signalements non synchronisés depuis Firestore
+            $firestoreSignalements = $this->firebaseRestService->queryCollection('signalements', ['synchronized' => false]);
+
+            if (empty($firestoreSignalements)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun signalement à synchroniser depuis Firebase',
+                    'data' => ['total' => 0, 'synced' => 0, 'failed' => 0]
+                ]);
+            }
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($firestoreSignalements as $firebaseDocId => $signalementData) {
+                try {
+                    $this->syncSingleSignalementFromFirebase($firebaseDocId, $signalementData);
+                    $synced++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'firebase_doc_id' => $firebaseDocId,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("❌ Erreur sync signalement {$firebaseDocId}: " . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Synchronisation des signalements terminée',
+                'data' => [
+                    'total' => count($firestoreSignalements),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur synchronisation signalements depuis Firebase: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation des signalements',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser les histo_statuts depuis Firebase vers PostgreSQL
+     * 
+     * @OA\Post(
+     *     path="/api/sync/histo-statuts/from-firebase",
+     *     summary="Synchroniser les historiques de statuts depuis Firebase vers PostgreSQL",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation réussie"
+     *     )
+     * )
+     */
+    public function syncHistoStatutsFromFirebase()
+    {
+        try {
+            // Récupérer les histo_statuts non synchronisés depuis Firestore
+            $firestoreHistoStatuts = $this->firebaseRestService->queryCollection('histo_statuts', ['synchronized' => false]);
+
+            if (empty($firestoreHistoStatuts)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun historique de statut à synchroniser depuis Firebase',
+                    'data' => ['total' => 0, 'synced' => 0, 'failed' => 0]
+                ]);
+            }
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($firestoreHistoStatuts as $firebaseDocId => $histoData) {
+                try {
+                    $this->syncSingleHistoStatutFromFirebase($firebaseDocId, $histoData);
+                    $synced++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'firebase_doc_id' => $firebaseDocId,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("❌ Erreur sync histo_statut {$firebaseDocId}: " . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Synchronisation des historiques de statuts terminée',
+                'data' => [
+                    'total' => count($firestoreHistoStatuts),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur synchronisation histo_statuts depuis Firebase: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation des historiques de statuts',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser tout depuis Firebase (signalements + histo_statuts)
+     * 
+     * @OA\Post(
+     *     path="/api/sync/from-firebase",
+     *     summary="Synchroniser tous les signalements et historiques depuis Firebase vers PostgreSQL",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation complète réussie"
+     *     )
+     * )
+     */
+    public function syncAllFromFirebase()
+    {
+        try {
+            $results = [
+                'signalements' => ['total' => 0, 'synced' => 0, 'failed' => 0, 'errors' => []],
+                'histo_statuts' => ['total' => 0, 'synced' => 0, 'failed' => 0, 'errors' => []]
+            ];
+
+            // 1. Synchroniser les signalements - récupérer TOUS et filtrer côté PHP
+            Log::info("🔄 Début sync signalements depuis Firebase...");
+            $allSignalements = $this->firebaseRestService->getCollection('signalements');
+            
+            // Filtrer les non synchronisés (synchronized = false ou absent)
+            $firestoreSignalements = array_filter($allSignalements, function($doc) {
+                return !isset($doc['synchronized']) || $doc['synchronized'] === false;
+            });
+            
+            $results['signalements']['total'] = count($firestoreSignalements);
+            
+            Log::info("📊 Signalements trouvés dans Firebase: " . count($allSignalements) . ", non synchronisés: " . count($firestoreSignalements));
+
+            foreach ($firestoreSignalements as $firebaseDocId => $signalementData) {
+                try {
+                    Log::info("🔄 Sync signalement: {$firebaseDocId}");
+                    $this->syncSingleSignalementFromFirebase($firebaseDocId, $signalementData);
+                    $results['signalements']['synced']++;
+                } catch (\Exception $e) {
+                    $results['signalements']['failed']++;
+                    $results['signalements']['errors'][] = [
+                        'firebase_doc_id' => $firebaseDocId,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("❌ Erreur sync signalement {$firebaseDocId}: " . $e->getMessage());
+                }
+            }
+
+            // 2. Synchroniser les histo_statuts - récupérer TOUS et filtrer côté PHP
+            Log::info("🔄 Début sync histo_statuts depuis Firebase...");
+            $allHistoStatuts = $this->firebaseRestService->getCollection('histo_statuts');
+            
+            // Filtrer les non synchronisés
+            $firestoreHistoStatuts = array_filter($allHistoStatuts, function($doc) {
+                return !isset($doc['synchronized']) || $doc['synchronized'] === false;
+            });
+            
+            $results['histo_statuts']['total'] = count($firestoreHistoStatuts);
+            
+            Log::info("📊 HistoStatuts trouvés dans Firebase: " . count($allHistoStatuts) . ", non synchronisés: " . count($firestoreHistoStatuts));
+
+            foreach ($firestoreHistoStatuts as $firebaseDocId => $histoData) {
+                try {
+                    Log::info("🔄 Sync histo_statut: {$firebaseDocId}");
+                    $this->syncSingleHistoStatutFromFirebase($firebaseDocId, $histoData);
+                    $results['histo_statuts']['synced']++;
+                } catch (\Exception $e) {
+                    $results['histo_statuts']['failed']++;
+                    $results['histo_statuts']['errors'][] = [
+                        'firebase_doc_id' => $firebaseDocId,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("❌ Erreur sync histo_statut {$firebaseDocId}: " . $e->getMessage());
+                }
+            }
+
+            $totalSynced = $results['signalements']['synced'] + $results['histo_statuts']['synced'];
+            $totalFailed = $results['signalements']['failed'] + $results['histo_statuts']['failed'];
+
+            Log::info("✅ Sync depuis Firebase terminée: {$totalSynced} réussis, {$totalFailed} échecs");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Synchronisation complète depuis Firebase terminée',
+                'data' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur synchronisation globale depuis Firebase: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation depuis Firebase',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser un signalement unique depuis Firebase vers PostgreSQL
+     */
+    private function syncSingleSignalementFromFirebase(string $firebaseDocId, array $signalementData)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Récupérer ou créer le statut
+            $idStatut = null;
+            if (isset($signalementData['statut'])) {
+                $statutData = $signalementData['statut'];
+                if (isset($statutData['id_statut'])) {
+                    $idStatut = $statutData['id_statut'];
+                } elseif (isset($statutData['libelle'])) {
+                    $statut = Statut::firstOrCreate(
+                        ['libelle' => $statutData['libelle']],
+                        ['libelle' => $statutData['libelle']]
+                    );
+                    $idStatut = $statut->id_statut;
+                }
+            }
+
+            // Récupérer l'utilisateur par firebase_uid ou id_utilisateur
+            $idUtilisateur = null;
+            if (isset($signalementData['utilisateur'])) {
+                $userData = $signalementData['utilisateur'];
+                if (isset($userData['id_utilisateur'])) {
+                    $idUtilisateur = $userData['id_utilisateur'];
+                } elseif (isset($userData['firebase_uid'])) {
+                    $user = User::where('firebase_uid', $userData['firebase_uid'])->first();
+                    if ($user) {
+                        $idUtilisateur = $user->id_utilisateur;
+                    }
+                }
+            }
+
+            // Préparer le point géographique pour PostgreSQL
+            $point = null;
+            if (isset($signalementData['point'])) {
+                $lat = $signalementData['point']['latitude'] ?? null;
+                $lng = $signalementData['point']['longitude'] ?? null;
+                if ($lat !== null && $lng !== null) {
+                    $point = DB::raw("ST_SetSRID(ST_MakePoint({$lng}, {$lat}), 4326)");
+                }
+            }
+            $city = $signalementData['city'] ?? null;
+
+            // Parser la date
+            $daty = null;
+            if (isset($signalementData['daty'])) {
+                $daty = \Carbon\Carbon::parse($signalementData['daty']);
+            }
+
+            // Préparer les données du signalement (sans 'photo' et 'id_statut' qui n'existent pas dans PostgreSQL)
+            // Le statut est géré via la table histo_statut
+            $signalementFields = [
+                'daty' => $daty,
+                'surface' => $signalementData['surface'] ?? null,
+                'budget' => $signalementData['budget'] ?? null,
+                'description' => $signalementData['description'] ?? null,
+                'id_utilisateur' => $idUtilisateur,
+                'city' => $city,
+                'id_entreprise' => $signalementData['id_entreprise'] ?? null,
+                'synchronized' => true,
+                'last_sync_at' => now()
+            ];
+
+            // Créer ou mettre à jour le signalement dans PostgreSQL
+            $signalement = null;
+            if (isset($signalementData['id_signalement']) && $signalementData['id_signalement']) {
+                // Mise à jour d'un signalement existant
+                $signalement = Signalement::find($signalementData['id_signalement']);
+                if ($signalement) {
+                    $signalement->update($signalementFields);
+                } else {
+                    // Créer avec l'ID spécifié (insertion explicite)
+                    $signalementFields['id_signalement'] = $signalementData['id_signalement'];
+                    $signalement = Signalement::create($signalementFields);
+                }
+            } else {
+                // Nouveau signalement - laisser PostgreSQL générer l'ID
+                $signalement = Signalement::create($signalementFields);
+            }
+
+            Log::info("📝 Signalement créé/mis à jour: ID={$signalement->id_signalement}");
+
+            // Mettre à jour le point géographique séparément si nécessaire
+            if ($point !== null) {
+                DB::table('signalement')
+                    ->where('id_signalement', $signalement->id_signalement)
+                    ->update(['point' => $point]);
+            }
+
+            // Note: Les histo_statuts sont chargés séparément depuis Firestore
+            // (pas de création automatique ici)
+
+            // Marquer comme synchronisé dans Firestore
+            $this->firebaseRestService->saveDocument(
+                'signalements',
+                $firebaseDocId,
+                array_merge($signalementData, [
+                    'synchronized' => true,
+                    'id_signalement_postgres' => $signalement->id_signalement,
+                    'last_sync_at' => now()->toIso8601String()
+                ])
+            );
+
+            DB::commit();
+
+            Log::info("✅ Signalement {$firebaseDocId} synchronisé -> PostgreSQL ID: {$signalement->id_signalement}");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("❌ Erreur sync signalement {$firebaseDocId}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Synchroniser un histo_statut unique depuis Firebase vers PostgreSQL
+     */
+    private function syncSingleHistoStatutFromFirebase(string $firebaseDocId, array $histoData)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Récupérer l'ID du signalement depuis Firebase ou PostgreSQL
+            $idSignalement = null;
+            
+            // Option 1: L'ID PostgreSQL est déjà présent dans les données
+            if (isset($histoData['id_signalement_postgres'])) {
+                $idSignalement = $histoData['id_signalement_postgres'];
+            }
+            // Option 2: Chercher via firebase_signalement_id
+            elseif (isset($histoData['firebase_signalement_id'])) {
+                $signalementFirestore = $this->firebaseRestService->getDocument('signalements', $histoData['firebase_signalement_id']);
+                if ($signalementFirestore && isset($signalementFirestore['id_signalement_postgres'])) {
+                    $idSignalement = $signalementFirestore['id_signalement_postgres'];
+                }
+            }
+            // Option 3: ID direct
+            elseif (isset($histoData['id_signalement'])) {
+                $idSignalement = $histoData['id_signalement'];
+            }
+
+            if (!$idSignalement) {
+                Log::warning("⚠️ Signalement non trouvé pour histo_statut {$firebaseDocId}, sera synchronisé plus tard");
+                throw new \Exception("Signalement non encore synchronisé - firebase_signalement_id: " . ($histoData['firebase_signalement_id'] ?? 'null'));
+            }
+
+            // Récupérer ou créer le statut
+            $idStatut = null;
+            if (isset($histoData['statut'])) {
+                $statutData = $histoData['statut'];
+                if (isset($statutData['id_statut'])) {
+                    $idStatut = $statutData['id_statut'];
+                } elseif (isset($statutData['libelle'])) {
+                    $statut = Statut::firstOrCreate(
+                        ['libelle' => $statutData['libelle']],
+                        ['libelle' => $statutData['libelle']]
+                    );
+                    $idStatut = $statut->id_statut;
+                }
+            }
+
+            // Parser la date
+            $daty = null;
+            if (isset($histoData['daty'])) {
+                $daty = \Carbon\Carbon::parse($histoData['daty']);
+            }
+
+            // Préparer les données
+            $histoFields = [
+                'daty' => $daty,
+                'description' => $histoData['description'] ?? null,
+                'id_statut' => $idStatut,
+                'id_signalement' => $idSignalement,
+                'synchronized' => true,
+                'last_sync_at' => now()
+            ];
+
+            // Créer ou mettre à jour l'histo_statut dans PostgreSQL
+            $histoStatut = null;
+            if (isset($histoData['id_histo_statut']) && $histoData['id_histo_statut']) {
+                $histoStatut = HistoStatut::find($histoData['id_histo_statut']);
+                if ($histoStatut) {
+                    $histoStatut->update($histoFields);
+                } else {
+                    $histoFields['id_histo_statut'] = $histoData['id_histo_statut'];
+                    $histoStatut = HistoStatut::create($histoFields);
+                }
+            } else {
+                $histoStatut = HistoStatut::create($histoFields);
+            }
+
+            Log::info("📝 HistoStatut créé/mis à jour: ID={$histoStatut->id_histo_statut}");
+
+            // Note: Le statut est géré via histo_statut, pas dans la table signalement
+            // (la colonne id_statut n'existe pas dans signalement)
+
+            // Marquer comme synchronisé dans Firestore
+            $this->firebaseRestService->saveDocument(
+                'histo_statuts',
+                $firebaseDocId,
+                array_merge($histoData, [
+                    'synchronized' => true,
+                    'id_histo_statut_postgres' => $histoStatut->id_histo_statut,
+                    'id_signalement_postgres' => $idSignalement,
+                    'last_sync_at' => now()->toIso8601String()
+                ])
+            );
+
+            DB::commit();
+
+            Log::info("✅ HistoStatut {$firebaseDocId} synchronisé -> PostgreSQL ID: {$histoStatut->id_histo_statut}");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("❌ Erreur sync histo_statut {$firebaseDocId}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Obtenir le statut de synchronisation Firebase -> PostgreSQL
+     * 
+     * @OA\Get(
+     *     path="/api/sync/firebase-status",
+     *     summary="Obtenir le statut de synchronisation depuis Firebase",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Statut de synchronisation Firebase"
+     *     )
+     * )
+     */
+    public function firebaseStatus()
+    {
+        try {
+            // Récupérer TOUS les documents et filtrer côté PHP
+            $allSignalements = $this->firebaseRestService->getCollection('signalements');
+            $allHistoStatuts = $this->firebaseRestService->getCollection('histo_statuts');
+            
+            // Filtrer les non synchronisés
+            $unsyncedSignalements = array_filter($allSignalements, function($doc) {
+                return !isset($doc['synchronized']) || $doc['synchronized'] === false;
+            });
+            $unsyncedHistoStatuts = array_filter($allHistoStatuts, function($doc) {
+                return !isset($doc['synchronized']) || $doc['synchronized'] === false;
+            });
+
+            // Compter les totaux dans PostgreSQL
+            $totalSignalementsPostgres = Signalement::count();
+            $totalHistoStatutsPostgres = HistoStatut::count();
+            $syncedSignalementsPostgres = Signalement::where('synchronized', true)->count();
+            $syncedHistoStatutsPostgres = HistoStatut::where('synchronized', true)->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'firebase' => [
+                        'signalements_total' => count($allSignalements),
+                        'signalements_non_synchronises' => count($unsyncedSignalements),
+                        'histo_statuts_total' => count($allHistoStatuts),
+                        'histo_statuts_non_synchronises' => count($unsyncedHistoStatuts)
+                    ],
+                    'postgresql' => [
+                        'signalements' => [
+                            'total' => $totalSignalementsPostgres,
+                            'synchronises' => $syncedSignalementsPostgres
+                        ],
+                        'histo_statuts' => [
+                            'total' => $totalHistoStatutsPostgres,
+                            'synchronises' => $syncedHistoStatutsPostgres
+                        ]
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération du statut Firebase',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser les histo_statuts de PostgreSQL vers Firebase
+     * Et mettre à jour le statut du signalement dans Firestore
+     * 
+     * @OA\Post(
+     *     path="/api/sync/histo-statuts/to-firebase",
+     *     summary="Synchroniser les histo_statuts vers Firebase",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation réussie"
+     *     )
+     * )
+     */
+    public function syncHistoStatutsToFirebase()
+    {
+        try {
+            // Récupérer les histo_statuts non synchronisés depuis PostgreSQL
+            // Utiliser whereRaw pour gérer correctement le boolean PostgreSQL
+            $histoStatuts = HistoStatut::whereRaw('synchronized = false OR synchronized IS NULL')
+                ->with(['statut', 'signalement'])
+                ->get();
+            
+            Log::info("Histo_statuts à synchroniser vers Firebase: " . $histoStatuts->count());
+            
+            // Debug: lister les IDs
+            $ids = $histoStatuts->pluck('id_histo_statut')->toArray();
+            Log::info("IDs des histo_statuts: " . implode(', ', $ids));
+
+            if ($histoStatuts->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun histo_statut à synchroniser',
+                    'data' => [
+                        'total' => 0,
+                        'synced' => 0,
+                        'failed' => 0,
+                        'signalements_updated' => 0
+                    ]
+                ]);
+            }
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+            $signalementsUpdated = [];
+
+            foreach ($histoStatuts as $histoStatut) {
+                try {
+                    $this->syncSingleHistoStatutToFirebase($histoStatut);
+                    $synced++;
+
+                    // Marquer le signalement pour mise à jour du statut
+                    if ($histoStatut->id_signalement && !in_array($histoStatut->id_signalement, $signalementsUpdated)) {
+                        $signalementsUpdated[] = $histoStatut->id_signalement;
+                    }
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'id' => $histoStatut->id_histo_statut,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("Erreur sync histo_statut {$histoStatut->id_histo_statut} vers Firebase: " . $e->getMessage());
+                }
+            }
+
+            // Mettre à jour le statut des signalements dans Firestore
+            $signalementsStatusUpdated = 0;
+            foreach ($signalementsUpdated as $idSignalement) {
+                try {
+                    $this->updateSignalementStatusInFirestore($idSignalement);
+                    $signalementsStatusUpdated++;
+                } catch (\Exception $e) {
+                    Log::error("Erreur mise à jour statut signalement {$idSignalement}: " . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Synchronisation histo_statuts vers Firebase terminée",
+                'data' => [
+                    'total' => $histoStatuts->count(),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'signalements_updated' => $signalementsStatusUpdated,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur globale sync histo_statuts vers Firebase: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser un seul histo_statut de PostgreSQL vers Firebase
+     * 
+     */
+    private function syncSingleHistoStatutToFirebase(HistoStatut $histoStatut)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Récupérer le firebase_signalement_id depuis Firestore
+            $firebaseSignalementId = null;
+            $allSignalements = $this->firebaseRestService->getCollection('signalements');
+            foreach ($allSignalements as $docId => $doc) {
+                if (isset($doc['id_signalement_postgres']) && $doc['id_signalement_postgres'] == $histoStatut->id_signalement) {
+                    $firebaseSignalementId = $docId;
+                    break;
+                }
+            }
+
+            // Préparer les données pour Firestore - même structure que le mobile
+            $firestoreData = [
+                'daty' => $histoStatut->daty ? $histoStatut->daty->toIso8601String() : now()->toIso8601String(),
+                'description' => $histoStatut->description,
+                'firebase_signalement_id' => $firebaseSignalementId,
+                'id_histo_statut_postgres' => $histoStatut->id_histo_statut,
+                'id_signalement_postgres' => $histoStatut->id_signalement,
+                'last_sync_at' => now()->toIso8601String(),
+                'statut' => [
+                    'id_statut' => $histoStatut->id_statut,
+                    'libelle' => $histoStatut->statut ? $histoStatut->statut->libelle : null
+                ],
+                'synchronized' => true
+            ];
+
+            // Enregistrer dans Firestore
+            $this->firebaseRestService->saveDocument(
+                'histo_statuts',
+                (string) $histoStatut->id_histo_statut,
+                $firestoreData
+            );
+
+            // Mettre à jour le statut dans PostgreSQL
+            $histoStatut->synchronized = true;
+            $histoStatut->last_sync_at = now();
+            $histoStatut->save();
+
+            DB::commit();
+
+            Log::info("✅ Histo_statut {$histoStatut->id_histo_statut} synchronisé vers Firebase");
+
+            // Envoyer une notification au propriétaire du signalement
+            $this->notifySignalementOwner($histoStatut);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Notifier le propriétaire du signalement après un changement de statut
+     * 
+     * @param HistoStatut $histoStatut L'historique de statut qui vient d'être créé
+     */
+    private function notifySignalementOwner(HistoStatut $histoStatut)
+    {
+        try {
+            // Récupérer le signalement avec ses relations
+            $signalement = Signalement::with(['utilisateur'])
+                ->find($histoStatut->id_signalement);
+
+            if (!$signalement) {
+                Log::warning("⚠️  Signalement {$histoStatut->id_signalement} non trouvé pour notification");
+                return;
+            }
+
+            if (!$signalement->utilisateur) {
+                Log::warning("⚠️  Utilisateur propriétaire non trouvé pour signalement {$signalement->id_signalement}");
+                return;
+            }
+
+            // Récupérer le libellé du statut
+            $statutLibelle = $histoStatut->statut ? $histoStatut->statut->libelle : 'Statut modifié';
+
+            // Extraire la localisation du signalement
+            $location = $this->extractSignalementLocation($signalement);
+
+            // Envoyer la notification
+            $result = $this->fcmService->notifySignalementStatusChange(
+                $signalement->id_utilisateur,
+                $signalement->id_signalement,
+                $statutLibelle,
+                $location
+            );
+
+            if ($result['success']) {
+                Log::info("✅ Notification envoyée au propriétaire (user: {$signalement->id_utilisateur}) du signalement {$signalement->id_signalement}");
+            } else {
+                Log::warning("⚠️  Échec notification: " . ($result['error'] ?? 'Erreur inconnue'));
+            }
+
+        } catch (\Exception $e) {
+            // Ne pas faire échouer la synchronisation si la notification échoue
+            Log::error("❌ Erreur lors de l'envoi de notification: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Extraire la localisation d'un signalement pour la notification
+     * 
+     * @param Signalement $signalement
+     * @return string|null La localisation formatée ou null
+     */
+    private function extractSignalementLocation(Signalement $signalement): ?string
+    {
+        try {
+            // Si le signalement a une adresse textuelle
+            if (!empty($signalement->city)) {
+                return $signalement->city;
+            }
+
+            // Si on a un point géographique, on pourrait faire un reverse geocoding
+            // mais pour l'instant on retourne juste un message générique
+            if ($signalement->point) {
+                return "votre localisation";
+            }
+
+            return null;
+            
+        } catch (\Exception $e) {
+            Log::error("Erreur extraction localisation: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Mettre à jour le statut d'un signalement dans Firestore avec le dernier statut
+     */
+    private function updateSignalementStatusInFirestore(int $idSignalement)
+    {
+        // Récupérer le dernier histo_statut pour ce signalement
+        $dernierHistoStatut = HistoStatut::where('id_signalement', $idSignalement)
+            ->orderBy('daty', 'desc')
+            ->orderBy('id_histo_statut', 'desc')
+            ->with('statut')
+            ->first();
+
+        if (!$dernierHistoStatut) {
+            Log::warning("Aucun histo_statut trouvé pour signalement {$idSignalement}");
+            return;
+        }
+
+        try {
+            // Récupérer tous les signalements de Firestore
+            $allSignalements = $this->firebaseRestService->getCollection('signalements');
+            
+            // Chercher le document qui a id_signalement_postgres = $idSignalement
+            $docId = null;
+            $existingDoc = null;
+            
+            foreach ($allSignalements as $id => $doc) {
+                if (isset($doc['id_signalement_postgres']) && $doc['id_signalement_postgres'] == $idSignalement) {
+                    $docId = $id;
+                    $existingDoc = $doc;
+                    break;
+                }
+            }
+            
+            if ($existingDoc && $docId) {
+                // Mettre à jour le champ statut (map) avec le nouveau statut
+                $existingDoc['statut'] = [
+                    'id_statut' => $dernierHistoStatut->id_statut,
+                    'libelle' => $dernierHistoStatut->statut ? $dernierHistoStatut->statut->libelle : null
+                ];
+                $existingDoc['updatedAt'] = now()->toIso8601String();
+                
+                $this->firebaseRestService->saveDocument('signalements', $docId, $existingDoc);
+                Log::info("✅ Statut du signalement {$idSignalement} (doc: {$docId}) mis à jour dans Firestore: statut.id_statut={$dernierHistoStatut->id_statut}, statut.libelle=" . ($dernierHistoStatut->statut ? $dernierHistoStatut->statut->libelle : 'null'));
+            } else {
+                Log::warning("Signalement avec id_signalement_postgres={$idSignalement} non trouvé dans Firestore");
+            }
+        } catch (\Exception $e) {
+            Log::error("Erreur mise à jour statut signalement {$idSignalement} dans Firestore: " . $e->getMessage());
+            throw $e;
+        }
+    }
+>>>>>>> Stashed changes
 }

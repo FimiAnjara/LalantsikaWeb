@@ -36,6 +36,7 @@ return new class extends Migration
 
         // Ajouter la colonne geography avec la syntaxe PostGIS correcte
         DB::statement('ALTER TABLE signalement ADD COLUMN point geography(Point, 4326) NULL');
+        DB::statement('ALTER TABLE signalement ADD COLUMN city VARCHAR(255) NULL');
     }
 
     /**

@@ -390,24 +390,50 @@ const editSignalement = () => {
   }
 };
 
-const formatDate = (daty: string): string => {
+const formatDate = (daty: any): string => {
   if (!daty) return '';
   try {
-    const date = new Date(daty);
+    let date: Date;
+    
+    // Gérer les Timestamps Firestore (objet avec seconds/nanoseconds)
+    if (daty && typeof daty === 'object' && 'seconds' in daty) {
+      date = new Date(daty.seconds * 1000);
+    } else {
+      date = new Date(daty);
+    }
+    
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'
     });
   } catch {
-    return daty;
+    return '';
   }
 };
 
-const formatDateShort = (daty: string): string => {
+const formatDateShort = (daty: any): string => {
   if (!daty) return '';
   try {
-    const date = new Date(daty);
+    let date: Date;
+    
+    // Gérer les Timestamps Firestore (objet avec seconds/nanoseconds)
+    if (daty && typeof daty === 'object' && 'seconds' in daty) {
+      date = new Date(daty.seconds * 1000);
+    } else {
+      date = new Date(daty);
+    }
+    
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short',
@@ -416,7 +442,7 @@ const formatDateShort = (daty: string): string => {
       minute: '2-digit'
     });
   } catch {
-    return daty;
+    return '';
   }
 };
 

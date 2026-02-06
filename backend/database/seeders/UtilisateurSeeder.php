@@ -15,16 +15,25 @@ class UtilisateurSeeder extends Seeder
     {
         DB::table('utilisateur')->insert([
             [
+<<<<<<< Updated upstream
                 'identifiant' => 'manager',
                 'mdp' => Hash::make('manager123'),
                 'nom' => 'Rakoto',
                 'prenom' => 'Jean',
                 'dtn' => '1990-05-15',
+=======
+                'identifiant' => 'manager1',
+                'mdp' => Hash::make('manager123'),
+                'nom' => 'Admin',
+                'prenom' => 'Lalana',
+                'dtn' => '1995-03-10',
+>>>>>>> Stashed changes
                 'email' => 'manager@example.com',
                 'firebase_uid' => null,
                 'id_sexe' => 1,
                 'id_type_utilisateur' => 1,
                 'synchronized' => false,
+<<<<<<< Updated upstream
                 'last_sync_at' => null,
             ],
             [
@@ -51,6 +60,8 @@ class UtilisateurSeeder extends Seeder
                 'id_sexe' => 2,
                 'id_type_utilisateur' => 2,
                 'synchronized' => false,
+=======
+>>>>>>> Stashed changes
                 'last_sync_at' => null,
             ],
         ]);

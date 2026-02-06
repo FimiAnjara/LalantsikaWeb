@@ -20,7 +20,11 @@ class Signalement extends Model
         'id_utilisateur',
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         'id_statut',
+=======
+        'city',
+>>>>>>> Stashed changes
 =======
         'city',
 >>>>>>> Stashed changes

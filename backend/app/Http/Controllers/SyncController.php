@@ -657,6 +657,111 @@ class SyncController extends Controller
     }
 
     /**
+     * Synchroniser les FCM tokens depuis Firebase vers PostgreSQL
+     * Utile après qu'un utilisateur se connecte sur mobile et met à jour son token
+     * 
+     * @OA\Post(
+     *     path="/api/sync/fcm-tokens/from-firebase",
+     *     summary="Synchroniser les FCM tokens depuis Firebase vers PostgreSQL",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation réussie"
+     *     )
+     * )
+     */
+    public function syncFcmTokensFromFirebase()
+    {
+        try {
+            Log::info("🔄 Début synchronisation FCM tokens depuis Firebase...");
+            
+            // Récupérer TOUS les utilisateurs de Firestore
+            $allUtilisateurs = $this->firebaseRestService->getCollection('utilisateurs');
+            
+            // Filtrer ceux qui ont un fcm_token et sont marqués comme non synchronisés
+            $utilisateursWithToken = array_filter($allUtilisateurs, function($doc) {
+                return isset($doc['fcm_token']) && 
+                       !empty($doc['fcm_token']) &&
+                       (!isset($doc['synchronized']) || $doc['synchronized'] === false);
+            });
+            
+            Log::info("📊 Utilisateurs avec FCM token non synchronisés: " . count($utilisateursWithToken));
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($utilisateursWithToken as $firebaseDocId => $userData) {
+                try {
+                    if (!isset($userData['id_utilisateur'])) {
+                        Log::warning("⚠️  Document {$firebaseDocId} n'a pas de id_utilisateur");
+                        continue;
+                    }
+
+                    $idUtilisateur = $userData['id_utilisateur'];
+                    $fcmToken = $userData['fcm_token'];
+
+                    // Mettre à jour dans PostgreSQL
+                    $user = User::where('id_utilisateur', $idUtilisateur)->first();
+                    
+                    if ($user) {
+                        $user->fcm_token = $fcmToken;
+                        $user->save();
+                        
+                        Log::info("✅ FCM token synchronisé pour user {$idUtilisateur}");
+                        $synced++;
+
+                        // Marquer comme synchronisé dans Firestore
+                        $this->firebaseRestService->saveDocument(
+                            'utilisateurs',
+                            $firebaseDocId,
+                            array_merge($userData, [
+                                'synchronized' => true,
+                                'last_sync_at' => now()->toIso8601String()
+                            ])
+                        );
+                    } else {
+                        Log::warning("⚠️  Utilisateur {$idUtilisateur} non trouvé dans PostgreSQL");
+                        $failed++;
+                        $errors[] = [
+                            'id' => $idUtilisateur,
+                            'error' => 'Utilisateur non trouvé dans PostgreSQL'
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'id' => $userData['id_utilisateur'] ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("❌ Erreur sync FCM token pour user: " . $e->getMessage());
+                }
+            }
+
+            Log::info("✅ Sync FCM tokens terminée: {$synced} réussis, {$failed} échecs");
+
+            return response()->json([
+                'success' => true,
+                'message' => "Synchronisation FCM tokens terminée",
+                'data' => [
+                    'total' => count($utilisateursWithToken),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur synchronisation FCM tokens depuis Firebase: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Synchroniser les signalements depuis Firebase vers PostgreSQL
      * 
      * @OA\Post(

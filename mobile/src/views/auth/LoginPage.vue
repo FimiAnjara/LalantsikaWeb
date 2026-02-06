@@ -118,8 +118,8 @@ import { toastService } from '@/services/toast';
 import { getFullName, isManager } from '@/models/User';
 import { useBackgroundAnimation } from '@/composables/useBackgroundAnimation';
 
-const email = ref('testuser@example.com');
-const password = ref('password123');
+const email = ref('ranivoarisonfifaliana7.com');
+const password = ref('mdp123');
 const rememberMe = ref(false);
 const showPassword = ref(false);
 const loading = ref(false);

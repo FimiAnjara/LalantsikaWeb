@@ -9,6 +9,7 @@ use App\Models\Signalement;
 use App\Models\HistoStatut;
 use App\Models\Statut;
 use App\Models\Entreprise;
+use App\Models\Parametre;
 use App\Services\Firebase\FirebaseRestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -210,6 +211,46 @@ class SyncController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération du statut',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtenir le statut de synchronisation des paramètres
+     * 
+     * @OA\Get(
+     *     path="/api/sync/parametres/status",
+     *     summary="Obtenir le statut de synchronisation des paramètres",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Statut de synchronisation des paramètres"
+     *     )
+     * )
+     */
+    public function parametreStatus()
+    {
+        try {
+            $total = Parametre::count();
+            $synced = Parametre::where('synchronized', true)->count();
+            $notSynced = Parametre::whereRaw('synchronized = false OR synchronized IS NULL')->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total' => $total,
+                    'synchronises' => $synced,
+                    'non_synchronises' => $notSynced,
+                    'pourcentage_sync' => $total > 0 ? round(($synced / $total) * 100, 2) : 0
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur récupération statut paramètres: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération du statut des paramètres',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -1164,4 +1205,117 @@ class SyncController extends Controller
             throw $e;
         }
     }
+
+    /**
+     * Synchroniser les paramètres de PostgreSQL vers Firebase
+     * 
+     * @OA\Post(
+     *     path="/api/sync/parametres/to-firebase",
+     *     summary="Synchroniser les paramètres vers Firebase",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation réussie"
+     *     )
+     * )
+     */
+    public function syncParametresToFirebase()
+    {
+        try {
+            // Récupérer les paramètres non synchronisés
+            $parametres = Parametre::whereRaw('synchronized = false OR synchronized IS NULL')
+                ->get();
+
+            Log::info("Paramètres à synchroniser: " . $parametres->count());
+
+            if ($parametres->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun paramètre à synchroniser',
+                    'data' => [
+                        'total' => 0,
+                        'synced' => 0,
+                        'failed' => 0
+                    ]
+                ]);
+            }
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($parametres as $parametre) {
+                try {
+                    $this->syncSingleParametreToFirebase($parametre);
+                    $synced++;
+                    Log::info("✅ Paramètre {$parametre->id_parametre} synchronisé avec succès");
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = "Paramètre {$parametre->id_parametre}: " . $e->getMessage();
+                    Log::error("❌ Erreur sync paramètre {$parametre->id_parametre}: " . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success' => $failed === 0,
+                'message' => 'Synchronisation des paramètres terminée',
+                'data' => [
+                    'total' => $parametres->count(),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur synchronisation paramètres vers Firebase: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation des paramètres',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser un seul paramètre de PostgreSQL vers Firebase
+     */
+    private function syncSingleParametreToFirebase(Parametre $parametre)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Préparer les données pour Firestore
+            $firestoreData = [
+                'id_parametre' => $parametre->id_parametre,
+                'tentative_max' => $parametre->tentative_max,
+                'synchronized' => true,
+                'last_sync_at' => now()->toIso8601String(),
+                'updatedAt' => now()->toIso8601String()
+            ];
+
+            // Enregistrer dans Firestore (remplace l'ancien document s'il existe)
+            $this->firebaseRestService->saveDocument(
+                'parametre',
+                (string) $parametre->id_parametre,
+                $firestoreData
+            );
+
+            // Mettre à jour le statut dans PostgreSQL
+            $parametre->synchronized = true;
+            $parametre->last_sync_at = now();
+            $parametre->save();
+
+            DB::commit();
+
+            Log::info("✅ Paramètre {$parametre->id_parametre} synchronisé vers Firebase");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("❌ Erreur sync paramètre {$parametre->id_parametre}: " . $e->getMessage());
+            throw $e;
+        }
+    }
 }
+

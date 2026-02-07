@@ -123,17 +123,23 @@ import { toastService } from '@/services/toast';
 import { getFullName, isManager } from '@/models/User';
 import { useBackgroundAnimation } from '@/composables/useBackgroundAnimation';
 
-const email = ref('ranivoarisonfifaliana7.com');
-const password = ref('mdp123');
+const email = ref('');
+const password = ref('');
 const rememberMe = ref(false);
 const showPassword = ref(false);
 const loading = ref(false);
 const googleLoading = ref(false);
 
+const fillTestUser = () => {
+  email.value = 'test@lalantsika.mg';
+  password.value = 'Test1234!';
+};
+
 const { setSpeed } = useBackgroundAnimation();
 
 onMounted(() => {
   // Reset speed to normal just in case
+  fillTestUser();
   setSpeed(1);
 });
 

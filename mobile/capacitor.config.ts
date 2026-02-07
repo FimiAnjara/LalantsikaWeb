@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.lalana.app',
-  appName: 'mobile',
+  appName: 'Lalantsika',
   webDir: 'dist',
   plugins: {
     FirebaseAuthentication: {

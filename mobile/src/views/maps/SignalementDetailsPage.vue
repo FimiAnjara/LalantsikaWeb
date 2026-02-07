@@ -369,7 +369,13 @@ const loadHistoStatuts = async (signalementId: string) => {
   isLoadingHistory.value = true;
   
   try {
-    histoStatuts.value = await signalementService.getHistoStatuts(signalementId);
+    const histoList = await signalementService.getHistoStatuts(signalementId);
+    // Trier par date décroissante (plus récent en premier)
+    histoStatuts.value = histoList.sort((a, b) => {
+      const dateA = parseHistoDate(a.daty);
+      const dateB = parseHistoDate(b.daty);
+      return dateB.getTime() - dateA.getTime();
+    });
   } catch (error) {
     console.error('Erreur historique:', error);
   } finally {
@@ -407,7 +413,7 @@ const formatDate = (daty: string): string => {
 const formatDateShort = (daty: string): string => {
   if (!daty) return '';
   try {
-    const date = new Date(daty);
+    const date = parseHistoDate(daty);
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short',
@@ -418,6 +424,46 @@ const formatDateShort = (daty: string): string => {
   } catch {
     return daty;
   }
+};
+
+// Parser les dates qui peuvent être en format ISO, timestamp Firestore ou objet
+const parseHistoDate = (daty: any): Date => {
+  if (!daty) return new Date();
+  
+  // Si c'est déjà une Date
+  if (daty instanceof Date) {
+    return daty;
+  }
+  
+  // Si c'est un string ISO ou timestamp
+  if (typeof daty === 'string') {
+    const parsed = new Date(daty);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  
+  // Si c'est un timestamp Firestore (objet avec _seconds ou seconds)
+  if (typeof daty === 'object') {
+    if (daty._seconds !== undefined) {
+      return new Date(daty._seconds * 1000);
+    }
+    if (daty.seconds !== undefined) {
+      return new Date(daty.seconds * 1000);
+    }
+    // Firestore Timestamp
+    if (daty.toDate && typeof daty.toDate === 'function') {
+      return daty.toDate();
+    }
+  }
+  
+  // Si c'est un nombre (timestamp en ms)
+  if (typeof daty === 'number') {
+    return new Date(daty);
+  }
+  
+  // Par défaut, essayer de parser
+  return new Date(daty);
 };
 
 const getUserName = (utilisateur?: UtilisateurRef): string => {

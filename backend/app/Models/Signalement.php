@@ -19,6 +19,7 @@ class Signalement extends Model
         'id_entreprise',
         'id_utilisateur',
         'id_statut',
+        'city',
         'point',
         'synchronized',
         'last_sync_at'

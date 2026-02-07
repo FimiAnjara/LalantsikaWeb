@@ -17,6 +17,10 @@ return new class extends Migration
             $table->integer('etat');
             $table->unsignedBigInteger('id_utilisateur');
             
+            // Colonnes de synchronisation
+            $table->boolean('synchronized')->default(false);
+            $table->timestamp('last_sync_at')->nullable();
+            
             $table->foreign('id_utilisateur')
                 ->references('id_utilisateur')
                 ->on('utilisateur');

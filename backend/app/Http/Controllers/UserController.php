@@ -277,7 +277,11 @@ class UserController extends Controller
 
             $user->save();
 
-            Log::info("✅ Utilisateur mis à jour: {$user->email}");
+            // Marquer comme non synchronisé (sera resynchronisé lors du prochain sync)
+            $user->synchronized = false;
+            $user->save();
+
+            Log::info("✅ Utilisateur mis à jour: {$user->email} (synchronized = false)");
 
             // Recharger avec les relations
             $user->load(['sexe', 'typeUtilisateur']);

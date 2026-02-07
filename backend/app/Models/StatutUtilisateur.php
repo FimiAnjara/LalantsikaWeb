@@ -14,10 +14,14 @@ class StatutUtilisateur extends Model
         'date_',
         'etat',
         'id_utilisateur',
+        'synchronized',
+        'last_sync_at',
     ];
 
     protected $casts = [
         'date_' => 'datetime',
+        'last_sync_at' => 'datetime',
+        'synchronized' => 'boolean',
     ];
 
     public function user()

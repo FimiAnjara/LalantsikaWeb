@@ -258,6 +258,19 @@ export default function SignalementFiche() {
         }
     }
 
+    // Construire l'URL de la photo de l'utilisateur
+    const buildUserPhotoUrl = () => {
+        if (!signalement?.utilisateur?.photo_url) return null
+        
+        const photoPath = signalement.utilisateur.photo_url
+        // Si c'est une URL locale, la convertir en API URL
+        if (photoPath.includes('/storage/utilisateur/')) {
+            return `/api/storage/${photoPath.split('/storage/')[1]}`
+        }
+        // Sinon retourner telle quelle (URL externe ImgBB)
+        return photoPath
+    }
+
     const handleDelete = () => {
         setDeleteModal({ visible: true })
     }
@@ -467,13 +480,39 @@ export default function SignalementFiche() {
                         </CCardHeader>
                         <CCardBody className="p-4 text-center">
                             <div className="mb-3">
-                                <CAvatar size="xl" className="profile-avatar mb-2 shadow-sm">
-                                    {signalement.utilisateur && signalement.utilisateur.prenom && signalement.utilisateur.nom ? (
-                                        <>
-                                            {signalement.utilisateur.prenom.charAt(0)}{signalement.utilisateur.nom.charAt(0)}
-                                        </>
-                                    ) : null}
-                                </CAvatar>
+                                {buildUserPhotoUrl() ? (
+                                    <div style={{ 
+                                        width: '120px', 
+                                        height: '120px', 
+                                        margin: '0 auto 12px',
+                                        borderRadius: '50%',
+                                        overflow: 'hidden',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                        border: '3px solid #fff'
+                                    }}>
+                                        <img 
+                                            src={buildUserPhotoUrl()} 
+                                            alt={`${signalement.utilisateur.prenom} ${signalement.utilisateur.nom}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover'
+                                            }}
+                                            onError={(e) => {
+                                                // Si l'image ne peut pas être chargée, afficher les initiales
+                                                e.target.style.display = 'none'
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <CAvatar size="xl" className="profile-avatar mb-2 shadow-sm">
+                                        {signalement.utilisateur && signalement.utilisateur.prenom && signalement.utilisateur.nom ? (
+                                            <>
+                                                {signalement.utilisateur.prenom.charAt(0)}{signalement.utilisateur.nom.charAt(0)}
+                                            </>
+                                        ) : null}
+                                    </CAvatar>
+                                )}
                             </div>
                             <h5 className="mb-1">{signalement.utilisateur && signalement.utilisateur.prenom} {signalement.utilisateur && signalement.utilisateur.nom}</h5>
                             <p className="text-muted small">@{signalement.utilisateur && signalement.utilisateur.identifiant}</p>

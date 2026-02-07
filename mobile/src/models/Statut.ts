@@ -32,7 +32,7 @@ export const STATUT_OPTIONS: Statut[] = [
  */
 export const getStatutType = (id_statut: number): string => {
   const types: Record<number, string> = {
-    [StatutEnum.NOUVEAU]: 'warning',
+    [StatutEnum.NOUVEAU]: 'nouveau',
     [StatutEnum.EN_COURS]: 'info',
     [StatutEnum.TERMINE]: 'success',
     [StatutEnum.REJETE]: 'danger'

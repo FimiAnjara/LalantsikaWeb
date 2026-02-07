@@ -9,49 +9,82 @@
         :message="loadingMessage" 
       />
       
-      <!-- Filtre de la carte (Tous / Mes signalements) -->
-      <div v-if="!reportMode" class="map-filter">
-        <button 
-          class="filter-btn" 
-          :class="{ active: mapFilter === 'all' }"
-          @click="mapFilter = 'all'"
-        >
-          Tous
-        </button>
-        <button 
-          class="filter-btn" 
-          :class="{ active: mapFilter === 'mine' }"
-          @click="mapFilter = 'mine'"
-        >
-          Mes signalements
-        </button>
-      </div>
-      
-      <!-- Header avec recherche et profil alignés -->
-      <div class="map-header">
-        <div class="search-header">
-          <div class="search-bar">
-            <img src="/logo/logo4.png" alt="Logo" class="search-logo" />
-            <input 
-              type="text" 
-              v-model="searchQuery"
-              @keyup.enter="searchCity"
-              placeholder="Rechercher une ville..." 
-              class="search-input"
-            />
-            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
+      <!-- Header Google Maps style -->
+      <div class="gm-header">
+        <!-- Barre de recherche style Google Maps -->
+        <div class="gm-search-bar">
+          <img src="/logo/logo4.png" alt="Logo" class="gm-search-logo" />
+          <input 
+            type="text" 
+            v-model="searchQuery"
+            @keyup.enter="searchCity"
+            placeholder="Rechercher une ville..." 
+            class="gm-search-input"
+          />
+          <button class="gm-profile-btn" @click="toggleProfileMenu">
+            <img v-if="userPhotoUrl" :src="userPhotoUrl" alt="Profil" class="gm-profile-photo" />
+            <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="#547792">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M5.5 21a6.5 6.5 0 0 1 13 0" fill="#547792"/>
             </svg>
-          </div>
+          </button>
         </div>
-        <div class="profile-container">
-          <button class="profile-btn" @click="toggleProfileMenu">
-            <img v-if="userPhotoUrl" :src="userPhotoUrl" alt="Photo de profil" class="profile-photo" />
-            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="7" r="4"/>
-              <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+
+        <!-- Filtres chips style Google Maps -->
+        <div v-if="!reportMode" class="gm-chips-row">
+          <button 
+            class="gm-chip" 
+            :class="{ active: mapFilter === 'all' }"
+            @click="mapFilter = 'all'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20"/>
             </svg>
+            <span>Tous</span>
+          </button>
+          <button 
+            class="gm-chip" 
+            :class="{ active: mapFilter === 'mine' }"
+            @click="mapFilter = 'mine'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>Les miens</span>
+          </button>
+          <button 
+            class="gm-chip gm-chip--nouveau" 
+            :class="{ active: mapFilter === 'nouveau' }"
+            @click="mapFilter = 'nouveau'"
+          >
+            <span class="gm-chip-dot" style="background:#EA4335;"></span>
+            <span>Nouveau</span>
+          </button>
+          <button 
+            class="gm-chip gm-chip--info" 
+            :class="{ active: mapFilter === 'info' }"
+            @click="mapFilter = 'info'"
+          >
+            <span class="gm-chip-dot" style="background:#4285F4;"></span>
+            <span>En cours</span>
+          </button>
+          <button 
+            class="gm-chip gm-chip--success" 
+            :class="{ active: mapFilter === 'success' }"
+            @click="mapFilter = 'success'"
+          >
+            <span class="gm-chip-dot" style="background:#34A853;"></span>
+            <span>Terminé</span>
+          </button>
+          <button 
+            class="gm-chip gm-chip--danger" 
+            :class="{ active: mapFilter === 'danger' }"
+            @click="mapFilter = 'danger'"
+          >
+            <span class="gm-chip-dot" style="background:#78909C;"></span>
+            <span>Rejeté</span>
           </button>
         </div>
       </div>
@@ -63,15 +96,16 @@
         @click="startReportMode"
         title="Ajouter un signalement"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
-          <path d="M12 2v20M2 12h20"/>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          <path d="M12 5v14M5 12h14"/>
         </svg>
       </button>
 
-      <!-- Icône de localisation rouge centrale (en mode signalement) -->
+      <!-- Icône de localisation centrale (en mode signalement) - Rouge Google Maps -->
       <div v-if="reportMode" class="center-marker">
-        <svg width="40" height="50" viewBox="0 0 24 30" fill="#dc3545">
-          <path d="M12 0C7.58 0 4 3.58 4 8c0 5.5 8 14 8 14s8-8.5 8-14c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+        <svg width="40" height="56" viewBox="0 0 40 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 0C8.96 0 0 8.96 0 20c0 14 20 36 20 36s20-22 20-36C40 8.96 31.04 0 20 0z" fill="#EA4335"/>
+          <circle cx="20" cy="20" r="8" fill="white"/>
         </svg>
       </div>
 
@@ -88,14 +122,14 @@
       <!-- Boutons de validation/annulation (en mode signalement) -->
       <div v-if="reportMode" class="action-buttons">
         <button class="cancel-btn" @click="cancelReportMode" :disabled="isValidating">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
         <button class="validate-btn" @click="validateReport" :disabled="isValidating">
           <span v-if="isValidating" class="btn-spinner"></span>
-          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+          <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </button>
@@ -120,41 +154,48 @@
         @close="backToMap"
       />
 
-      <!-- Menu horizontal en bas -->
-      <div class="bottom-menu">
+      <!-- Menu horizontal en bas - style moderne flottant -->
+      <div class="gm-bottom-menu">
         <button 
-          class="menu-item" 
+          class="gm-menu-item" 
           :class="{ active: activeMenu === 'map' }"
           @click="backToMap"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 21l9-9 3 3 6-6"/>
-            <path d="M21 3v6h-6"/>
-          </svg>
+          <div class="gm-menu-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+              <line x1="8" y1="2" x2="8" y2="18"/>
+              <line x1="16" y1="6" x2="16" y2="22"/>
+            </svg>
+          </div>
           <span>Carte</span>
         </button>
 
         <button 
-          class="menu-item" 
+          class="gm-menu-item" 
           :class="{ active: activeMenu === 'saved' }"
           @click="openSignalementsList"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-          </svg>
+          <div class="gm-menu-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
           <span>Signalements</span>
         </button>
 
         <button 
-          class="menu-item" 
+          class="gm-menu-item" 
           :class="{ active: activeMenu === 'recap' }"
           @click="activeMenu = 'recap'"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <line x1="9" y1="9" x2="15" y2="9"/>
-            <line x1="9" y1="15" x2="15" y2="15"/>
-          </svg>
+          <div class="gm-menu-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+              <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+            </svg>
+          </div>
           <span>Recap</span>
         </button>
       </div>
@@ -187,7 +228,7 @@ const isSearching = ref(false);
 const isDeleting = ref(false);
 const isValidating = ref(false); // Pour le bouton de validation
 const loadingMessage = ref('Chargement...');
-const mapFilter = ref<'all' | 'mine'>('all'); // Filtre pour la carte
+const mapFilter = ref<'all' | 'mine' | 'nouveau' | 'info' | 'success' | 'danger'>('all'); // Filtre pour la carte
 const userPhotoUrl = ref<string | null>(null); // Photo de profil utilisateur
 const isLoggingOut = ref(false); // Spinner pour la déconnexion
 
@@ -230,10 +271,20 @@ const allReports = computed(() => {
 
 // Marqueurs filtrés pour la carte
 const currentMarkers = computed(() => {
+  let source = allSignalements.value;
+  
   if (mapFilter.value === 'mine') {
-    return mySignalements.value.map(sig => signalementService.signalementToMarker(sig));
+    source = mySignalements.value;
   }
-  return markers.value;
+  
+  const mapped = source.map(sig => signalementService.signalementToMarker(sig));
+  
+  // Filtrage par statut
+  if (['nouveau', 'info', 'success', 'danger'].includes(mapFilter.value)) {
+    return mapped.filter(m => m.type === mapFilter.value);
+  }
+  
+  return mapped;
 });
 
 // Charger les signalements au montage
@@ -630,175 +681,214 @@ const backToMap = () => {
 
 <style scoped>
 .map-page {
-  --background: #ffffff;
+  --background: #E8E2DB;
 }
 
-/* Header avec recherche et profil alignés */
-.map-header {
+/* ========================================
+   HEADER - Google Maps Style
+   ======================================== */
+.gm-header {
   position: absolute;
-  top: 50px;
+  top: 0;
   left: 0;
   right: 0;
   z-index: 1010;
+  padding: calc(env(safe-area-inset-top, 12px) + 10px) 14px 0 14px;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0 1rem;
-  max-width: 100vw;
-  box-sizing: border-box;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.profile-btn {
-  width: 48px;
+/* Barre de recherche pill Google Maps */
+.gm-search-bar {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 28px;
   height: 48px;
+  padding: 0 6px 0 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
+  gap: 10px;
+  transition: box-shadow 0.2s ease;
+}
+
+.gm-search-bar:focus-within {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.gm-search-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.gm-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: #1A3263;
+  background: transparent;
+  min-width: 0;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.gm-search-input::placeholder {
+  color: #547792;
+  font-weight: 400;
+}
+
+/* Bouton profil dans la barre de recherche */
+.gm-profile-btn {
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: #0a1e37;
+  background: #E8E2DB;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   padding: 0;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
-.profile-btn .profile-photo {
+.gm-profile-btn:active {
+  transform: scale(0.92);
+}
+
+.gm-profile-photo {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
 }
 
-.profile-btn:hover {
-  background: #1a3a5f;
-  transform: scale(1.05);
-}
-
-/* Container du profil */
-.profile-container {
-  position: relative;
-}
-
-/* Filtre de la carte */
-.map-filter {
-  position: absolute;
-  top: 110px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1005;
+/* ========================================
+   CHIPS / FILTRES - Google Maps Style
+   ======================================== */
+.gm-chips-row {
   display: flex;
-  background: white;
-  border-radius: 25px;
-  padding: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  gap: 4px;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 2px 4px 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.filter-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: transparent;
-  color: #666;
-  white-space: nowrap;
+.gm-chips-row::-webkit-scrollbar {
+  display: none;
 }
 
-.filter-btn.active {
-  background: linear-gradient(135deg, #0a1e37 0%, #1a3a5f 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(10, 30, 55, 0.3);
-}
-
-.filter-btn:not(.active):hover {
-  background: #f0f0f0;
-  color: #0a1e37;
-}
-
-/* Barre de recherche */
-.search-header {
-  flex: 1;
-  display: flex;
-}
-
-.search-bar {
-  flex: 1;
-  position: relative;
+.gm-chip {
   display: flex;
   align-items: center;
-  background: rgb(251, 251, 251);
-  border-radius: 12px;
-  padding: 0 1rem;
-  height: 48px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  gap: 0.75rem;
-}
-
-.search-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-  
-.search-icon {
-  color: #999;
-  flex-shrink: 0;
-}
-
-.search-input {
-  flex: 1;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
   border: none;
-  outline: none;
-  padding: 0.75rem 0;
-  font-size: 0.95rem;
-  background-color: rgb(251, 251, 251);
-  color: #0a1e37;
-  min-width: 0;
-  width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  color: #1A3263;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
-.search-input::placeholder {
-  color: #999;
+.gm-chip svg {
+  stroke: #547792;
+  flex-shrink: 0;
 }
 
-/* Bouton Signaler (en bas à droite) */
+.gm-chip.active {
+  background: #1A3263;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(26, 50, 99, 0.35);
+}
+
+.gm-chip.active svg {
+  stroke: #FAB95B;
+}
+
+.gm-chip:not(.active):active {
+  background: #f0ece7;
+  transform: scale(0.96);
+}
+
+/* Dots de couleur dans les chips de statut */
+.gm-chip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Chips de statut actifs avec leur couleur propre */
+.gm-chip--nouveau.active {
+  background: #EA4335;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(234, 67, 53, 0.35);
+}
+.gm-chip--nouveau.active .gm-chip-dot { background: #fff !important; }
+
+.gm-chip--info.active {
+  background: #4285F4;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.35);
+}
+.gm-chip--info.active .gm-chip-dot { background: #fff !important; }
+
+.gm-chip--success.active {
+  background: #34A853;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(52, 168, 83, 0.35);
+}
+.gm-chip--success.active .gm-chip-dot { background: #fff !important; }
+
+.gm-chip--danger.active {
+  background: #78909C;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(120, 144, 156, 0.35);
+}
+.gm-chip--danger.active .gm-chip-dot { background: #fff !important; }
+
+/* ========================================
+   BOUTON SIGNALER - Flottant
+   ======================================== */
 .report-btn {
   position: fixed;
-  bottom: 100px;
-  right: 1rem;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+  right: 16px;
   z-index: 1000;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0a1e37 0%, #1a3a5f 100%);
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #FAB95B;
   color: white;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(10, 30, 55, 0.4);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(250, 185, 91, 0.45);
+  transition: all 0.25s ease;
 }
 
-.report-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(10, 30, 55, 0.5);
+.report-btn:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 10px rgba(250, 185, 91, 0.5);
 }
 
-.report-btn svg {
-  width: 24px;
-  height: 24px;
-}
-
-/* Icône centrale rouge */
+/* ========================================
+   MARQUEUR CENTRAL (mode signalement)
+   ======================================== */
 .center-marker {
   position: absolute;
   top: 50%;
@@ -806,7 +896,7 @@ const backToMap = () => {
   transform: translate(-50%, -100%);
   z-index: 999;
   pointer-events: none;
-  filter: drop-shadow(0 4px 8px rgba(220, 53, 69, 0.4));
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
   animation: bounce 2s infinite;
 }
 
@@ -815,65 +905,66 @@ const backToMap = () => {
     transform: translate(-50%, -100%);
   }
   50% {
-    transform: translate(-50%, -105%);
+    transform: translate(-50%, -106%);
   }
 }
 
-/* Boutons d'action (validation/annulation) */
+/* ========================================
+   BOUTONS D'ACTION (mode signalement)
+   ======================================== */
 .action-buttons {
   position: absolute;
-  bottom: 100px;
-  right: 1rem;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+  right: 16px;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .cancel-btn,
 .validate-btn {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
 }
 
 .cancel-btn {
-  background: #dc3545;
+  background: #547792;
 }
 
-.cancel-btn:hover {
-  background: #c82333;
-  transform: scale(1.1);
+.cancel-btn:active {
+  transform: scale(0.92);
+  background: #456478;
 }
 
 .validate-btn {
-  background: #28a745;
+  background: #1A3263;
 }
 
-.validate-btn:hover:not(:disabled) {
-  background: #218838;
-  transform: scale(1.1);
+.validate-btn:active:not(:disabled) {
+  transform: scale(0.92);
+  background: #142850;
 }
 
 .validate-btn:disabled,
 .cancel-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
 /* Spinner dans les boutons */
 .btn-spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: btn-spin 0.8s linear infinite;
@@ -883,19 +974,23 @@ const backToMap = () => {
   to { transform: rotate(360deg); }
 }
 
-/* Map */
+/* ========================================
+   MAP
+   ======================================== */
 .map-wrapper {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 80px;
+  bottom: 72px;
   width: 100%;
-  background: #ffffff;
+  background: #E8E2DB;
 }
 
-/* Bottom Menu */
-.bottom-menu {
+/* ========================================
+   BOTTOM MENU - Style moderne flottant
+   ======================================== */
+.gm-bottom-menu {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -903,59 +998,138 @@ const backToMap = () => {
   z-index: 1000;
   display: flex;
   justify-content: space-around;
-  background: #0a1e37;
-  border-top: 1px solid #e0e0e0;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-  padding: 0.5rem 0;
+  align-items: center;
+  background: #1A3263;
+  padding: 6px 0 calc(env(safe-area-inset-bottom, 6px) + 4px) 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
-.menu-item {
+.gm-menu-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem;
+  gap: 3px;
+  padding: 8px 4px 4px 4px;
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   position: relative;
 }
 
-.menu-item svg {
-  width: 24px;
-  height: 24px;
-  stroke: #ffffff;
-  transition: stroke 0.3s ease;
+.gm-menu-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
 }
 
-.menu-item span {
-  font-size: 0.75rem;
-  color: #ffffff;
-  transition: color 0.3s ease;
+.gm-menu-item svg {
+  stroke: #8a9bba;
+  transition: stroke 0.25s ease;
 }
 
-.menu-item.active svg {
-  stroke: rgb(207, 184, 36);
-  color: rgb(207, 184, 36);
+.gm-menu-item span {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #8a9bba;
+  letter-spacing: 0.02em;
+  transition: color 0.25s ease;
 }
 
-.menu-item.active span {
-  color: rgb(207, 184, 36);
+/* État actif */
+.gm-menu-item.active .gm-menu-icon {
+  background: rgba(250, 185, 91, 0.15);
+}
+
+.gm-menu-item.active svg {
+  stroke: #FAB95B;
+}
+
+.gm-menu-item.active span {
+  color: #FAB95B;
   font-weight: 600;
 }
 
-.menu-item.active::before {
+/* Ligne horizontale indicateur actif */
+.gm-menu-item.active::after {
   content: '';
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40%;
+  left: 20%;
+  right: 20%;
   height: 3px;
-  background: linear-gradient(90deg, rgb(207, 184, 36) 0%, rgb(207, 184, 36) 100%);
+  background: #FAB95B;
   border-radius: 0 0 3px 3px;
 }
 
+.gm-menu-item:active:not(.active) {
+  opacity: 0.7;
+}
+
+/* ========================================
+   RESPONSIVE - Adaptation appareils
+   ======================================== */
+
+/* Petits écrans (< 360px) */
+@media screen and (max-width: 360px) {
+  .gm-header {
+    padding-top: calc(env(safe-area-inset-top, 8px) + 6px);
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .gm-search-bar {
+    height: 44px;
+    border-radius: 22px;
+  }
+  .gm-search-input {
+    font-size: 14px;
+  }
+  .gm-chip {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .gm-bottom-menu {
+    padding-top: 4px;
+  }
+  .gm-menu-item span {
+    font-size: 0.62rem;
+  }
+}
+
+/* Grands écrans (> 420px) */
+@media screen and (max-height: 700px) {
+  .gm-header {
+    padding-top: calc(env(safe-area-inset-top, 8px) + 6px);
+    gap: 6px;
+  }
+  .gm-search-bar {
+    height: 44px;
+  }
+  .gm-chip {
+    padding: 6px 14px;
+  }
+}
+
+/* Très grands écrans (tablette) */
+@media screen and (min-width: 768px) {
+  .gm-header {
+    max-width: 600px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .gm-bottom-menu {
+    max-width: 500px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0;
+  }
+}
 </style>

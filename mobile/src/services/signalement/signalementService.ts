@@ -469,7 +469,7 @@ class SignalementService {
   } {
     // Déterminer le type basé sur le statut
     const typeMap: Record<number, string> = {
-      1: 'warning', // En attente
+      1: 'nouveau', // Nouveau
       2: 'info',    // En cours
       3: 'success', // Terminé
       4: 'danger'   // Rejeté

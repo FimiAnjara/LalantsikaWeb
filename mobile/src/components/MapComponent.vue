@@ -43,16 +43,11 @@ const initMap = () => {
     // Initialiser la carte
     map = L.map(mapContainer.value, {
       zoomControl: false,
-      attributionControl: true
+      attributionControl: false
     }).setView(
       props.center || defaultCenter,
       props.zoom || defaultZoom
     );
-
-    // Ajouter les contrôles de zoom en bas à gauche
-    L.control.zoom({
-      position: 'bottomleft'
-    }).addTo(map);
 
     // Ajouter les tuiles OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -130,18 +125,19 @@ const updateMarkers = () => {
   // Ajouter les nouveaux marqueurs
   props.markers.forEach(markerData => {
     console.log('Ajout marqueur:', markerData.id, markerData.lat, markerData.lng, markerData.type);
+    const colors = getMarkerColors(markerData.type);
+    const iconPath = getMarkerIconPath(markerData.type);
     const markerIcon = L.divIcon({
       className: 'custom-marker',
-      html: `<div class="marker-pin-container">
-        <div class="marker-pin-shape">
-          <div class="marker-icon-inner">
-            ${getMarkerIconSVG(markerData.type)}
-          </div>
-        </div>
-        <div class="marker-shadow"></div>
+      html: `<div class="gm-pin-marker">
+        <svg width="28" height="38" viewBox="0 0 28 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 0C6.27 0 0 6.27 0 14c0 9.8 14 24 14 24s14-14.2 14-24C28 6.27 21.73 0 14 0z" fill="${colors.bg}"/>
+          <circle cx="14" cy="14" r="8" fill="white"/>
+          ${iconPath}
+        </svg>
       </div>`,
-      iconSize: [40, 50],
-      iconAnchor: [20, 50]
+      iconSize: [28, 38],
+      iconAnchor: [14, 38]
     });
 
     const marker = L.marker([markerData.lat, markerData.lng], {
@@ -157,12 +153,44 @@ const updateMarkers = () => {
   });
 };
 
-const getMarkerIconSVG = (type: string): string => {
+const getMarkerColors = (type: string): { bg: string; border: string } => {
+  const colorMap: Record<string, { bg: string; border: string }> = {
+    nouveau: { bg: '#EA4335', border: '#c5221f' },
+    danger: { bg: '#78909C', border: '#546E7A' },
+    info: { bg: '#4285F4', border: '#1a73e8' },
+    warning: { bg: '#FBBC04', border: '#e5a349' },
+    success: { bg: '#34A853', border: '#1e8b4d' }
+  };
+  return colorMap[type] || colorMap.info;
+};
+
+// Icônes SVG dans le cercle blanc du pin pour montrer l'avancement
+const getMarkerIconPath = (type: string): string => {
   const icons: Record<string, string> = {
-    danger: '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>',
-    info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
-    warning: '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',
-    success: '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>'
+    // Nouveau - point d'exclamation (alerte rouge)
+    nouveau: `<g transform="translate(9.5, 9.5) scale(0.38)">
+      <circle cx="12" cy="12" r="10" fill="none" stroke="#EA4335" stroke-width="2.5"/>
+      <line x1="12" y1="8" x2="12" y2="13" stroke="#EA4335" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="12" cy="16" r="1.2" fill="#EA4335"/>
+    </g>`,
+    // En cours (info) - flèches de rotation
+    info: `<g transform="translate(9, 9) scale(0.42)">
+      <path d="M21 12a9 9 0 1 1-6.22-8.56" fill="none" stroke="#4285F4" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M21 3v5h-5" fill="none" stroke="#4285F4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>`,
+    // Terminé (success) - check
+    success: `<g transform="translate(9, 9) scale(0.42)">
+      <polyline points="20 6 9 17 4 12" fill="none" stroke="#34A853" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>`,
+    // Rejeté (danger) - croix
+    danger: `<g transform="translate(9, 9) scale(0.42)">
+      <line x1="18" y1="6" x2="6" y2="18" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
+      <line x1="6" y1="6" x2="18" y2="18" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
+    </g>`,
+    // Fallback warning
+    warning: `<g transform="translate(9.5, 9.5) scale(0.38)">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z" fill="#FBBC04" stroke="#e5a349" stroke-width="1"/>
+    </g>`
   };
   return icons[type] || icons.info;
 };
@@ -276,94 +304,23 @@ watch(() => props.markers, updateMarkers, { deep: true, immediate: true });
   }
 }
 
-:deep(.marker-pin) {
-  width: 32px;
-  height: 42px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-:deep(.marker-pin svg) {
-  transform: rotate(45deg);
-}
-
-:deep(.marker-pin.danger) {
-  background: #dc3545;
-}
-
-:deep(.marker-pin.warning) {
-  background: #ffc107;
-}
-
-:deep(.marker-pin.info) {
-  background: #17a2b8;
-}
-
-:deep(.marker-pin.success) {
-  background: #28a745;
-}
-
-/* Nouveau style de marqueur - Pin rouge style Google Maps */
-:deep(.marker-pin-container) {
-  position: relative;
-  width: 40px;
-  height: 50px;
-}
-
-:deep(.marker-pin-shape) {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #e53935 0%, #c62828 50%, #b71c1c 100%);
-  border-radius: 50% 50% 50% 0;
-  transform: translateX(-50%) rotate(-45deg);
-  box-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.3),
-    inset 0 2px 4px rgba(255, 255, 255, 0.3),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
-  border: 2px solid #fff;
-}
-
-:deep(.marker-icon-inner) {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(45deg);
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-:deep(.marker-icon-inner svg) {
-  width: 18px;
-  height: 18px;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
-}
-
-:deep(.marker-shadow) {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 6px;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4) 0%, transparent 70%);
-  border-radius: 50%;
-}
-
-/* Animation au survol */
-:deep(.custom-marker:hover .marker-pin-shape) {
-  transform: translateX(-50%) rotate(-45deg) scale(1.1);
+/* ========================================
+   GOOGLE MAPS PIN MARKERS
+   ======================================== */
+:deep(.gm-pin-marker) {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+:deep(.gm-pin-marker svg) {
+  display: block;
+}
+
+/* Hover / tap effect */
+:deep(.custom-marker:hover .gm-pin-marker) {
+  transform: scale(1.15);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
 }
 
 /* Marqueur de recherche - cercle bleu avec animation pulse */

@@ -144,8 +144,9 @@ const updateMarkers = () => {
       icon: markerIcon
     })
       .addTo(map!)
-      .bindPopup(markerData.title)
       .on('click', () => {
+        // Close any open popup before emitting
+        map?.closePopup();
         emit('markerClick', markerData);
       });
 
@@ -256,13 +257,17 @@ const clearSearchMarker = () => {
   }
 };
 
+// Méthode pour obtenir l'instance Leaflet brute (pour projections avancées)
+const getMapInstance = (): L.Map | null => map;
+
 // Exposer les méthodes publiques
 defineExpose({
   setView,
   getCenter,
   invalidateSize,
   setSearchMarker,
-  clearSearchMarker
+  clearSearchMarker,
+  getMapInstance
 });
 
 onMounted(() => {

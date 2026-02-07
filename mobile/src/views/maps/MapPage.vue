@@ -10,7 +10,7 @@
       />
       
       <!-- Header Google Maps style -->
-      <div class="gm-header">
+      <div class="gm-header" :class="{ 'header-hidden': activeMenu === 'recap' }">
         <!-- Barre de recherche style Google Maps -->
         <div class="gm-search-bar">
           <img src="/logo/logo4.png" alt="Logo" class="gm-search-logo" />
@@ -90,16 +90,18 @@
       </div>
 
       <!-- Bouton Signaler (flottant en bas à droite) -->
-      <button 
-        v-if="!reportMode"
-        class="report-btn" 
-        @click="startReportMode"
-        title="Ajouter un signalement"
-      >
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-          <path d="M12 5v14M5 12h14"/>
-        </svg>
-      </button>
+      <transition name="fab-pop">
+        <button 
+          v-if="!reportMode && activeMenu === 'map' && !showMarkerSheet"
+          class="report-btn" 
+          @click="startReportMode"
+          title="Ajouter un signalement"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </transition>
 
       <!-- Icône de localisation centrale (en mode signalement) - Rouge Google Maps -->
       <div v-if="reportMode" class="center-marker">
@@ -110,11 +112,11 @@
       </div>
 
       <!-- Carte -->
-      <div class="map-wrapper">
+      <div class="map-wrapper" :class="{ 'map-full': activeMenu === 'recap' }">
         <MapComponent 
           ref="mapComponent"
           :markers="currentMarkers"
-          @marker-click="showMarkerDetails"
+          @marker-click="onMarkerClick"
           @map-ready="onMapReady"
         />
       </div>
@@ -135,26 +137,197 @@
         </button>
       </div>
 
-      <!-- Carte flottante des signalements -->
-      <SavedReportsCard
-        v-if="activeMenu === 'saved'"
-        :my-reports="myReports"
-        :all-reports="allReports"
-        :is-loading="isLoadingList"
-        @close="activeMenu = 'map'"
-        @open-details="openReportDetails"
-        @delete="deleteReport"
-      />
+      <!-- ====================== -->
+      <!-- BOTTOM SHEET: Marker Details (when a point is tapped) -->
+      <!-- ====================== -->
+      <BottomSheet
+        ref="markerSheetRef"
+        v-model="showMarkerSheet"
+        :peek-height="200"
+        :half-height="55"
+        :full-height="90"
+        initial-snap="peek"
+        :bottom-offset="bottomMenuHeight"
+        @snap-change="onMarkerSheetSnap"
+      >
+        <template #default="{ snap }">
+          <div v-if="selectedSignalement" class="marker-sheet-content">
+            <!-- Peek/compact view: key info -->
+            <div class="marker-peek">
+              <!-- Status badge & close -->
+              <div class="marker-peek-header">
+                <span 
+                  class="status-pill" 
+                  :class="'pill-' + getStatutType(selectedSignalement.statut.id_statut)"
+                >
+                  {{ selectedSignalement.statut.libelle }}
+                </span>
+                <button class="sheet-close-btn" @click="closeMarkerSheet">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Photo + key stats row -->
+              <div class="marker-peek-body">
+                <div class="marker-photo-thumb" v-if="selectedSignalement.photo" @click="openFullDetails">
+                  <img :src="selectedSignalement.photo" alt="Photo" />
+                </div>
+                <div class="marker-photo-thumb placeholder" v-else>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                </div>
+                <div class="marker-key-info">
+                  <h3 class="marker-title">{{ selectedSignalement.description || 'Signalement' }}</h3>
+                  <div class="marker-meta-row">
+                    <span class="marker-meta" v-if="selectedSignalement.city">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      {{ selectedSignalement.city }}
+                    </span>
+                    <span class="marker-meta" v-if="selectedSignalement.surface">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#17a2b8" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      </svg>
+                      {{ selectedSignalement.surface }} m²
+                    </span>
+                  </div>
+                  <span class="marker-date">{{ formatDateShort(selectedSignalement.daty) }}</span>
+                </div>
+              </div>
 
-      <!-- Carte flottante Recap/Dashboard -->
-      <RecapCard
-        v-if="activeMenu === 'recap'"
-        :signalements="allSignalements"
-        :is-loading="isLoadingList"
-        @close="backToMap"
-      />
+              <!-- Bouton Voir détails (always visible in peek) -->
+              <button class="btn-peek-details" @click="openFullDetails">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>Voir les détails</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            </div>
 
-      <!-- Menu horizontal en bas - style moderne flottant -->
+            <!-- Half/Full view: full details -->
+            <transition name="slide-fade">
+              <div v-if="snap === 'half' || snap === 'full'" class="marker-details-expanded">
+                <!-- Signalé par -->
+                <div class="detail-row">
+                  <div class="detail-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0a1e37" stroke-width="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  </div>
+                  <div class="detail-text">
+                    <span class="detail-label">Signalé par</span>
+                    <span class="detail-value">{{ getUserDisplayName(selectedSignalement.utilisateur) }}</span>
+                  </div>
+                </div>
+
+                <!-- Budget -->
+                <div class="detail-row" v-if="selectedSignalement.budget">
+                  <div class="detail-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2">
+                      <line x1="12" y1="1" x2="12" y2="23"/>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                  </div>
+                  <div class="detail-text">
+                    <span class="detail-label">Budget estimé</span>
+                    <span class="detail-value">{{ formatBudgetDisplay(selectedSignalement.budget) }}</span>
+                  </div>
+                </div>
+
+                <!-- Entreprise -->
+                <div class="detail-row" v-if="selectedSignalement.entreprise">
+                  <div class="detail-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                  </div>
+                  <div class="detail-text">
+                    <span class="detail-label">Entreprise</span>
+                    <span class="detail-value">{{ selectedSignalement.entreprise.nom }}</span>
+                  </div>
+                </div>
+
+                <!-- Coordonnées -->
+                <div class="detail-row">
+                  <div class="detail-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                  </div>
+                  <div class="detail-text">
+                    <span class="detail-label">Coordonnées</span>
+                    <span class="detail-value">{{ selectedSignalement.point.latitude.toFixed(5) }}, {{ selectedSignalement.point.longitude.toFixed(5) }}</span>
+                  </div>
+                </div>
+
+                <!-- Description complète -->
+                <div v-if="selectedSignalement.description" class="detail-description">
+                  <h4>Description</h4>
+                  <p>{{ selectedSignalement.description }}</p>
+                </div>
+
+              </div>
+            </transition>
+          </div>
+        </template>
+      </BottomSheet>
+
+      <!-- ====================== -->
+      <!-- BOTTOM SHEET: Signalements List -->
+      <!-- ====================== -->
+      <BottomSheet
+        ref="listSheetRef"
+        v-model="showListSheet"
+        :peek-height="280"
+        :half-height="55"
+        :full-height="90"
+        initial-snap="peek"
+        :bottom-offset="bottomMenuHeight"
+        @snap-change="onListSheetSnap"
+      >
+        <template #default="{ snap }">
+          <SavedReportsCard
+            :my-reports="myReports"
+            :all-reports="allReports"
+            :is-loading="isLoadingList"
+            :is-sheet-mode="true"
+            :snap="snap"
+            @locate-report="locateReportOnMap"
+            @open-details="openReportDetails"
+            @delete="deleteReport"
+          />
+        </template>
+      </BottomSheet>
+
+      <!-- ====================== -->
+      <!-- RECAP: Full screen with bottom menu -->
+      <!-- ====================== -->
+      <transition name="slide-up">
+        <div v-if="activeMenu === 'recap'" class="recap-overlay">
+          <RecapCard
+            :signalements="allSignalements"
+            :is-loading="isLoadingList"
+            :is-fullscreen="true"
+            @close="backToMap"
+          />
+        </div>
+      </transition>
+
+      <!-- Menu horizontal en bas - ALWAYS VISIBLE -->
       <div class="gm-bottom-menu">
         <button 
           class="gm-menu-item" 
@@ -188,7 +361,7 @@
         <button 
           class="gm-menu-item" 
           :class="{ active: activeMenu === 'recap' }"
-          @click="activeMenu = 'recap'"
+          @click="openRecap"
         >
           <div class="gm-menu-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -205,17 +378,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { IonPage, IonContent, alertController, actionSheetController, onIonViewWillEnter } from '@ionic/vue';
 import MapComponent from '@/components/MapComponent.vue';
 import SpinnerLoader from '@/components/SpinnerLoader.vue';
+import BottomSheet from '@/components/BottomSheet.vue';
 import SavedReportsCard from '@/components/maps/SavedReportsCard.vue';
 import RecapCard from '@/components/maps/RecapCard.vue';
 import router from '@/router';
 import { signalementService } from '@/services/signalement';
 import { authService } from '@/services/auth';
 import { toastService } from '@/services/toast';
-import { Signalement, getStatutType } from '@/models';
+import { Signalement, getStatutType, formatBudget } from '@/models';
 import { auth, db } from '@/services/firebase/config';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -223,14 +397,22 @@ const mapComponent = ref<any>(null);
 const searchQuery = ref('');
 const activeMenu = ref('map');
 const reportMode = ref(false);
-const isLoadingList = ref(false); // Pour la liste des signalements seulement
+const isLoadingList = ref(false);
 const isSearching = ref(false);
 const isDeleting = ref(false);
-const isValidating = ref(false); // Pour le bouton de validation
+const isValidating = ref(false);
 const loadingMessage = ref('Chargement...');
-const mapFilter = ref<'all' | 'mine' | 'nouveau' | 'info' | 'success' | 'danger'>('all'); // Filtre pour la carte
-const userPhotoUrl = ref<string | null>(null); // Photo de profil utilisateur
-const isLoggingOut = ref(false); // Spinner pour la déconnexion
+const mapFilter = ref<'all' | 'mine' | 'nouveau' | 'info' | 'success' | 'danger'>('all');
+const userPhotoUrl = ref<string | null>(null);
+const isLoggingOut = ref(false);
+const bottomMenuHeight = 72;
+
+// Bottom sheet states
+const showMarkerSheet = ref(false);
+const showListSheet = ref(false);
+const markerSheetRef = ref<any>(null);
+const listSheetRef = ref<any>(null);
+const selectedSignalement = ref<Signalement | null>(null);
 
 // Données de signalements depuis Firestore
 const allSignalements = ref<Signalement[]>([]);
@@ -558,13 +740,127 @@ const openReportDetails = (report: any) => {
   });
 };
 
-const showMarkerDetails = (marker: any) => {
+// ========== MARKER SHEET LOGIC ==========
+const onMarkerClick = (marker: any) => {
   console.log('Marqueur cliqué:', marker);
-  // Naviguer vers les détails du signalement
-  router.push({ 
-    name: 'SignalementDetails', 
-    params: { id: marker.id }
+  
+  // Find the full signalement
+  const sig = allSignalements.value.find(
+    s => (s.firebase_id || `sig-${s.id_signalement}`) === marker.id
+  );
+  
+  if (!sig) {
+    // Fallback: navigate to details page
+    router.push({ name: 'SignalementDetails', params: { id: marker.id } });
+    return;
+  }
+  
+  selectedSignalement.value = sig;
+  
+  // Close list sheet if open
+  showListSheet.value = false;
+  
+  // Center map with point at top third of screen
+  centerMapOnPointForSheet(sig.point.latitude, sig.point.longitude);
+  
+  // Open marker bottom sheet
+  nextTick(() => {
+    showMarkerSheet.value = true;
   });
+};
+
+const centerMapOnPointForSheet = (lat: number, lng: number) => {
+  const leafletMap = mapComponent.value?.getMapInstance?.();
+  const targetZoom = 16;
+  
+  if (leafletMap) {
+    // Use Leaflet's projection to compute a pixel-perfect offset
+    // The bottom sheet (peek 200px) covers the lower part of the map.
+    // We want the point to sit in the center of the VISIBLE area above the sheet.
+    // Visible area height = mapHeight - sheetPeekHeight
+    // So we shift the center down by (sheetPeekHeight / 2) pixels.
+    const sheetPeek = 200;
+    const pixelOffset = Math.round(sheetPeek / 2); // 100px
+    
+    const targetPoint = leafletMap.project([lat, lng], targetZoom);
+    // Shift the center down (increase Y in pixel space) so the marker appears higher
+    const offsetCenter = leafletMap.unproject(
+      [targetPoint.x, targetPoint.y + pixelOffset],
+      targetZoom
+    );
+    leafletMap.setView(offsetCenter, targetZoom, { animate: true, duration: 0.4 });
+  } else {
+    // Fallback: small latitude offset
+    mapComponent.value?.setView([lat - 0.001, lng], targetZoom);
+  }
+};
+
+const closeMarkerSheet = () => {
+  showMarkerSheet.value = false;
+  selectedSignalement.value = null;
+};
+
+const onMarkerSheetSnap = (snap: string) => {
+  if (snap === 'closed') {
+    selectedSignalement.value = null;
+  }
+};
+
+const openFullDetails = () => {
+  if (selectedSignalement.value) {
+    const id = selectedSignalement.value.firebase_id || `sig-${selectedSignalement.value.id_signalement}`;
+    showMarkerSheet.value = false;
+    router.push({ name: 'SignalementDetails', params: { id } });
+  }
+};
+
+const getUserDisplayName = (user: any) => {
+  if (!user) return 'Anonyme';
+  const name = [user.prenom, user.nom].filter(Boolean).join(' ');
+  return name || user.identifiant || 'Anonyme';
+};
+
+const formatDateShort = (daty: string) => {
+  if (!daty) return '';
+  try {
+    const d = new Date(daty);
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return daty; }
+};
+
+const formatBudgetDisplay = (budget?: number): string => {
+  if (!budget) return 'Non défini';
+  if (budget >= 1000000) return `${(budget / 1000000).toFixed(1)} M Ar`;
+  return `${(budget / 1000).toFixed(0)} K Ar`;
+};
+
+// ========== LIST SHEET LOGIC ==========
+const onListSheetSnap = (snap: string) => {
+  if (snap === 'closed') {
+    activeMenu.value = 'map';
+    showListSheet.value = false;
+  }
+};
+
+const locateReportOnMap = (report: any) => {
+  // Close list sheet and show marker sheet for this report
+  showListSheet.value = false;
+  activeMenu.value = 'map';
+  
+  // Center map on the report's location with proper sheet offset
+  centerMapOnPointForSheet(report.lat, report.lng);
+  
+  // Find the full signalement
+  const sig = allSignalements.value.find(
+    s => (s.firebase_id || `sig-${s.id_signalement}`) === (report.firebase_id || report.id)
+  );
+  
+  if (sig) {
+    selectedSignalement.value = sig;
+    nextTick(() => {
+      showMarkerSheet.value = true;
+    });
+  }
 };
 
 const deleteReport = async (reportId: string) => {
@@ -621,6 +917,13 @@ const cancelReportMode = () => {
 // Ouvrir la liste des signalements avec chargement
 const openSignalementsList = async () => {
   activeMenu.value = 'saved';
+  showMarkerSheet.value = false;
+  
+  // Open list bottom sheet
+  nextTick(() => {
+    showListSheet.value = true;
+  });
+  
   // Recharger les données avec le spinner
   await loadSignalements(true);
 };
@@ -672,10 +975,20 @@ const validateReport = async () => {
 // Retourner à la carte et rafraîchir
 const backToMap = () => {
   activeMenu.value = 'map';
+  showMarkerSheet.value = false;
+  showListSheet.value = false;
   // Forcer le rafraîchissement de la carte après fermeture des modales
   setTimeout(() => {
     mapComponent.value?.invalidateSize();
   }, 200);
+};
+
+// Ouvrir le récapitulatif
+const openRecap = async () => {
+  activeMenu.value = 'recap';
+  showMarkerSheet.value = false;
+  showListSheet.value = false;
+  await loadSignalements(true);
 };
 </script>
 
@@ -697,6 +1010,13 @@ const backToMap = () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease;
+}
+
+.gm-header.header-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Barre de recherche pill Google Maps */
@@ -982,27 +1302,32 @@ const backToMap = () => {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 72px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   width: 100%;
   background: #E8E2DB;
+  transition: bottom 0.3s ease;
+}
+
+.map-wrapper.map-full {
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ========================================
    BOTTOM MENU - Style moderne flottant
    ======================================== */
 .gm-bottom-menu {
-  position: absolute;
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 1060;
   display: flex;
   justify-content: space-around;
   align-items: center;
   background: #1A3263;
-  padding: 6px 0 calc(env(safe-area-inset-bottom, 6px) + 4px) 0;
+  padding: 6px 0 calc(env(safe-area-inset-bottom, 0px) + 6px) 0;
   border-radius: 0;
-  box-shadow: none;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
 }
 
 .gm-menu-item {
@@ -1073,6 +1398,298 @@ const backToMap = () => {
 }
 
 /* ========================================
+   FAB BUTTON ANIMATION
+   ======================================== */
+.fab-pop-enter-active {
+  animation: fabPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fab-pop-leave-active {
+  animation: fabPopOut 0.2s ease-in;
+}
+@keyframes fabPopIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes fabPopOut {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+/* ========================================
+   MARKER BOTTOM SHEET CONTENT
+   ======================================== */
+.marker-sheet-content {
+  padding-bottom: 16px;
+}
+
+.marker-peek {
+  animation: fadeSlideUp 0.3s ease-out;
+}
+
+.marker-peek-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.status-pill {
+  display: inline-flex;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+}
+.pill-nouveau { background: #EA4335; }
+.pill-info { background: #4285F4; }
+.pill-success { background: #34A853; }
+.pill-danger { background: #78909C; }
+
+.sheet-close-btn {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.sheet-close-btn:active {
+  background: #ddd;
+}
+
+.marker-peek-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.marker-photo-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.marker-photo-thumb:active {
+  transform: scale(0.95);
+}
+.marker-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.marker-photo-thumb.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.marker-key-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.marker-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0a1e37;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.marker-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.marker-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.marker-date {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+/* Bouton Voir détails en peek */
+.btn-peek-details {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  margin-top: 14px;
+  background: #1A3263;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: fadeSlideUp 0.25s ease-out 0.15s both;
+}
+.btn-peek-details:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+.btn-peek-details svg:first-child {
+  stroke: #FAB95B;
+}
+.btn-peek-details svg:last-child {
+  stroke: rgba(255,255,255,0.5);
+}
+
+/* Expanded details in marker sheet */
+.marker-details-expanded {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  animation: fadeSlideUp 0.3s ease-out both;
+}
+.detail-row:nth-child(1) { animation-delay: 0.05s; }
+.detail-row:nth-child(2) { animation-delay: 0.1s; }
+.detail-row:nth-child(3) { animation-delay: 0.15s; }
+.detail-row:nth-child(4) { animation-delay: 0.2s; }
+
+.detail-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.detail-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: #999;
+  margin-bottom: 2px;
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  color: #0a1e37;
+  font-weight: 500;
+}
+
+.detail-description {
+  margin-top: 16px;
+  padding: 14px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  animation: fadeSlideUp 0.3s ease-out 0.25s both;
+}
+.detail-description h4 {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+.detail-description p {
+  font-size: 0.9rem;
+  color: #333;
+  margin: 0;
+  line-height: 1.5;
+}
+
+
+/* ========================================
+   RECAP OVERLAY
+   ======================================== */
+.recap-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 1040;
+  background: white;
+  overflow-y: auto;
+}
+
+/* Slide up transition */
+.slide-up-enter-active {
+  animation: slideUpIn 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.slide-up-leave-active {
+  animation: slideUpOut 0.3s ease-in;
+}
+@keyframes slideUpIn {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes slideUpOut {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+/* Slide-fade for expanded details */
+.slide-fade-enter-active {
+  transition: all 0.35s ease-out;
+}
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+/* Global fade-slide keyframe */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
    RESPONSIVE - Adaptation appareils
    ======================================== */
 
@@ -1131,5 +1748,13 @@ const backToMap = () => {
     transform: translateX(-50%);
     border-radius: 0;
   }
+}
+</style>
+
+<!-- Unscoped: override Ionic safe-area bottom on this page only -->
+<style>
+.map-page.ion-page,
+.map-page {
+  --ion-safe-area-bottom: 0px;
 }
 </style>

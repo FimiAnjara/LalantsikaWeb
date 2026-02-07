@@ -24,7 +24,7 @@ const firebaseConfig = {
   measurementId: "G-MP6R0PCT51"
 };
 
-const TEST_EMAIL = 'test@lalantsika.mg';
+const TEST_EMAIL = 'testtest@lalantsika.mg';
 const TEST_PASSWORD = 'Test1234!';
 
 async function main() {

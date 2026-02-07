@@ -65,7 +65,7 @@
         <!-- Cards Grid -->
         <div class="cards-grid">
           <!-- Acceder a la carte -->
-          <div class="action-card primary-card" @click="goToMap">
+          <div class="action-card primary-card card-animate" style="animation-delay: 0.1s" @click="goToMap">
             <div class="card-icon-wrapper primary">
               <ion-icon :icon="mapOutline"></ion-icon>
             </div>
@@ -84,7 +84,7 @@
           </div>
 
           <!-- Signaler un probleme -->
-          <div class="action-card secondary-card" @click="reportProblem">
+          <div class="action-card secondary-card card-animate" style="animation-delay: 0.2s" @click="reportProblem">
             <div class="card-icon-wrapper secondary">
               <ion-icon :icon="alertCircleOutline"></ion-icon>
             </div>
@@ -96,7 +96,7 @@
           </div>
 
           <!-- Voir mes signalements -->
-          <div class="action-card accent-card" @click="viewMyReports">
+          <div class="action-card accent-card card-animate" style="animation-delay: 0.3s" @click="viewMyReports">
             <div class="card-icon-wrapper accent">
               <ion-icon :icon="listOutline"></ion-icon>
             </div>
@@ -109,7 +109,7 @@
           </div>
 
           <!-- About -->
-          <div class="action-card info-card" @click="showAbout">
+          <div class="action-card info-card card-animate" style="animation-delay: 0.4s" @click="showAbout">
             <div class="card-icon-wrapper info">
               <ion-icon :icon="informationCircleOutline"></ion-icon>
             </div>
@@ -537,6 +537,51 @@ ion-menu ion-item:hover {
   50% {
     opacity: 0.5;
     transform: scale(0.8);
+  }
+}
+
+.card-animate {
+  animation: cardSlideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes cardSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.section-title {
+  animation: fadeInLeft 0.4s ease-out both;
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.header-container {
+  animation: headerSlide 0.5s ease-out both;
+}
+
+@keyframes headerSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { CAlert, CSpinner } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { ENDPOINTS } from '../../../config/api'
+import { subscribeToSignalements } from '../../../services/firebase/signalementService'
 import { 
     cilSearch,
     cilLocationPin, 
@@ -122,53 +122,26 @@ export default function Signalement() {
         geocode()
     }, [searchParams])
 
-    // Fonction pour récupérer les signalements depuis l'API
-    const fetchSignalements = async () => {
-        try {
-            setLoading(true);
-            setError(null); // Reset error state
-            
-            const response = await fetch(ENDPOINTS.REPORTS_PUBLIC, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // S'abonner aux signalements en temps réel depuis Firestore
+    useEffect(() => {
+        const unsubscribe = subscribeToSignalements(
+            (data) => {
+                const transformed = data.map(s => ({
+                    ...s,
+                    surface: s.surfaceFormatted,
+                    budget: s.budgetFormatted
+                }))
+                setSignalements(transformed)
+                setLoading(false)
+                setError(null)
+            },
+            (err) => {
+                setError(`Erreur Firestore: ${err.message}`)
+                setLoading(false)
             }
-            
-            const result = await response.json();
-            console.log('API Response:', result); // Debug log
-            
-            if (result.success) {
-                // Transformer les données pour le format attendu par la carte
-                const transformedData = result.data.map(signal => ({
-                    id: signal.id_signalement,
-                    position: [parseFloat(signal.lat || 0), parseFloat(signal.lon || 0)],
-                    problem: signal.description || 'Problème de route',
-                    location: signal.lieu || 'Non spécifié',
-                    date: signal.daty_signalement ? new Date(signal.daty_signalement).toLocaleDateString('fr-FR') : 'Non défini',
-                    status: signal.dernier_statut?.statut?.libelle || 'Nouveau',
-                    surface: signal.surface || 'N/A',
-                    budget: signal.budget ? Number(signal.budget).toLocaleString() + ' Ar' : 'Non défini',
-                    entreprise: signal.entreprise?.nom || 'Non assignée'
-                }));
-                
-                console.log('Transformed data:', transformedData); // Debug log
-                setSignalements(transformedData);
-            } else {
-                setError(`Erreur API: ${result.message || 'Erreur lors du chargement des signalements'}`);
-            }
-        } catch (err) {
-            console.error('Fetch error:', err); // Debug log
-            setError(`Erreur de connexion: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
+        )
+        return () => unsubscribe()
+    }, [])
 
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
@@ -181,11 +154,6 @@ export default function Signalement() {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
         };
-    }, []);
-
-    // Charger les signalements au montage du composant
-    useEffect(() => {
-        fetchSignalements();
     }, []);
 
     // Filter signalements based on activeFilter and searchQuery
@@ -246,7 +214,7 @@ export default function Signalement() {
                         <p>{error}</p>
                         <button 
                             className="btn btn-outline-danger"
-                            onClick={fetchSignalements}
+                            onClick={() => window.location.reload()}
                         >
                             Réessayer
                         </button>

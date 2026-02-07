@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 import { getStorage, ref, uploadBytes, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
+import { getFirestore } from 'firebase/firestore'
 
 // Configuration Firebase - À remplacer par vos valeurs
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -19,6 +20,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const storage = getStorage(app)
+const db = getFirestore(app)
 
 /**
  * Authentifier avec email e  t mot de passe
@@ -199,4 +201,4 @@ export async function ensureImageUrl(imageData, folder = 'signalements') {
     return imageData
 }
 
-export { auth, storage }
+export { auth, storage, db }

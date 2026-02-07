@@ -12,60 +12,7 @@ import {
     cilCloudDownload,
     cilFilter
 } from '@coreui/icons'
-import { ENDPOINTS } from '../../../config/api'
-
-const signalements = [
-    {
-        id: 1,
-        problem: "Nid-de-poule majeur",
-        location: "Analakely",
-        date: "2024-01-15",
-        status: "nouveau",
-        surface: 12,
-        budget: 500000,
-        entreprise: "Axe Construction"
-    },
-    {
-        id: 2,
-        problem: "Route affaissée",
-        location: "Anosy",
-        date: "2024-01-10",
-        status: "en cours",
-        surface: 45,
-        budget: 2500000,
-        entreprise: "Colas M'car"
-    },
-    {
-        id: 3,
-        problem: "Fissures transversales",
-        location: "Ivandry",
-        date: "2023-12-20",
-        status: "terminé",
-        surface: 8,
-        budget: 2000000,
-        entreprise: "HERY TP"
-    },
-    {
-        id: 4,
-        problem: "Effondrement partiel",
-        location: "Andohalo",
-        date: "2024-01-20",
-        status: "nouveau",
-        surface: 25,
-        budget: 1200000,
-        entreprise: "En attente"
-    },
-    {
-        id: 5,
-        problem: "Revêtement dégradé",
-        location: "Ankorondrano",
-        date: "2024-01-05",
-        status: "en cours",
-        surface: 60,
-        budget: 3000000,
-        entreprise: "Sogea Satom"
-    }
-];
+import { subscribeToSignalements } from '../../../services/firebase/signalementService'
 
 const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -118,39 +65,35 @@ export default function Recap() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const fetchSignalements = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const response = await fetch(ENDPOINTS.REPORTS_PUBLIC, {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' }
-            });
-            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            const result = await response.json();
-            if (result.success) {
-                const data = result.data.map(s => ({
-                    id: s.id_signalement,
-                    problem: s.description || 'Problème de route',
-                    location: s.lieu || 'Non spécifié',
-                    date: s.daty_signalement ? new Date(s.daty_signalement).toLocaleDateString('fr-FR') : 'N/A',
-                    status: s.dernier_statut?.statut?.libelle || 'Nouveau',
-                    surface: parseFloat(s.surface) || 0,
-                    budget: parseFloat(s.budget) || 0,
-                    entreprise: s.entreprise?.nom || 'Non assignée'
-                }));
-                setSignalements(data);
-            } else {
-                setError(result.message || 'Erreur lors du chargement');
+    const fetchSignalements = () => {
+        const unsubscribe = subscribeToSignalements(
+            (data) => {
+                const transformed = data.map(s => ({
+                    id: s.id,
+                    problem: s.problem,
+                    location: s.location,
+                    date: s.date,
+                    status: s.status,
+                    surface: s.surface || 0,
+                    budget: s.budget || 0,
+                    entreprise: s.entreprise
+                }))
+                setSignalements(transformed)
+                setLoading(false)
+                setError(null)
+            },
+            (err) => {
+                setError(`Erreur Firestore: ${err.message}`)
+                setLoading(false)
             }
-        } catch (err) {
-            setError(`Erreur de connexion: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
+        )
+        return unsubscribe
+    }
 
-    useEffect(() => { fetchSignalements(); }, []);
+    useEffect(() => {
+        const unsubscribe = fetchSignalements()
+        return () => { if (unsubscribe) unsubscribe() }
+    }, []);
 
     const totalPoints = signalements.length;
     const totalSurface = signalements.reduce((acc, s) => acc + s.surface, 0);
@@ -173,7 +116,7 @@ export default function Recap() {
             <CAlert color="danger" className="text-center">
                 <h4>Erreur de chargement</h4>
                 <p>{error}</p>
-                <button className="btn btn-outline-danger" onClick={fetchSignalements}>Réessayer</button>
+                <button className="btn btn-outline-danger" onClick={() => window.location.reload()}>Réessayer</button>
             </CAlert>
         );
     }

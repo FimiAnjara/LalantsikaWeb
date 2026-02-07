@@ -97,7 +97,7 @@ export default function Synchro() {
     const handleFullSync = async () => {
         try {
             setSyncing(true)
-            let results = { toFirebase: null, fromFirebase: null, histoToFirebase: null, parametres: null, errors: [] }
+            let results = { toFirebase: null, fromFirebase: null, histoToFirebase: null, parametres: null, hasAnyError: false }
 
             // 1. Sync PostgreSQL -> Firebase (utilisateurs)
             try {
@@ -106,7 +106,7 @@ export default function Synchro() {
                     results.toFirebase = response.data.data
                 }
             } catch (err) {
-                results.errors.push('Utilisateurs: ' + (err.response?.data?.message || err.message))
+                results.hasAnyError = true
             }
 
             // 2. Sync Firebase -> PostgreSQL (signalements + histo_statuts)
@@ -116,7 +116,7 @@ export default function Synchro() {
                     results.fromFirebase = response.data.data
                 }
             } catch (err) {
-                results.errors.push('Signalements: ' + (err.response?.data?.message || err.message))
+                results.hasAnyError = true
             }
 
             // 3. Sync PostgreSQL -> Firebase (histo_statuts + mise à jour statut signalement)
@@ -126,7 +126,7 @@ export default function Synchro() {
                     results.histoToFirebase = response.data.data
                 }
             } catch (err) {
-                results.errors.push('Histo statuts: ' + (err.response?.data?.message || err.message))
+                results.hasAnyError = true
             }
 
             // 4. Sync PostgreSQL -> Firebase (paramètres)
@@ -136,54 +136,23 @@ export default function Synchro() {
                     results.parametres = response.data.data
                 }
             } catch (err) {
-                results.errors.push('Paramètres: ' + (err.response?.data?.message || err.message))
+                results.hasAnyError = true
             }
 
-            // Construire le message simplifié
-            let message = ''
-            let hasErrors = results.errors.length > 0
+            // Si au moins une sync a réussi, c'est un succès
+            const hasAnySuccess = results.toFirebase || results.histoToFirebase || results.parametres || results.fromFirebase
 
-            if (results.toFirebase || results.histoToFirebase || results.parametres) {
-                message += '⬆️ Envoyé vers Firebase:\n'
-                if (results.toFirebase) {
-                    message += `   • ${results.toFirebase.synced} utilisateur(s)\n`
-                    if (results.toFirebase.failed > 0) hasErrors = true
-                }
-                if (results.histoToFirebase) {
-                    message += `   • ${results.histoToFirebase.synced} histo statut(s)\n`
-                    if (results.histoToFirebase.signalements_updated > 0) {
-                        message += `   • ${results.histoToFirebase.signalements_updated} signalement(s) mis à jour\n`
-                    }
-                    if (results.histoToFirebase.failed > 0) hasErrors = true
-                }
-                if (results.parametres) {
-                    message += `   • ${results.parametres.synced} paramètre(s)\n`
-                    if (results.parametres.failed > 0) hasErrors = true
-                }
-            }
-
-            if (results.fromFirebase) {
-                message += '\n⬇️ Reçu depuis Firebase:\n'
-                message += `   • ${results.fromFirebase.signalements.synced} signalement(s)\n`
-                message += `   • ${results.fromFirebase.histo_statuts.synced} histo statut(s)\n`
-                if (results.fromFirebase.signalements.failed > 0 || results.fromFirebase.histo_statuts.failed > 0) hasErrors = true
-            }
-
-            if (results.errors.length > 0) {
-                message += '\n⚠️ Erreurs:\n' + results.errors.map(e => `   • ${e}`).join('\n')
-            }
-
-            if (hasErrors) {
-                setErrorModal({
-                    visible: true,
-                    title: 'Synchronisation partielle',
-                    message: message || 'Des erreurs sont survenues pendant la synchronisation'
-                })
-            } else {
+            if (hasAnySuccess) {
                 setSuccessModal({
                     visible: true,
-                    title: 'Synchronisation terminée',
-                    message: message || 'Aucune donnée à synchroniser'
+                    title: 'Synchronisation',
+                    message: 'Synchronisation terminée'
+                })
+            } else if (results.hasAnyError) {
+                setErrorModal({
+                    visible: true,
+                    title: 'Erreur de synchronisation',
+                    message: 'Impossible de synchroniser les données'
                 })
             }
 
@@ -193,7 +162,7 @@ export default function Synchro() {
             setErrorModal({
                 visible: true,
                 title: 'Erreur de synchronisation',
-                message: err.response?.data?.message || 'Impossible de synchroniser'
+                message: 'Impossible de synchroniser les données'
             })
         } finally {
             setSyncing(false)

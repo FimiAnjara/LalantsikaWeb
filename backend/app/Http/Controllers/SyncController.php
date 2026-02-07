@@ -11,20 +11,24 @@ use App\Models\Statut;
 use App\Models\Entreprise;
 use App\Models\Parametre;
 use App\Services\Firebase\FirebaseRestService;
+use App\Services\Firebase\StorageService;
 use App\Services\Notification\FcmService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class SyncController extends Controller
 {
     protected $firebaseRestService;
     protected $fcmService;
+    protected $storageService;
 
-    public function __construct(FirebaseRestService $firebaseRestService, FcmService $fcmService)
+    public function __construct(FirebaseRestService $firebaseRestService, FcmService $fcmService, StorageService $storageService)
     {
         $this->firebaseRestService = $firebaseRestService;
         $this->fcmService = $fcmService;
+        $this->storageService = $storageService;
     }
 
     /**
@@ -78,7 +82,7 @@ class SyncController extends Controller
 
             foreach ($utilisateurs as $utilisateur) {
                 try {
-                    $this->syncSingleUser($utilisateur, $defaultPassword);
+                    $this->syncSingleUser($utilisateur, $utilisateur->mdp);
                     $synced++;
                 } catch (\Exception $e) {
                     $failed++;
@@ -149,10 +153,8 @@ class SyncController extends Controller
                 ], 404);
             }
 
-            // Mot de passe spécifique ou par défaut
-            $password = $request->input('password', 'mdp123');
-
-            $this->syncSingleUser($utilisateur, $password);
+            // Utiliser le mot de passe de l'utilisateur stocké dans la base de données
+            $this->syncSingleUser($utilisateur, $utilisateur->mdp);
 
             return response()->json([
                 'success' => true,
@@ -458,9 +460,63 @@ class SyncController extends Controller
 
     /**
      * Préparer les données pour Firestore
+     * Upload la photo via StorageService (ImgBB) si elle existe
      */
     private function prepareFirestoreData(User $utilisateur, $firebaseUid)
     {
+        $photoUrl = null;
+
+        // Si l'utilisateur a une photo, la charger et l'uploader via StorageService
+        if ($utilisateur->photo_url) {
+            try {
+                $photoPath = $utilisateur->photo_url;
+                
+                // Si c'est une URL locale (/api/storage/utilisateur/...), charger depuis le disque
+                if (str_contains($photoPath, '/api/storage/utilisateur/')) {
+                    // Extraire le nom du fichier
+                    $filename = basename($photoPath);
+                    $diskPath = 'utilisateur/' . $filename;
+                    
+                    if (Storage::disk('public')->exists($diskPath)) {
+                        Log::info("📷 Lecture de la photo locale: {$diskPath}");
+                        
+                        // Lire le contenu du fichier
+                        $fileContent = Storage::disk('public')->get($diskPath);
+                        
+                        // Convertir en base64
+                        $base64Data = base64_encode($fileContent);
+                        
+                        // Uploader via StorageService (ImgBB)
+                        Log::info("📤 Upload photo vers ImgBB pour {$utilisateur->email}");
+                        $uploadResult = $this->storageService->uploadBase64(
+                            $base64Data,
+                            'utilisateurs',
+                            "user_{$utilisateur->id_utilisateur}_" . basename($filename)
+                        );
+                        
+                        if ($uploadResult['success']) {
+                            $photoUrl = $uploadResult['url'];
+                            Log::info("✅ Photo uploadée vers ImgBB: {$photoUrl}");
+                        } else {
+                            Log::warning("⚠️ Erreur upload photo ImgBB: " . ($uploadResult['error'] ?? 'Unknown'));
+                            // Garder l'URL locale en fallback
+                            $photoUrl = $utilisateur->photo_url;
+                        }
+                    } else {
+                        Log::warning("⚠️ Fichier local non trouvé: {$diskPath}");
+                        $photoUrl = $utilisateur->photo_url;
+                    }
+                } else {
+                    // C'est déjà une URL externe (ImgBB ou autre)
+                    $photoUrl = $photoPath;
+                }
+            } catch (\Exception $e) {
+                Log::error("❌ Erreur lors du traitement de la photo: " . $e->getMessage());
+                // Utiliser l'URL originale en fallback
+                $photoUrl = $utilisateur->photo_url;
+            }
+        }
+
         return [
             'id_utilisateur' => $utilisateur->id_utilisateur,
             'firebase_uid' => $firebaseUid,
@@ -480,7 +536,8 @@ class SyncController extends Controller
                 'libelle' => $utilisateur->typeUtilisateur->libelle
             ] : null,
             'adresse' => $utilisateur->adresse,
-            'photo_profil' => $utilisateur->photo_profil,
+            'photo_profil' => $photoUrl,
+            'photo_url' => $photoUrl,
             'last_sync_at' => now()->toIso8601String(),
             'updatedAt' => now()->toIso8601String()
         ];

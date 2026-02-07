@@ -13,7 +13,6 @@ class StorageService
 {
     protected $apiKey = 'afb517eaa4f24cc9888c2110bdd9a431';
     protected $apiUrl = 'https://api.imgbb.com/1/upload';
-
     /**
      * Upload une image depuis des données base64
      * @param string $base64Data Les données en base64 (avec ou sans préfixe data:image/...)

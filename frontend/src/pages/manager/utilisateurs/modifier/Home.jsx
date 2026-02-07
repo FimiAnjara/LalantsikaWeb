@@ -12,14 +12,16 @@ import {
     CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilArrowLeft, cilCheckAlt, cilX, cilUser } from '@coreui/icons'
+import { cilArrowLeft, cilCheckAlt, cilX, cilUser, cilTrash } from '@coreui/icons'
 import { ErrorModal, SuccessModal, LoadingSpinner } from '../../../../components/ui'
 import { ENDPOINTS, getAuthHeaders, API_BASE_URL } from '../../../../config/api'
+import usePhotoUpload from '../../../../hooks/usePhotoUpload'
 import './Modifier.css'
 
 export default function ModifierUtilisateur() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { uploading, uploadPhoto, deletePhoto, getPhotoUrl } = usePhotoUpload()
     const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
     const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
     const [loading, setLoading] = useState(true)
@@ -35,16 +37,22 @@ export default function ModifierUtilisateur() {
         id_sexe: '',
         id_type_utilisateur: '',
         photo: null,
+        photoPath: null, // URL de la photo uploadée
         current_photo_url: '',
     })
     const [photoPreview, setPhotoPreview] = useState(null)
     const [errors, setErrors] = useState({})
 
     // Helper pour construire l'URL de la photo (locale ou externe)
-    const getPhotoUrl = (photoUrl) => {
+    // Maintenant on utilise l'API /storage pour servir les fichiers
+    const buildPhotoUrl = (photoUrl) => {
         if (!photoUrl) return null
         if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
             return photoUrl
+        }
+        // Convertir les anciennes URLs /storage/ en /api/storage/
+        if (photoUrl.startsWith('/storage/')) {
+            return photoUrl.replace('/storage/', '/api/storage/')
         }
         return `${API_BASE_URL}${photoUrl}`
     }
@@ -153,13 +161,63 @@ export default function ModifierUtilisateur() {
         }
     }
 
+    const handlePhotoUpload = async () => {
+        if (!formData.photo) return null
+
+        try {
+            const result = await uploadPhoto(formData.photo)
+            if (result && result.success) {
+                // Retourner le path directement, sans utiliser setFormData
+                return result.path
+            } else {
+                setErrorModal({ visible: true, title: 'Erreur', message: 'Erreur lors de l\'upload de la photo' })
+                return null
+            }
+        } catch (error) {
+            setErrorModal({ visible: true, title: 'Erreur', message: error.message })
+            return null
+        }
+    }
+
+    const handleDeleteCurrentPhoto = async () => {
+        if (!formData.current_photo_url) return
+
+        try {
+            // Extraire le nom du fichier
+            const filename = formData.current_photo_url.split('/').pop()
+            const success = await deletePhoto(filename)
+            
+            if (success) {
+                setFormData({
+                    ...formData,
+                    current_photo_url: ''
+                })
+                setSuccessModal({ visible: true, title: 'Succès', message: 'Photo supprimée' })
+            } else {
+                setErrorModal({ visible: true, title: 'Erreur', message: 'Erreur lors de la suppression de la photo' })
+            }
+        } catch (error) {
+            setErrorModal({ visible: true, title: 'Erreur', message: error.message })
+        }
+    }
+
     const handleSave = async (e) => {
         e.preventDefault()
         setSaving(true)
         setErrors({})
 
         try {
-            // Créer FormData pour l'upload de fichier
+            // Uploader la photo si fournie et pas encore uploadée
+            let photoPath = formData.photoPath
+            if (formData.photo && !photoPath) {
+                photoPath = await handlePhotoUpload()
+                if (!photoPath) {
+                    setSaving(false)
+                    return
+                }
+            }
+
+            // Créer FormData pour l'envoi
             const formDataToSend = new FormData()
             formDataToSend.append('_method', 'PUT') // Important pour Laravel
             formDataToSend.append('nom', formData.nom)
@@ -173,8 +231,9 @@ export default function ModifierUtilisateur() {
             if (formData.id_type_utilisateur) {
                 formDataToSend.append('id_type_utilisateur', parseInt(formData.id_type_utilisateur))
             }
-            if (formData.photo) {
-                formDataToSend.append('photo', formData.photo)
+            // Si photo uploadée, ajouter le chemin au lieu du fichier
+            if (photoPath) {
+                formDataToSend.append('photo_path', photoPath)
             }
 
             // Récupérer le token
@@ -184,7 +243,6 @@ export default function ModifierUtilisateur() {
                 method: 'POST', // Laravel utilise POST avec _method pour PUT avec FormData
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    // Ne pas définir Content-Type, le navigateur le fera avec le boundary
                 },
                 body: formDataToSend,
             })
@@ -389,6 +447,7 @@ export default function ModifierUtilisateur() {
                                     accept="image/*"
                                     onChange={handleInputChange}
                                     className="form-input"
+                                    disabled={uploading}
                                 />
                                 <small className="text-muted">Maximum 5MB - Formats acceptés: JPG, PNG, GIF</small>
                                 
@@ -413,7 +472,7 @@ export default function ModifierUtilisateur() {
                                         <div>
                                             <p className="mb-2"><strong>Photo actuelle :</strong></p>
                                             <img 
-                                                src={getPhotoUrl(formData.current_photo_url)} 
+                                                src={buildPhotoUrl(formData.current_photo_url)} 
                                                 alt="Photo actuelle" 
                                                 style={{ 
                                                     width: '120px', 
@@ -423,6 +482,17 @@ export default function ModifierUtilisateur() {
                                                     border: '3px solid #e0e0e0'
                                                 }} 
                                             />
+                                            <CButton
+                                                type="button"
+                                                color="danger"
+                                                size="sm"
+                                                className="mt-2"
+                                                onClick={handleDeleteCurrentPhoto}
+                                                disabled={saving || uploading}
+                                            >
+                                                <CIcon icon={cilTrash} className="me-2" />
+                                                Supprimer
+                                            </CButton>
                                         </div>
                                     ) : (
                                         <div className="text-muted">

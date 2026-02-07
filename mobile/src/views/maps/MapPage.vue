@@ -9,78 +9,114 @@
         :message="loadingMessage" 
       />
       
-      <!-- Filtre de la carte (Tous / Mes signalements) -->
-      <div v-if="!reportMode" class="map-filter">
-        <button 
-          class="filter-btn" 
-          :class="{ active: mapFilter === 'all' }"
-          @click="mapFilter = 'all'"
-        >
-          Tous
-        </button>
-        <button 
-          class="filter-btn" 
-          :class="{ active: mapFilter === 'mine' }"
-          @click="mapFilter = 'mine'"
-        >
-          Mes signalements
-        </button>
-      </div>
-      
-      <!-- Header avec recherche et profil alignés -->
-      <div class="map-header">
-        <div class="search-header">
-          <div class="search-bar">
-            <img src="/logo/logo4.png" alt="Logo" class="search-logo" />
-            <input 
-              type="text" 
-              v-model="searchQuery"
-              @keyup.enter="searchCity"
-              placeholder="Rechercher une ville..." 
-              class="search-input"
-            />
-            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
+      <!-- Header Google Maps style -->
+      <div class="gm-header" :class="{ 'header-hidden': activeMenu === 'recap' }">
+        <!-- Barre de recherche style Google Maps -->
+        <div class="gm-search-bar">
+          <img src="/logo/logo4.png" alt="Logo" class="gm-search-logo" />
+          <input 
+            type="text" 
+            v-model="searchQuery"
+            @keyup.enter="searchCity"
+            placeholder="Rechercher une ville..." 
+            class="gm-search-input"
+          />
+          <button class="gm-profile-btn" @click="toggleProfileMenu">
+            <img v-if="userPhotoUrl" :src="userPhotoUrl" alt="Profil" class="gm-profile-photo" />
+            <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="#547792">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M5.5 21a6.5 6.5 0 0 1 13 0" fill="#547792"/>
             </svg>
-          </div>
+          </button>
         </div>
-        <div class="profile-container">
-          <button class="profile-btn" @click="toggleProfileMenu">
-            <img v-if="userPhotoUrl" :src="userPhotoUrl" alt="Photo de profil" class="profile-photo" />
-            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="7" r="4"/>
-              <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+
+        <!-- Filtres chips style Google Maps -->
+        <div v-if="!reportMode" class="gm-chips-row">
+          <button 
+            class="gm-chip" 
+            :class="{ active: mapFilter === 'all' }"
+            @click="mapFilter = 'all'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20"/>
             </svg>
+            <span>Tous</span>
+          </button>
+          <button 
+            class="gm-chip" 
+            :class="{ active: mapFilter === 'mine' }"
+            @click="mapFilter = 'mine'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>Les miens</span>
+          </button>
+          <button 
+            class="gm-chip gm-chip--nouveau" 
+            :class="{ active: mapFilter === 'nouveau' }"
+            @click="mapFilter = 'nouveau'"
+          >
+            <span class="gm-chip-dot" style="background:#EA4335;"></span>
+            <span>Nouveau</span>
+          </button>
+          <button 
+            class="gm-chip gm-chip--info" 
+            :class="{ active: mapFilter === 'info' }"
+            @click="mapFilter = 'info'"
+          >
+            <span class="gm-chip-dot" style="background:#4285F4;"></span>
+            <span>En cours</span>
+          </button>
+          <button 
+            class="gm-chip gm-chip--success" 
+            :class="{ active: mapFilter === 'success' }"
+            @click="mapFilter = 'success'"
+          >
+            <span class="gm-chip-dot" style="background:#34A853;"></span>
+            <span>Terminé</span>
+          </button>
+          <button 
+            class="gm-chip gm-chip--danger" 
+            :class="{ active: mapFilter === 'danger' }"
+            @click="mapFilter = 'danger'"
+          >
+            <span class="gm-chip-dot" style="background:#78909C;"></span>
+            <span>Rejeté</span>
           </button>
         </div>
       </div>
 
       <!-- Bouton Signaler (flottant en bas à droite) -->
-      <button 
-        v-if="!reportMode"
-        class="report-btn" 
-        @click="startReportMode"
-        title="Ajouter un signalement"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
-          <path d="M12 2v20M2 12h20"/>
-        </svg>
-      </button>
+      <transition name="fab-pop">
+        <button 
+          v-if="!reportMode && activeMenu === 'map' && !showMarkerSheet"
+          class="report-btn" 
+          @click="startReportMode"
+          title="Ajouter un signalement"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </transition>
 
-      <!-- Icône de localisation rouge centrale (en mode signalement) -->
+      <!-- Icône de localisation centrale (en mode signalement) - Rouge Google Maps -->
       <div v-if="reportMode" class="center-marker">
-        <svg width="40" height="50" viewBox="0 0 24 30" fill="#dc3545">
-          <path d="M12 0C7.58 0 4 3.58 4 8c0 5.5 8 14 8 14s8-8.5 8-14c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+        <svg width="40" height="56" viewBox="0 0 40 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 0C8.96 0 0 8.96 0 20c0 14 20 36 20 36s20-22 20-36C40 8.96 31.04 0 20 0z" fill="#EA4335"/>
+          <circle cx="20" cy="20" r="8" fill="white"/>
         </svg>
       </div>
 
       <!-- Carte -->
-      <div class="map-wrapper">
+      <div class="map-wrapper" :class="{ 'map-full': activeMenu === 'recap' }">
         <MapComponent 
           ref="mapComponent"
           :markers="currentMarkers"
-          @marker-click="showMarkerDetails"
+          @marker-click="onMarkerClick"
           @map-ready="onMapReady"
         />
       </div>
@@ -88,73 +124,251 @@
       <!-- Boutons de validation/annulation (en mode signalement) -->
       <div v-if="reportMode" class="action-buttons">
         <button class="cancel-btn" @click="cancelReportMode" :disabled="isValidating">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
         <button class="validate-btn" @click="validateReport" :disabled="isValidating">
           <span v-if="isValidating" class="btn-spinner"></span>
-          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+          <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </button>
       </div>
 
-      <!-- Carte flottante des signalements -->
-      <SavedReportsCard
-        v-if="activeMenu === 'saved'"
-        :my-reports="myReports"
-        :all-reports="allReports"
-        :is-loading="isLoadingList"
-        @close="activeMenu = 'map'"
-        @open-details="openReportDetails"
-        @delete="deleteReport"
-      />
+      <!-- ====================== -->
+      <!-- BOTTOM SHEET: Marker Details (when a point is tapped) -->
+      <!-- ====================== -->
+      <BottomSheet
+        ref="markerSheetRef"
+        v-model="showMarkerSheet"
+        :peek-height="200"
+        :half-height="55"
+        :full-height="90"
+        initial-snap="peek"
+        :bottom-offset="bottomMenuHeight"
+        @snap-change="onMarkerSheetSnap"
+      >
+        <template #default="{ snap }">
+          <div v-if="selectedSignalement" class="marker-sheet-content">
+            <!-- Peek/compact view: key info -->
+            <div class="marker-peek">
+              <!-- Status badge & close -->
+              <div class="marker-peek-header">
+                <span 
+                  class="status-pill" 
+                  :class="'pill-' + getStatutType(selectedSignalement.statut.id_statut)"
+                >
+                  {{ selectedSignalement.statut.libelle }}
+                </span>
+                <button class="sheet-close-btn" @click="closeMarkerSheet">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Photo + key stats row -->
+              <div class="marker-peek-body">
+                <div class="marker-photo-thumb" v-if="selectedSignalement.photo" @click="openFullDetails">
+                  <img :src="selectedSignalement.photo" alt="Photo" />
+                </div>
+                <div class="marker-photo-thumb placeholder" v-else>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                </div>
+                <div class="marker-key-info">
+                  <h3 class="marker-title">{{ selectedSignalement.description || 'Signalement' }}</h3>
+                  <div class="marker-meta-row">
+                    <span class="marker-meta" v-if="selectedSignalement.city">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      {{ selectedSignalement.city }}
+                    </span>
+                    <span class="marker-meta" v-if="selectedSignalement.surface">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#17a2b8" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      </svg>
+                      {{ selectedSignalement.surface }} m²
+                    </span>
+                  </div>
+                  <span class="marker-date">{{ formatDateShort(selectedSignalement.daty) }}</span>
+                </div>
+              </div>
 
-      <!-- Carte flottante Recap/Dashboard -->
-      <RecapCard
-        v-if="activeMenu === 'recap'"
-        :signalements="allSignalements"
-        :is-loading="isLoadingList"
-        @close="backToMap"
-      />
+              <!-- Bouton Voir détails (always visible in peek) -->
+              <button class="btn-peek-details" @click="openFullDetails">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>Voir les détails</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            </div>
 
-      <!-- Menu horizontal en bas -->
-      <div class="bottom-menu">
+            <!-- Half/Full view: full details -->
+            <transition name="slide-fade">
+              <div v-if="snap === 'half' || snap === 'full'" class="marker-details-expanded">
+                <!-- Signalé par -->
+                <div class="detail-row">
+                  <div class="detail-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0a1e37" stroke-width="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  </div>
+                  <div class="detail-text">
+                    <span class="detail-label">Signalé par</span>
+                    <span class="detail-value">{{ getUserDisplayName(selectedSignalement.utilisateur) }}</span>
+                  </div>
+                </div>
+
+                <!-- Budget -->
+                <div class="detail-row" v-if="selectedSignalement.budget">
+                  <div class="detail-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2">
+                      <line x1="12" y1="1" x2="12" y2="23"/>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                  </div>
+                  <div class="detail-text">
+                    <span class="detail-label">Budget estimé</span>
+                    <span class="detail-value">{{ formatBudgetDisplay(selectedSignalement.budget) }}</span>
+                  </div>
+                </div>
+
+                <!-- Entreprise -->
+                <div class="detail-row" v-if="selectedSignalement.entreprise">
+                  <div class="detail-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                  </div>
+                  <div class="detail-text">
+                    <span class="detail-label">Entreprise</span>
+                    <span class="detail-value">{{ selectedSignalement.entreprise.nom }}</span>
+                  </div>
+                </div>
+
+                <!-- Coordonnées -->
+                <div class="detail-row">
+                  <div class="detail-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                  </div>
+                  <div class="detail-text">
+                    <span class="detail-label">Coordonnées</span>
+                    <span class="detail-value">{{ selectedSignalement.point.latitude.toFixed(5) }}, {{ selectedSignalement.point.longitude.toFixed(5) }}</span>
+                  </div>
+                </div>
+
+                <!-- Description complète -->
+                <div v-if="selectedSignalement.description" class="detail-description">
+                  <h4>Description</h4>
+                  <p>{{ selectedSignalement.description }}</p>
+                </div>
+
+              </div>
+            </transition>
+          </div>
+        </template>
+      </BottomSheet>
+
+      <!-- ====================== -->
+      <!-- BOTTOM SHEET: Signalements List -->
+      <!-- ====================== -->
+      <BottomSheet
+        ref="listSheetRef"
+        v-model="showListSheet"
+        :peek-height="280"
+        :half-height="55"
+        :full-height="90"
+        initial-snap="peek"
+        :bottom-offset="bottomMenuHeight"
+        @snap-change="onListSheetSnap"
+      >
+        <template #default="{ snap }">
+          <SavedReportsCard
+            :my-reports="myReports"
+            :all-reports="allReports"
+            :is-loading="isLoadingList"
+            :is-sheet-mode="true"
+            :snap="snap"
+            @locate-report="locateReportOnMap"
+            @open-details="openReportDetails"
+            @delete="deleteReport"
+          />
+        </template>
+      </BottomSheet>
+
+      <!-- ====================== -->
+      <!-- RECAP: Full screen with bottom menu -->
+      <!-- ====================== -->
+      <transition name="slide-up">
+        <div v-if="activeMenu === 'recap'" class="recap-overlay">
+          <RecapCard
+            :signalements="allSignalements"
+            :is-loading="isLoadingList"
+            :is-fullscreen="true"
+            @close="backToMap"
+          />
+        </div>
+      </transition>
+
+      <!-- Menu horizontal en bas - ALWAYS VISIBLE -->
+      <div class="gm-bottom-menu">
         <button 
-          class="menu-item" 
+          class="gm-menu-item" 
           :class="{ active: activeMenu === 'map' }"
           @click="backToMap"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 21l9-9 3 3 6-6"/>
-            <path d="M21 3v6h-6"/>
-          </svg>
+          <div class="gm-menu-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+              <line x1="8" y1="2" x2="8" y2="18"/>
+              <line x1="16" y1="6" x2="16" y2="22"/>
+            </svg>
+          </div>
           <span>Carte</span>
         </button>
 
         <button 
-          class="menu-item" 
+          class="gm-menu-item" 
           :class="{ active: activeMenu === 'saved' }"
           @click="openSignalementsList"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-          </svg>
+          <div class="gm-menu-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
           <span>Signalements</span>
         </button>
 
         <button 
-          class="menu-item" 
+          class="gm-menu-item" 
           :class="{ active: activeMenu === 'recap' }"
-          @click="activeMenu = 'recap'"
+          @click="openRecap"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <line x1="9" y1="9" x2="15" y2="9"/>
-            <line x1="9" y1="15" x2="15" y2="15"/>
-          </svg>
+          <div class="gm-menu-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+              <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+            </svg>
+          </div>
           <span>Recap</span>
         </button>
       </div>
@@ -164,17 +378,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { IonPage, IonContent, alertController, actionSheetController, onIonViewWillEnter } from '@ionic/vue';
 import MapComponent from '@/components/MapComponent.vue';
 import SpinnerLoader from '@/components/SpinnerLoader.vue';
+import BottomSheet from '@/components/BottomSheet.vue';
 import SavedReportsCard from '@/components/maps/SavedReportsCard.vue';
 import RecapCard from '@/components/maps/RecapCard.vue';
 import router from '@/router';
 import { signalementService } from '@/services/signalement';
 import { authService } from '@/services/auth';
 import { toastService } from '@/services/toast';
-import { Signalement, getStatutType } from '@/models';
+import { Signalement, getStatutType, formatBudget } from '@/models';
 import { auth, db } from '@/services/firebase/config';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -182,14 +397,22 @@ const mapComponent = ref<any>(null);
 const searchQuery = ref('');
 const activeMenu = ref('map');
 const reportMode = ref(false);
-const isLoadingList = ref(false); // Pour la liste des signalements seulement
+const isLoadingList = ref(false);
 const isSearching = ref(false);
 const isDeleting = ref(false);
-const isValidating = ref(false); // Pour le bouton de validation
+const isValidating = ref(false);
 const loadingMessage = ref('Chargement...');
-const mapFilter = ref<'all' | 'mine'>('all'); // Filtre pour la carte
-const userPhotoUrl = ref<string | null>(null); // Photo de profil utilisateur
-const isLoggingOut = ref(false); // Spinner pour la déconnexion
+const mapFilter = ref<'all' | 'mine' | 'nouveau' | 'info' | 'success' | 'danger'>('all');
+const userPhotoUrl = ref<string | null>(null);
+const isLoggingOut = ref(false);
+const bottomMenuHeight = 72;
+
+// Bottom sheet states
+const showMarkerSheet = ref(false);
+const showListSheet = ref(false);
+const markerSheetRef = ref<any>(null);
+const listSheetRef = ref<any>(null);
+const selectedSignalement = ref<Signalement | null>(null);
 
 // Données de signalements depuis Firestore
 const allSignalements = ref<Signalement[]>([]);
@@ -230,10 +453,20 @@ const allReports = computed(() => {
 
 // Marqueurs filtrés pour la carte
 const currentMarkers = computed(() => {
+  let source = allSignalements.value;
+  
   if (mapFilter.value === 'mine') {
-    return mySignalements.value.map(sig => signalementService.signalementToMarker(sig));
+    source = mySignalements.value;
   }
-  return markers.value;
+  
+  const mapped = source.map(sig => signalementService.signalementToMarker(sig));
+  
+  // Filtrage par statut
+  if (['nouveau', 'info', 'success', 'danger'].includes(mapFilter.value)) {
+    return mapped.filter(m => m.type === mapFilter.value);
+  }
+  
+  return mapped;
 });
 
 // Charger les signalements au montage
@@ -507,13 +740,127 @@ const openReportDetails = (report: any) => {
   });
 };
 
-const showMarkerDetails = (marker: any) => {
+// ========== MARKER SHEET LOGIC ==========
+const onMarkerClick = (marker: any) => {
   console.log('Marqueur cliqué:', marker);
-  // Naviguer vers les détails du signalement
-  router.push({ 
-    name: 'SignalementDetails', 
-    params: { id: marker.id }
+  
+  // Find the full signalement
+  const sig = allSignalements.value.find(
+    s => (s.firebase_id || `sig-${s.id_signalement}`) === marker.id
+  );
+  
+  if (!sig) {
+    // Fallback: navigate to details page
+    router.push({ name: 'SignalementDetails', params: { id: marker.id } });
+    return;
+  }
+  
+  selectedSignalement.value = sig;
+  
+  // Close list sheet if open
+  showListSheet.value = false;
+  
+  // Center map with point at top third of screen
+  centerMapOnPointForSheet(sig.point.latitude, sig.point.longitude);
+  
+  // Open marker bottom sheet
+  nextTick(() => {
+    showMarkerSheet.value = true;
   });
+};
+
+const centerMapOnPointForSheet = (lat: number, lng: number) => {
+  const leafletMap = mapComponent.value?.getMapInstance?.();
+  const targetZoom = 16;
+  
+  if (leafletMap) {
+    // Use Leaflet's projection to compute a pixel-perfect offset
+    // The bottom sheet (peek 200px) covers the lower part of the map.
+    // We want the point to sit in the center of the VISIBLE area above the sheet.
+    // Visible area height = mapHeight - sheetPeekHeight
+    // So we shift the center down by (sheetPeekHeight / 2) pixels.
+    const sheetPeek = 200;
+    const pixelOffset = Math.round(sheetPeek / 2); // 100px
+    
+    const targetPoint = leafletMap.project([lat, lng], targetZoom);
+    // Shift the center down (increase Y in pixel space) so the marker appears higher
+    const offsetCenter = leafletMap.unproject(
+      [targetPoint.x, targetPoint.y + pixelOffset],
+      targetZoom
+    );
+    leafletMap.setView(offsetCenter, targetZoom, { animate: true, duration: 0.4 });
+  } else {
+    // Fallback: small latitude offset
+    mapComponent.value?.setView([lat - 0.001, lng], targetZoom);
+  }
+};
+
+const closeMarkerSheet = () => {
+  showMarkerSheet.value = false;
+  selectedSignalement.value = null;
+};
+
+const onMarkerSheetSnap = (snap: string) => {
+  if (snap === 'closed') {
+    selectedSignalement.value = null;
+  }
+};
+
+const openFullDetails = () => {
+  if (selectedSignalement.value) {
+    const id = selectedSignalement.value.firebase_id || `sig-${selectedSignalement.value.id_signalement}`;
+    showMarkerSheet.value = false;
+    router.push({ name: 'SignalementDetails', params: { id } });
+  }
+};
+
+const getUserDisplayName = (user: any) => {
+  if (!user) return 'Anonyme';
+  const name = [user.prenom, user.nom].filter(Boolean).join(' ');
+  return name || user.identifiant || 'Anonyme';
+};
+
+const formatDateShort = (daty: string) => {
+  if (!daty) return '';
+  try {
+    const d = new Date(daty);
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return daty; }
+};
+
+const formatBudgetDisplay = (budget?: number): string => {
+  if (!budget) return 'Non défini';
+  if (budget >= 1000000) return `${(budget / 1000000).toFixed(1)} M Ar`;
+  return `${(budget / 1000).toFixed(0)} K Ar`;
+};
+
+// ========== LIST SHEET LOGIC ==========
+const onListSheetSnap = (snap: string) => {
+  if (snap === 'closed') {
+    activeMenu.value = 'map';
+    showListSheet.value = false;
+  }
+};
+
+const locateReportOnMap = (report: any) => {
+  // Close list sheet and show marker sheet for this report
+  showListSheet.value = false;
+  activeMenu.value = 'map';
+  
+  // Center map on the report's location with proper sheet offset
+  centerMapOnPointForSheet(report.lat, report.lng);
+  
+  // Find the full signalement
+  const sig = allSignalements.value.find(
+    s => (s.firebase_id || `sig-${s.id_signalement}`) === (report.firebase_id || report.id)
+  );
+  
+  if (sig) {
+    selectedSignalement.value = sig;
+    nextTick(() => {
+      showMarkerSheet.value = true;
+    });
+  }
 };
 
 const deleteReport = async (reportId: string) => {
@@ -570,6 +917,13 @@ const cancelReportMode = () => {
 // Ouvrir la liste des signalements avec chargement
 const openSignalementsList = async () => {
   activeMenu.value = 'saved';
+  showMarkerSheet.value = false;
+  
+  // Open list bottom sheet
+  nextTick(() => {
+    showListSheet.value = true;
+  });
+  
   // Recharger les données avec le spinner
   await loadSignalements(true);
 };
@@ -621,184 +975,240 @@ const validateReport = async () => {
 // Retourner à la carte et rafraîchir
 const backToMap = () => {
   activeMenu.value = 'map';
+  showMarkerSheet.value = false;
+  showListSheet.value = false;
   // Forcer le rafraîchissement de la carte après fermeture des modales
   setTimeout(() => {
     mapComponent.value?.invalidateSize();
   }, 200);
 };
+
+// Ouvrir le récapitulatif
+const openRecap = async () => {
+  activeMenu.value = 'recap';
+  showMarkerSheet.value = false;
+  showListSheet.value = false;
+  await loadSignalements(true);
+};
 </script>
 
 <style scoped>
 .map-page {
-  --background: #ffffff;
+  --background: #E8E2DB;
 }
 
-/* Header avec recherche et profil alignés */
-.map-header {
+/* ========================================
+   HEADER - Google Maps Style
+   ======================================== */
+.gm-header {
   position: absolute;
-  top: 50px;
+  top: 0;
   left: 0;
   right: 0;
   z-index: 1010;
+  padding: calc(env(safe-area-inset-top, 12px) + 10px) 14px 0 14px;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0 1rem;
-  max-width: 100vw;
-  box-sizing: border-box;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease;
 }
 
-.profile-btn {
-  width: 48px;
+.gm-header.header-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Barre de recherche pill Google Maps */
+.gm-search-bar {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 28px;
   height: 48px;
+  padding: 0 6px 0 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
+  gap: 10px;
+  transition: box-shadow 0.2s ease;
+}
+
+.gm-search-bar:focus-within {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.gm-search-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.gm-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: #1A3263;
+  background: transparent;
+  min-width: 0;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.gm-search-input::placeholder {
+  color: #547792;
+  font-weight: 400;
+}
+
+/* Bouton profil dans la barre de recherche */
+.gm-profile-btn {
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: #0a1e37;
+  background: #E8E2DB;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   padding: 0;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
-.profile-btn .profile-photo {
+.gm-profile-btn:active {
+  transform: scale(0.92);
+}
+
+.gm-profile-photo {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
 }
 
-.profile-btn:hover {
-  background: #1a3a5f;
-  transform: scale(1.05);
-}
-
-/* Container du profil */
-.profile-container {
-  position: relative;
-}
-
-/* Filtre de la carte */
-.map-filter {
-  position: absolute;
-  top: 110px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1005;
+/* ========================================
+   CHIPS / FILTRES - Google Maps Style
+   ======================================== */
+.gm-chips-row {
   display: flex;
-  background: white;
-  border-radius: 25px;
-  padding: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  gap: 4px;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 2px 4px 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.filter-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: transparent;
-  color: #666;
-  white-space: nowrap;
+.gm-chips-row::-webkit-scrollbar {
+  display: none;
 }
 
-.filter-btn.active {
-  background: linear-gradient(135deg, #0a1e37 0%, #1a3a5f 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(10, 30, 55, 0.3);
-}
-
-.filter-btn:not(.active):hover {
-  background: #f0f0f0;
-  color: #0a1e37;
-}
-
-/* Barre de recherche */
-.search-header {
-  flex: 1;
-  display: flex;
-}
-
-.search-bar {
-  flex: 1;
-  position: relative;
+.gm-chip {
   display: flex;
   align-items: center;
-  background: rgb(251, 251, 251);
-  border-radius: 12px;
-  padding: 0 1rem;
-  height: 48px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  gap: 0.75rem;
-}
-
-.search-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-  
-.search-icon {
-  color: #999;
-  flex-shrink: 0;
-}
-
-.search-input {
-  flex: 1;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
   border: none;
-  outline: none;
-  padding: 0.75rem 0;
-  font-size: 0.95rem;
-  background-color: rgb(251, 251, 251);
-  color: #0a1e37;
-  min-width: 0;
-  width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  color: #1A3263;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
-.search-input::placeholder {
-  color: #999;
+.gm-chip svg {
+  stroke: #547792;
+  flex-shrink: 0;
 }
 
-/* Bouton Signaler (en bas à droite) */
+.gm-chip.active {
+  background: #1A3263;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(26, 50, 99, 0.35);
+}
+
+.gm-chip.active svg {
+  stroke: #FAB95B;
+}
+
+.gm-chip:not(.active):active {
+  background: #f0ece7;
+  transform: scale(0.96);
+}
+
+/* Dots de couleur dans les chips de statut */
+.gm-chip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Chips de statut actifs avec leur couleur propre */
+.gm-chip--nouveau.active {
+  background: #EA4335;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(234, 67, 53, 0.35);
+}
+.gm-chip--nouveau.active .gm-chip-dot { background: #fff !important; }
+
+.gm-chip--info.active {
+  background: #4285F4;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.35);
+}
+.gm-chip--info.active .gm-chip-dot { background: #fff !important; }
+
+.gm-chip--success.active {
+  background: #34A853;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(52, 168, 83, 0.35);
+}
+.gm-chip--success.active .gm-chip-dot { background: #fff !important; }
+
+.gm-chip--danger.active {
+  background: #78909C;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(120, 144, 156, 0.35);
+}
+.gm-chip--danger.active .gm-chip-dot { background: #fff !important; }
+
+/* ========================================
+   BOUTON SIGNALER - Flottant
+   ======================================== */
 .report-btn {
   position: fixed;
-  bottom: 100px;
-  right: 1rem;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+  right: 16px;
   z-index: 1000;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0a1e37 0%, #1a3a5f 100%);
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #FAB95B;
   color: white;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(10, 30, 55, 0.4);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(250, 185, 91, 0.45);
+  transition: all 0.25s ease;
 }
 
-.report-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(10, 30, 55, 0.5);
+.report-btn:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 10px rgba(250, 185, 91, 0.5);
 }
 
-.report-btn svg {
-  width: 24px;
-  height: 24px;
-}
-
-/* Icône centrale rouge */
+/* ========================================
+   MARQUEUR CENTRAL (mode signalement)
+   ======================================== */
 .center-marker {
   position: absolute;
   top: 50%;
@@ -806,7 +1216,7 @@ const backToMap = () => {
   transform: translate(-50%, -100%);
   z-index: 999;
   pointer-events: none;
-  filter: drop-shadow(0 4px 8px rgba(220, 53, 69, 0.4));
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
   animation: bounce 2s infinite;
 }
 
@@ -815,65 +1225,66 @@ const backToMap = () => {
     transform: translate(-50%, -100%);
   }
   50% {
-    transform: translate(-50%, -105%);
+    transform: translate(-50%, -106%);
   }
 }
 
-/* Boutons d'action (validation/annulation) */
+/* ========================================
+   BOUTONS D'ACTION (mode signalement)
+   ======================================== */
 .action-buttons {
   position: absolute;
-  bottom: 100px;
-  right: 1rem;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+  right: 16px;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .cancel-btn,
 .validate-btn {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
 }
 
 .cancel-btn {
-  background: #dc3545;
+  background: #547792;
 }
 
-.cancel-btn:hover {
-  background: #c82333;
-  transform: scale(1.1);
+.cancel-btn:active {
+  transform: scale(0.92);
+  background: #456478;
 }
 
 .validate-btn {
-  background: #28a745;
+  background: #1A3263;
 }
 
-.validate-btn:hover:not(:disabled) {
-  background: #218838;
-  transform: scale(1.1);
+.validate-btn:active:not(:disabled) {
+  transform: scale(0.92);
+  background: #142850;
 }
 
 .validate-btn:disabled,
 .cancel-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
 /* Spinner dans les boutons */
 .btn-spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: btn-spin 0.8s linear infinite;
@@ -883,79 +1294,467 @@ const backToMap = () => {
   to { transform: rotate(360deg); }
 }
 
-/* Map */
+/* ========================================
+   MAP
+   ======================================== */
 .map-wrapper {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 80px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   width: 100%;
-  background: #ffffff;
+  background: #E8E2DB;
+  transition: bottom 0.3s ease;
 }
 
-/* Bottom Menu */
-.bottom-menu {
-  position: absolute;
+.map-wrapper.map-full {
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ========================================
+   BOTTOM MENU - Style moderne flottant
+   ======================================== */
+.gm-bottom-menu {
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 1060;
   display: flex;
   justify-content: space-around;
-  background: #0a1e37;
-  border-top: 1px solid #e0e0e0;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-  padding: 0.5rem 0;
+  align-items: center;
+  background: #1A3263;
+  padding: 6px 0 calc(env(safe-area-inset-bottom, 0px) + 6px) 0;
+  border-radius: 0;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
 }
 
-.menu-item {
+.gm-menu-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem;
+  gap: 3px;
+  padding: 8px 4px 4px 4px;
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   position: relative;
 }
 
-.menu-item svg {
-  width: 24px;
-  height: 24px;
-  stroke: #ffffff;
-  transition: stroke 0.3s ease;
+.gm-menu-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
 }
 
-.menu-item span {
-  font-size: 0.75rem;
-  color: #ffffff;
-  transition: color 0.3s ease;
+.gm-menu-item svg {
+  stroke: #8a9bba;
+  transition: stroke 0.25s ease;
 }
 
-.menu-item.active svg {
-  stroke: rgb(207, 184, 36);
-  color: rgb(207, 184, 36);
+.gm-menu-item span {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #8a9bba;
+  letter-spacing: 0.02em;
+  transition: color 0.25s ease;
 }
 
-.menu-item.active span {
-  color: rgb(207, 184, 36);
+/* État actif */
+.gm-menu-item.active .gm-menu-icon {
+  background: rgba(250, 185, 91, 0.15);
+}
+
+.gm-menu-item.active svg {
+  stroke: #FAB95B;
+}
+
+.gm-menu-item.active span {
+  color: #FAB95B;
   font-weight: 600;
 }
 
-.menu-item.active::before {
+/* Ligne horizontale indicateur actif */
+.gm-menu-item.active::after {
   content: '';
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40%;
+  left: 20%;
+  right: 20%;
   height: 3px;
-  background: linear-gradient(90deg, rgb(207, 184, 36) 0%, rgb(207, 184, 36) 100%);
+  background: #FAB95B;
   border-radius: 0 0 3px 3px;
 }
 
+.gm-menu-item:active:not(.active) {
+  opacity: 0.7;
+}
+
+/* ========================================
+   FAB BUTTON ANIMATION
+   ======================================== */
+.fab-pop-enter-active {
+  animation: fabPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fab-pop-leave-active {
+  animation: fabPopOut 0.2s ease-in;
+}
+@keyframes fabPopIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes fabPopOut {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+/* ========================================
+   MARKER BOTTOM SHEET CONTENT
+   ======================================== */
+.marker-sheet-content {
+  padding-bottom: 16px;
+}
+
+.marker-peek {
+  animation: fadeSlideUp 0.3s ease-out;
+}
+
+.marker-peek-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.status-pill {
+  display: inline-flex;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+}
+.pill-nouveau { background: #EA4335; }
+.pill-info { background: #4285F4; }
+.pill-success { background: #34A853; }
+.pill-danger { background: #78909C; }
+
+.sheet-close-btn {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.sheet-close-btn:active {
+  background: #ddd;
+}
+
+.marker-peek-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.marker-photo-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.marker-photo-thumb:active {
+  transform: scale(0.95);
+}
+.marker-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.marker-photo-thumb.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.marker-key-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.marker-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0a1e37;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.marker-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.marker-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.marker-date {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+/* Bouton Voir détails en peek */
+.btn-peek-details {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  margin-top: 14px;
+  background: #1A3263;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: fadeSlideUp 0.25s ease-out 0.15s both;
+}
+.btn-peek-details:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+.btn-peek-details svg:first-child {
+  stroke: #FAB95B;
+}
+.btn-peek-details svg:last-child {
+  stroke: rgba(255,255,255,0.5);
+}
+
+/* Expanded details in marker sheet */
+.marker-details-expanded {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  animation: fadeSlideUp 0.3s ease-out both;
+}
+.detail-row:nth-child(1) { animation-delay: 0.05s; }
+.detail-row:nth-child(2) { animation-delay: 0.1s; }
+.detail-row:nth-child(3) { animation-delay: 0.15s; }
+.detail-row:nth-child(4) { animation-delay: 0.2s; }
+
+.detail-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.detail-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: #999;
+  margin-bottom: 2px;
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  color: #0a1e37;
+  font-weight: 500;
+}
+
+.detail-description {
+  margin-top: 16px;
+  padding: 14px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  animation: fadeSlideUp 0.3s ease-out 0.25s both;
+}
+.detail-description h4 {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+.detail-description p {
+  font-size: 0.9rem;
+  color: #333;
+  margin: 0;
+  line-height: 1.5;
+}
+
+
+/* ========================================
+   RECAP OVERLAY
+   ======================================== */
+.recap-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 1040;
+  background: white;
+  overflow-y: auto;
+}
+
+/* Slide up transition */
+.slide-up-enter-active {
+  animation: slideUpIn 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.slide-up-leave-active {
+  animation: slideUpOut 0.3s ease-in;
+}
+@keyframes slideUpIn {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes slideUpOut {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+/* Slide-fade for expanded details */
+.slide-fade-enter-active {
+  transition: all 0.35s ease-out;
+}
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+/* Global fade-slide keyframe */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   RESPONSIVE - Adaptation appareils
+   ======================================== */
+
+/* Petits écrans (< 360px) */
+@media screen and (max-width: 360px) {
+  .gm-header {
+    padding-top: calc(env(safe-area-inset-top, 8px) + 6px);
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .gm-search-bar {
+    height: 44px;
+    border-radius: 22px;
+  }
+  .gm-search-input {
+    font-size: 14px;
+  }
+  .gm-chip {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .gm-bottom-menu {
+    padding-top: 4px;
+  }
+  .gm-menu-item span {
+    font-size: 0.62rem;
+  }
+}
+
+/* Grands écrans (> 420px) */
+@media screen and (max-height: 700px) {
+  .gm-header {
+    padding-top: calc(env(safe-area-inset-top, 8px) + 6px);
+    gap: 6px;
+  }
+  .gm-search-bar {
+    height: 44px;
+  }
+  .gm-chip {
+    padding: 6px 14px;
+  }
+}
+
+/* Très grands écrans (tablette) */
+@media screen and (min-width: 768px) {
+  .gm-header {
+    max-width: 600px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .gm-bottom-menu {
+    max-width: 500px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0;
+  }
+}
+</style>
+
+<!-- Unscoped: override Ionic safe-area bottom on this page only -->
+<style>
+.map-page.ion-page,
+.map-page {
+  --ion-safe-area-bottom: 0px;
+}
 </style>

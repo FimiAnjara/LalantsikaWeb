@@ -91,78 +91,79 @@ watch(() => props.message, () => {
 <style scoped>
 .custom-toast {
   position: fixed;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(env(safe-area-inset-top, 12px) + 16px);
+  right: 12px;
+  left: auto;
+  transform: none;
   z-index: 9999;
-  min-width: 300px;
-  max-width: 90vw;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  min-width: 280px;
+  max-width: calc(100vw - 24px);
+  background: linear-gradient(135deg, #0e1b33 0%, #1A3263 100%);
+  border-radius: 14px;
+  box-shadow:
+    0 8px 32px rgba(10, 30, 55, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   overflow: hidden;
-  border: 1px solid #e9ecef;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
 }
 
 .toast-content {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 14px 16px;
 }
 
 .toast-icon {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
 }
 
 .toast-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 /* Success Style */
 .success .toast-icon {
-  background: rgba(40, 167, 69, 0.1);
-  color: #28a745;
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
 }
-
 .success .toast-progress {
-  background: linear-gradient(90deg, #28a745, #34ce57);
+  background: linear-gradient(90deg, #34d399, #6ee7b7);
 }
 
 /* Error Style */
 .error .toast-icon {
-  background: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
 }
-
 .error .toast-progress {
-  background: linear-gradient(90deg, #dc3545, #ff6b7a);
+  background: linear-gradient(90deg, #f87171, #fca5a5);
 }
 
 /* Warning Style */
 .warning .toast-icon {
-  background: rgba(255, 152, 0, 0.1);
-  color: #ff9800;
+  background: rgba(250, 185, 91, 0.15);
+  color: #FAB95B;
 }
-
 .warning .toast-progress {
-  background: linear-gradient(90deg, #ff9800, #ffc107);
+  background: linear-gradient(90deg, #FAB95B, #fcd581);
 }
 
 /* Info Style */
 .info .toast-icon {
-  background: rgba(26, 50, 99, 0.1);
-  color: #1A3263;
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
 }
-
 .info .toast-progress {
-  background: linear-gradient(90deg, #1A3263, #3e5f9e);
+  background: linear-gradient(90deg, #60a5fa, #93c5fd);
 }
 
 .toast-text {
@@ -170,43 +171,51 @@ watch(() => props.message, () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .toast-title {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: #1A3263;
+  color: #ffffff;
+  letter-spacing: 0.01em;
 }
 
 .toast-message {
-  font-size: 0.85rem;
-  color: #666;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .toast-close {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: none;
-  background: #f8f9fa;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   display: grid;
   place-items: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #999;
+  color: rgba(255, 255, 255, 0.5);
 }
 
-.toast-close:hover {
-  background: #e9ecef;
-  color: #666;
+.toast-close:active {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .toast-progress {
-  height: 3px;
+  height: 2.5px;
   width: 100%;
   animation: progress-shrink linear forwards;
+  opacity: 0.8;
 }
 
 @keyframes progress-shrink {
@@ -214,34 +223,34 @@ watch(() => props.message, () => {
   to { width: 0%; }
 }
 
-/* Animations */
+/* Animations - slide from right */
 .toast-slide-enter-active {
-  animation: slideDown 0.3s ease-out;
+  animation: slideInRight 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .toast-slide-leave-active {
-  animation: slideUp 0.3s ease-in;
+  animation: slideOutRight 0.25s cubic-bezier(0.55, 0, 1, 0.45);
 }
 
-@keyframes slideDown {
+@keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translate(-50%, -100%);
+    transform: translateX(100%);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateX(0);
   }
 }
 
-@keyframes slideUp {
+@keyframes slideOutRight {
   from {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateX(0);
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -100%);
+    transform: translateX(100%);
   }
 }
 </style>

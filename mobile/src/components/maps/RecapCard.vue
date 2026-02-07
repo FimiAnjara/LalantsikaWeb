@@ -1,7 +1,10 @@
 <template>
-  <div class="recap-card">
+  <div class="recap-card" :class="{ 'fullscreen-mode': isFullscreen }">
     <div class="card-header">
-      <h2>Récapitulatif</h2>
+      <div class="header-left">
+        <h2>Récapitulatif</h2>
+        <span class="header-subtitle">Vue d'ensemble</span>
+      </div>
       <button class="close-btn" @click="$emit('close')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"/>
@@ -22,7 +25,7 @@
       <template v-else>
         <!-- Statistiques principales -->
         <div class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-card" style="animation-delay: 0.05s">
             <div class="stat-icon total">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -30,12 +33,12 @@
               </svg>
             </div>
             <div class="stat-info">
-              <h3>{{ totalSignalements }}</h3>
+              <h3 class="stat-number">{{ totalSignalements }}</h3>
               <p>Signalements</p>
             </div>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card" style="animation-delay: 0.1s">
             <div class="stat-icon budget">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="1" x2="12" y2="23"/>
@@ -43,19 +46,19 @@
               </svg>
             </div>
             <div class="stat-info">
-              <h3>{{ formattedBudget }}</h3>
+              <h3 class="stat-number">{{ formattedBudget }}</h3>
               <p>Budget Total</p>
             </div>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card" style="animation-delay: 0.15s">
             <div class="stat-icon surface">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="3" width="18" height="18" rx="2"/>
               </svg>
             </div>
             <div class="stat-info">
-              <h3>{{ totalSurface }} m²</h3>
+              <h3 class="stat-number">{{ totalSurface }} m²</h3>
               <p>Surface Totale</p>
             </div>
           </div>
@@ -65,7 +68,12 @@
         <div class="status-section">
           <h3 class="section-title">Progression des signalements</h3>
           <div class="status-progress-list">
-            <div v-for="stat in statusStats" :key="stat.label" class="status-progress-item">
+            <div 
+              v-for="(stat, index) in statusStats" 
+              :key="stat.label" 
+              class="status-progress-item"
+              :style="{ animationDelay: (index * 0.1 + 0.2) + 's' }"
+            >
               <div class="status-header">
                 <span class="status-label">{{ stat.label }}</span>
                 <span class="status-count">{{ stat.count }} ({{ stat.percentage }}%)</span>
@@ -98,6 +106,8 @@
                 :stroke-dasharray="segment.dashArray"
                 :stroke-dashoffset="segment.dashOffset"
                 :transform="`rotate(-90 100 100)`"
+                class="pie-segment"
+                :style="{ animationDelay: (index * 0.15 + 0.4) + 's' }"
               />
             </svg>
             <div class="chart-legend">
@@ -119,10 +129,13 @@ import SpinnerLoader from '@/components/SpinnerLoader.vue';
 import { Signalement, getStatutType } from '@/models';
 
 // Props
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   signalements: Signalement[];
   isLoading: boolean;
-}>();
+  isFullscreen?: boolean;
+}>(), {
+  isFullscreen: false
+});
 
 // Emits
 defineEmits<{
@@ -194,27 +207,15 @@ const pieChartSegments = computed(() => {
 
 <style scoped>
 .recap-card {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  background: white;
-  z-index: 9999;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: slideUp 0.3s ease-out;
+  height: 100%;
+  background: white;
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
+.recap-card.fullscreen-mode {
+  height: 100%;
 }
 
 .card-header {
@@ -225,12 +226,24 @@ const pieChartSegments = computed(() => {
   background: linear-gradient(135deg, #0a1e37 0%, #1a3a5f 100%);
   color: white;
   padding-top: calc(env(safe-area-inset-top) + 1rem);
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header h2 {
   font-size: 1.15rem;
   font-weight: 600;
   margin: 0;
+}
+
+.header-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-top: 2px;
 }
 
 .close-btn {
@@ -251,6 +264,10 @@ const pieChartSegments = computed(() => {
   transform: rotate(90deg);
 }
 
+.close-btn:active {
+  transform: scale(0.9);
+}
+
 .close-btn svg {
   stroke: white;
 }
@@ -259,6 +276,7 @@ const pieChartSegments = computed(() => {
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
 }
 
 .section-title {
@@ -290,6 +308,18 @@ const pieChartSegments = computed(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   text-align: center;
+  animation: statPopIn 0.4s ease-out both;
+}
+
+@keyframes statPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .stat-card:hover {
@@ -332,6 +362,10 @@ const pieChartSegments = computed(() => {
   color: #0a1e37;
 }
 
+.stat-number {
+  transition: all 0.5s ease;
+}
+
 .stat-info p {
   margin: 0.15rem 0 0 0;
   font-size: 0.7rem;
@@ -355,6 +389,7 @@ const pieChartSegments = computed(() => {
   background: #f8f9fa;
   padding: 1rem;
   border-radius: 12px;
+  animation: statPopIn 0.4s ease-out both;
 }
 
 .status-header {
@@ -387,7 +422,7 @@ const pieChartSegments = computed(() => {
 .progress-fill {
   height: 100%;
   border-radius: 6px;
-  transition: width 0.6s ease;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .progress-danger {
@@ -411,6 +446,7 @@ const pieChartSegments = computed(() => {
   background: #f8f9fa;
   padding: 1.5rem;
   border-radius: 16px;
+  animation: statPopIn 0.4s ease-out 0.5s both;
 }
 
 .pie-chart {
@@ -425,6 +461,16 @@ const pieChartSegments = computed(() => {
   width: 200px;
   height: 200px;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.pie-segment {
+  animation: pieGrow 0.6s ease-out both;
+}
+
+@keyframes pieGrow {
+  from {
+    stroke-dasharray: 0 1000;
+  }
 }
 
 .chart-legend {

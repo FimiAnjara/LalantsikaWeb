@@ -60,7 +60,7 @@ const nextStep = () => {
       // Accelerate background for transition
       setSpeed(4)
       
-      router.replace('/login')
+      router.replace('/welcome')
     }, 1200)
   }, 200)
 }

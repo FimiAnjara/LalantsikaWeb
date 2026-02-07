@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { CBadge, CAlert, CSpinner } from '@coreui/react'
+import { CAlert, CSpinner } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { ENDPOINTS } from '../../../config/api'
 import { 
@@ -16,6 +16,14 @@ import {
     cilWifiSignalOff,
     cilLayers
 } from '@coreui/icons'
+
+// Correction des icônes par défaut de Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 // Custom markers avec couleurs
 const createColoredIcon = (color) => {

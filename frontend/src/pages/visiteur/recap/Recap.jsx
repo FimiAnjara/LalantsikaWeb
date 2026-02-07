@@ -1,22 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { 
-    CCard, 
-    CCardBody, 
-    CCardHeader, 
-    CCol, 
-    CRow, 
-    CWidgetStatsA,
-    CTable,
-    CTableBody,
-    CTableDataCell,
-    CTableHead,
-    CTableHeaderCell,
-    CTableRow,
-    CProgress,
-    CBadge,
-    CSpinner,
-    CAlert
-} from '@coreui/react'
+import { CSpinner, CAlert } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
     cilLocationPin, 

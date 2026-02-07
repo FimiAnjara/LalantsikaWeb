@@ -1,20 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
-import {
-    CButton,
-    CCollapse,
-    CContainer,
-    CForm,
-    CFormInput,
-    CNavbar,
-    CNavbarBrand,
-    CNavbarNav,
-    CNavbarToggler,
-    CNavItem,
-    CNavLink,
-    CFooter,
-    CLink,
-} from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
     cilHome,
@@ -32,7 +17,6 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import './MainLayout.css'
 
 export default function MainLayout() {
-    const [visible, setVisible] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const [scrolled, setScrolled] = useState(false)

@@ -11,14 +11,24 @@ import SignalementDetailsPage from '../views/maps/SignalementDetailsPage.vue';
 import SplashPage from '../views/SplashPage.vue';
 import { sessionService } from '@/services/auth';
 import { auth } from '@/services/firebase/config';
+import WelcomePage from '../views/WelcomePage.vue';
 
 // Routes publiques (pas besoin d'authentification)
-const publicRoutes = ['Login', 'SplashPage'];
+const publicRoutes = ['Login', 'SplashPage', 'Welcome'];
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     redirect: '/splash'
+  },
+  {
+    path: '/splash',
+    component: SplashPage
+  },
+  {
+    path: '/welcome',
+    name: 'Welcome',
+    component: WelcomePage
   },
   {
     path: '/home',

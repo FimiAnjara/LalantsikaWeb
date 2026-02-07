@@ -56,7 +56,7 @@ class User extends Authenticatable implements JWTSubject
     {
         return [
             'dtn' => 'date',
-            'mdp' => 'hashed',
+            // 'mdp' => 'hashed',  // Désactivé - on ne hash PAS le mdp automatiquement
             'synchronized' => 'boolean',
             'last_sync_at' => 'datetime',
         ];

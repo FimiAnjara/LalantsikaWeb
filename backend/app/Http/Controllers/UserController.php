@@ -266,9 +266,13 @@ class UserController extends Controller
                 // Stocker la nouvelle photo
                 $path = $file->storeAs('public/utilisateur', $filename);
                 if ($path) {
-                    $user->photo_url = '/storage/utilisateur/' . $filename;
+                    $user->photo_url = '/api/storage/utilisateur/' . $filename;
                     Log::info("✅ Photo mise à jour: {$user->photo_url}");
                 }
+            } elseif ($request->filled('photo_path')) {
+                // Accepter un chemin de photo pré-uploadée
+                $user->photo_url = $request->input('photo_path');
+                Log::info("✅ Chemin photo défini: {$user->photo_url}");
             }
 
             $user->save();

@@ -89,6 +89,7 @@ class AuthController extends Controller
             'email' => 'required|email|max:50|unique:utilisateur,email',
             'id_sexe' => 'required|integer|exists:sexe,id_sexe',
             'photo' => 'nullable|image|max:5120', // 5MB max, optionnel
+            'photo_path' => 'nullable|string', // Chemin de photo pré-uploadée
         ]);
 
         if ($validator->fails()) {
@@ -103,8 +104,19 @@ class AuthController extends Controller
         try {
             $photoUrl = null;
 
-            // Upload de la photo si présente - utiliser le storage local Laravel
-            if ($request->hasFile('photo')) {
+            Log::info('📸 REGISTER: Checking photo parameters', [
+                'has_photo_path' => $request->filled('photo_path'),
+                'photo_path_value' => $request->input('photo_path'),
+                'has_photo_file' => $request->hasFile('photo'),
+            ]);
+
+            // Utiliser le chemin de photo pré-uploadée si disponible
+            if ($request->filled('photo_path')) {
+                $photoUrl = $request->photo_path;
+                Log::info("✅ Photo path reçu: {$photoUrl}");
+            }
+            // Sinon, uploader la photo si présente
+            elseif ($request->hasFile('photo')) {
                 Log::info("📸 Upload de la photo de profil...");
                 
                 $file = $request->file('photo');
@@ -114,8 +126,8 @@ class AuthController extends Controller
                 $path = $file->storeAs('public/utilisateur', $filename);
                 
                 if ($path) {
-                    // Convertir le chemin storage en URL publique
-                    $photoUrl = '/storage/utilisateur/' . $filename;
+                    // Convertir le chemin storage en URL API
+                    $photoUrl = '/api/storage/utilisateur/' . $filename;
                     Log::info("✅ Photo uploadée: {$photoUrl}");
                 } else {
                     Log::warning("⚠️ Échec upload photo");
@@ -125,7 +137,7 @@ class AuthController extends Controller
             // Créer l'utilisateur dans PostgreSQL
             $user = User::create([
                 'identifiant' => $request->identifiant,
-                'mdp' => Hash::make($request->mdp),
+                'mdp' => $request->mdp,
                 'nom' => $request->nom,
                 'prenom' => $request->prenom, 
                 'dtn' => $request->dtn,

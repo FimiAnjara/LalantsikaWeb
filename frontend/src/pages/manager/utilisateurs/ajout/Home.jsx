@@ -27,13 +27,15 @@ import {
     cilChevronLeft,
 } from '@coreui/icons'
 import { ErrorModal, SuccessModal } from '../../../../components/ui'
-import { ENDPOINTS, getAuthHeaders } from '../../../../config/api'
+import { ENDPOINTS, getAuthHeaders, API_BASE_URL } from '../../../../config/api'
+import usePhotoUpload from '../../../../hooks/usePhotoUpload'
 import './Ajout.css'
 
 export default function AjoutUtilisateur() {
     const [step, setStep] = useState(1)
     const [sexes, setSexes] = useState([])
     const [sexesLoading, setSexesLoading] = useState(true)
+    const { uploading, uploadPhoto, getPhotoUrl } = usePhotoUpload()
     const [formData, setFormData] = useState({
         identifiant: '',
         mdp: '',
@@ -44,6 +46,7 @@ export default function AjoutUtilisateur() {
         email: '',
         id_sexe: '',
         photo: null,
+        photoPath: null, // URL de la photo uploadée
     })
     const [photoPreview, setPhotoPreview] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -119,6 +122,29 @@ export default function AjoutUtilisateur() {
         }
     }
 
+    const handlePhotoUpload = async () => {
+        if (!formData.photo) return null
+
+        try {
+            const result = await uploadPhoto(formData.photo)
+            if (result && result.success) {
+                console.log('✅ Photo uploadée avec succès:')
+                console.log('  - result.path:', result.path)
+                console.log('  - result.url:', result.url)
+                console.log('  - result.success:', result.success)
+                
+                // Retourner le path directement, sans utiliser setFormData
+                return result.path
+            } else {
+                setErrorModal({ visible: true, message: 'Erreur lors de l\'upload de la photo' })
+                return null
+            }
+        } catch (error) {
+            setErrorModal({ visible: true, message: error.message })
+            return null
+        }
+    }
+
     const validateStep1 = () => {
         const newErrors = {}
         
@@ -150,7 +176,7 @@ export default function AjoutUtilisateur() {
     }
 
     const handleNextStep = () => {
-        if (validateStep1()) {
+        if (step === 1 && validateStep1()) {
             setStep(2)
         }
     }
@@ -169,11 +195,18 @@ export default function AjoutUtilisateur() {
         setLoading(true)
 
         try {
+            // Uploader la photo si fournie et pas encore uploadée
+            let photoPath = formData.photoPath
+            if (formData.photo && !photoPath) {
+                photoPath = await handlePhotoUpload()
+                if (!photoPath) {
+                    setLoading(false)
+                    return
+                }
+            }
+
             // Récupérer le token du localStorage ou sessionStorage
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-            
-            console.log('Token trouvé:', token ? 'Oui' : 'Non')
-            console.log('Token (premiers 50 chars):', token?.substring(0, 50))
             
             if (!token) {
                 setErrorModal({ 
@@ -184,7 +217,7 @@ export default function AjoutUtilisateur() {
                 return
             }
             
-            // Créer FormData pour l'upload de fichier
+            // Créer FormData pour l'envoi
             const formDataToSend = new FormData()
             formDataToSend.append('identifiant', formData.identifiant)
             formDataToSend.append('mdp', formData.mdp)
@@ -195,15 +228,22 @@ export default function AjoutUtilisateur() {
             formDataToSend.append('email', formData.email)
             formDataToSend.append('id_sexe', parseInt(formData.id_sexe))
             
-            if (formData.photo) {
-                formDataToSend.append('photo', formData.photo)
+            // Si photo uploadée, ajouter le chemin au lieu du fichier
+            if (photoPath) {
+                formDataToSend.append('photo_path', photoPath)
             }
+            
+            // DEBUG: Afficher ce qu'on envoie
+            console.log('📤 ENVOI CREATE USER:')
+            console.log('  - identifiant:', formData.identifiant)
+            console.log('  - email:', formData.email)
+            console.log('  - photoPath:', photoPath)
+            console.log('  - photo_path dans FormData:', formDataToSend.has('photo_path'))
             
             const response = await fetch(ENDPOINTS.REGISTER, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    // Ne pas définir Content-Type, le navigateur le fera automatiquement avec le boundary
                 },
                 body: formDataToSend,
             })
@@ -212,15 +252,14 @@ export default function AjoutUtilisateur() {
 
             if (!response.ok) {
                 const error = new Error(data.message || 'Erreur lors de l\'enregistrement')
-                // Ajouter les erreurs de validation du serveur
                 if (!data.success) {
-                    error.validationErrors = data.data.errors
+                    error.validationErrors = data.data?.errors
                 }
                 throw error
             }
             if (!data.success) {
                 const error = new Error(data.message || 'Erreur lors de l\'enregistrement')
-                error.validationErrors = data.data.errors
+                error.validationErrors = data.data?.errors
                 throw error
             }
 
@@ -240,6 +279,7 @@ export default function AjoutUtilisateur() {
                 email: '',
                 id_sexe: '',
                 photo: null,
+                photoPath: null,
             })
             setPhotoPreview(null)
             setStep(1)

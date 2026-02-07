@@ -39,6 +39,15 @@ Route::prefix('sync')->group(function () {
     // Synchroniser uniquement les histo_statuts depuis Firebase
     Route::post('/histo-statuts/from-firebase', [SyncController::class, 'syncHistoStatutsFromFirebase']);
     
+    // Synchroniser les statuts utilisateurs de Firebase vers PostgreSQL
+    Route::post('/statut-utilisateurs/from-firebase', [SyncController::class, 'syncStatutUtilisateursFromFirebase']);
+
+    // Synchroniser les statuts utilisateurs modifiés de PostgreSQL vers Firebase
+    Route::post('/statut-utilisateurs/to-firebase', [SyncController::class, 'syncStatutUtilisateuresToFirebase']);
+    
+    // Synchroniser les utilisateurs modifiés de PostgreSQL vers Firebase
+    Route::post('/utilisateurs/modified/to-firebase', [SyncController::class, 'syncModifiedUsersToFirebase']);
+    
     // Synchroniser les histo_statuts de PostgreSQL vers Firebase
     Route::post('/histo-statuts/to-firebase', [SyncController::class, 'syncHistoStatutsToFirebase']);
 
@@ -57,6 +66,10 @@ Route::prefix('sync')->group(function () {
     
     // Obtenir le statut de synchronisation Firebase -> PostgreSQL
     Route::get('/firebase-status', [SyncController::class, 'firebaseStatus']);
+    
+    // Obtenir le statut de synchronisation des statuts utilisateurs
+    Route::get('/statut-utilisateurs/status', [SyncController::class, 'statutUtilisateurStatus']);
+    Route::get('/statut-utilisateurs/to-firebase/status', [SyncController::class, 'statutUtilisateurToFirebaseStatus']);
     
     // Vérifier l'état des utilisateurs Firebase
     Route::get('/firebase-users', [SyncController::class, 'checkFirebaseUsers']);

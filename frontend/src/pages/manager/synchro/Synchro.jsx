@@ -19,6 +19,8 @@ export default function Synchro() {
     const [firebaseStatus, setFirebaseStatus] = useState(null)
     const [histoToFirebaseStatus, setHistoToFirebaseStatus] = useState(null)
     const [parametreStatus, setParametreStatus] = useState(null)
+    const [statutUtilisateurStatus, setStatutUtilisateurStatus] = useState(null)
+    const [statutUtilisateurToFirebaseStatus, setStatutUtilisateurToFirebaseStatus] = useState(null)
     const [statusLoading, setStatusLoading] = useState(true)
     const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
     const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
@@ -31,7 +33,14 @@ export default function Synchro() {
     // Récupérer tous les statuts
     const fetchAllStatus = async () => {
         setStatusLoading(true)
-        await Promise.all([fetchSyncStatus(), fetchFirebaseStatus(), fetchHistoToFirebaseStatus(), fetchParametreStatus()])
+        await Promise.all([
+            fetchSyncStatus(),
+            fetchFirebaseStatus(),
+            fetchHistoToFirebaseStatus(),
+            fetchParametreStatus(),
+            fetchStatutUtilisateurStatus(),
+            fetchStatutUtilisateurToFirebaseStatus()
+        ])
         setStatusLoading(false)
     }
 
@@ -93,6 +102,40 @@ export default function Synchro() {
         }
     }
 
+    // Récupérer le statut des statuts utilisateurs Firebase -> PostgreSQL
+    const fetchStatutUtilisateurStatus = async () => {
+        try {
+            const response = await api.get('/sync/statut-utilisateurs/status')
+            if (response.data.success) {
+                setStatutUtilisateurStatus({
+                    total: response.data.data.total || 0,
+                    synced: response.data.data.synchronises || 0,
+                    pending: response.data.data.non_synchronises || 0,
+                    pourcentage: response.data.data.pourcentage_sync || 0
+                })
+            }
+        } catch (err) {
+            console.error('Erreur récupération statut statut_utilisateur:', err)
+        }
+    }
+
+    // Récupérer le statut des statuts utilisateurs PostgreSQL -> Firebase
+    const fetchStatutUtilisateurToFirebaseStatus = async () => {
+        try {
+            const response = await api.get('/sync/statut-utilisateurs/to-firebase/status')
+            if (response.data.success) {
+                setStatutUtilisateurToFirebaseStatus({
+                    total: response.data.data.total || 0,
+                    synced: response.data.data.synchronises || 0,
+                    pending: response.data.data.non_synchronises || 0,
+                    pourcentage: response.data.data.pourcentage_sync || 0
+                })
+            }
+        } catch (err) {
+            console.error('Erreur récupération statut statut_utilisateur to firebase:', err)
+        }
+    }
+
     // Synchronisation complète bidirectionnelle
     const handleFullSync = async () => {
         try {
@@ -139,8 +182,28 @@ export default function Synchro() {
                 results.hasAnyError = true
             }
 
+            // 5. Sync PostgreSQL -> Firebase (statuts utilisateurs)
+            try {
+                const response = await api.post('/sync/statut-utilisateurs/to-firebase')
+                if (response.data.success) {
+                    results.statutUtilisateurToFirebase = response.data.data
+                }
+            } catch (err) {
+                results.hasAnyError = true
+            }
+
+            // 6. Sync Firebase -> PostgreSQL (statuts utilisateurs)
+            try {
+                const response = await api.post('/sync/statut-utilisateurs/from-firebase')
+                if (response.data.success) {
+                    results.statutUtilisateur = response.data.data
+                }
+            } catch (err) {
+                results.hasAnyError = true
+            }
+
             // Si au moins une sync a réussi, c'est un succès
-            const hasAnySuccess = results.toFirebase || results.histoToFirebase || results.parametres || results.fromFirebase
+            const hasAnySuccess = results.toFirebase || results.histoToFirebase || results.parametres || results.fromFirebase || results.statutUtilisateur || results.statutUtilisateurToFirebase
 
             if (hasAnySuccess) {
                 setSuccessModal({
@@ -193,8 +256,18 @@ export default function Synchro() {
         return Math.round((parametreStatus.synced / parametreStatus.total) * 100)
     }
 
+    const getStatutUtilisateurPercent = () => {
+        if (!statutUtilisateurStatus || statutUtilisateurStatus.total === 0) return 100
+        return Math.round((statutUtilisateurStatus.synced / statutUtilisateurStatus.total) * 100)
+    }
+
+    const getStatutUtilisateurToFirebasePercent = () => {
+        if (!statutUtilisateurToFirebaseStatus || statutUtilisateurToFirebaseStatus.total === 0) return 100
+        return Math.round((statutUtilisateurToFirebaseStatus.synced / statutUtilisateurToFirebaseStatus.total) * 100)
+    }
+
     const isAllSynced = () => {
-        return getUserSyncPercent() === 100 && getFirebaseSyncPercent() === 100 && getHistoToFirebasePercent() === 100 && getParametrePercent() === 100
+        return getUserSyncPercent() === 100 && getFirebaseSyncPercent() === 100 && getHistoToFirebasePercent() === 100 && getParametrePercent() === 100 && getStatutUtilisateurPercent() === 100 && getStatutUtilisateurToFirebasePercent() === 100
     }
 
     return (
@@ -291,6 +364,25 @@ export default function Synchro() {
                                 />
                             </div>
 
+                            {/* Progression PostgreSQL -> Firebase (Statuts Utilisateurs) */}
+                            <div className="sync-item mb-4">
+                                <div className="sync-item-header">
+                                    <div className="d-flex align-items-center">
+                                        <CIcon icon={cilCloudUpload} className="me-2 text-info" />
+                                        <span className="fw-semibold">Statuts Utilisateurs</span>
+                                        <span className="text-muted ms-2">PostgreSQL → Firebase</span>
+                                    </div>
+                                    <span className="sync-stats">
+                                        {statutUtilisateurToFirebaseStatus?.synced || 0} / {statutUtilisateurToFirebaseStatus?.total || 0}
+                                    </span>
+                                </div>
+                                <CProgress 
+                                    value={getStatutUtilisateurToFirebasePercent()} 
+                                    color={getStatutUtilisateurToFirebasePercent() === 100 ? 'success' : 'info'}
+                                    className="sync-progress"
+                                />
+                            </div>
+
                             {/* Progression Firebase -> PostgreSQL (Signalements) */}
                             <div className="sync-item mb-4">
                                 <div className="sync-item-header">
@@ -306,6 +398,25 @@ export default function Synchro() {
                                 <CProgress 
                                     value={getFirebaseSyncPercent()} 
                                     color={getFirebaseSyncPercent() === 100 ? 'success' : 'warning'}
+                                    className="sync-progress"
+                                />
+                            </div>
+
+                            {/* Progression Firebase -> PostgreSQL (Statuts Utilisateurs) */}
+                            <div className="sync-item mb-4">
+                                <div className="sync-item-header">
+                                    <div className="d-flex align-items-center">
+                                        <CIcon icon={cilCloudDownload} className="me-2 text-success" />
+                                        <span className="fw-semibold">Statuts Utilisateurs</span>
+                                        <span className="text-muted ms-2">Firebase → PostgreSQL</span>
+                                    </div>
+                                    <span className="sync-stats">
+                                        {statutUtilisateurStatus?.pending || 0} en attente
+                                    </span>
+                                </div>
+                                <CProgress 
+                                    value={getStatutUtilisateurPercent()} 
+                                    color={getStatutUtilisateurPercent() === 100 ? 'success' : 'success'}
                                     className="sync-progress"
                                 />
                             </div>

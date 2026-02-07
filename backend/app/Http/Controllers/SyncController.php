@@ -165,7 +165,6 @@ class SyncController extends Controller
                     'email' => $utilisateur->email,
                     'firebase_uid' => $utilisateur->firebase_uid,
                     'last_sync_at' => $utilisateur->last_sync_at,
-                    'password_used' => $password
                 ]
             ]);
 
@@ -174,6 +173,241 @@ class SyncController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la synchronisation',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser les utilisateurs modifiés (synchronized = false) vers Firestore
+     * Met à jour les données existantes dans Firestore
+     * 
+     * @OA\Post(
+     *     path="/api/sync/utilisateurs/modified/to-firebase",
+     *     summary="Synchroniser les utilisateurs modifiés vers Firestore",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation des modifications réussie"
+     *     )
+     * )
+     */
+    public function syncModifiedUsersToFirebase()
+    {
+        try {
+            // Récupérer les utilisateurs marqués comme non-synchronisés (modifiés)
+            $modifiedUsers = User::where('synchronized', false)
+                ->whereNotNull('firebase_uid')
+                ->where('firebase_uid', 'not like', 'user_%') // Ignorer les locaux non encore créés
+                ->where('firebase_uid', 'not like', 'local_%')
+                ->with(['sexe', 'typeUtilisateur'])
+                ->get();
+
+            if ($modifiedUsers->isEmpty()) {
+                Log::info("✅ Aucun utilisateur modifié à synchroniser");
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun utilisateur modifié',
+                    'data' => [
+                        'total' => 0,
+                        'synced' => 0,
+                        'failed' => 0
+                    ]
+                ]);
+            }
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($modifiedUsers as $utilisateur) {
+                try {
+                    $this->updateUserInFirestore($utilisateur);
+                    $synced++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'id_utilisateur' => $utilisateur->id_utilisateur,
+                        'email' => $utilisateur->email,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("Erreur sync modification utilisateur {$utilisateur->id_utilisateur}: " . $e->getMessage());
+                }
+            }
+
+            Log::info("✅ Sync modifications utilisateurs: {$synced} réussis, {$failed} échoués");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Synchronisation des modifications complétée',
+                'data' => [
+                    'total' => count($modifiedUsers),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur globale sync modifications utilisateurs: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation des modifications',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser les statuts utilisateurs depuis Firebase vers PostgreSQL
+     * 
+     * @OA\Post(
+     *     path="/api/sync/statut-utilisateurs/from-firebase",
+     *     summary="Synchroniser les statuts utilisateurs depuis Firebase vers PostgreSQL",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation réussie"
+     *     )
+     * )
+     */
+    public function syncStatutUtilisateursFromFirebase()
+    {
+        try {
+            // Récupérer les statuts utilisateurs non synchronisés depuis Firestore
+            $allStatuts = $this->firebaseRestService->getCollection('statut_utilisateurs');
+            
+            // Filtrer les non synchronisés
+            $firestoreStatuts = array_filter($allStatuts, function($doc) {
+                return !isset($doc['synchronized']) || $doc['synchronized'] === false;
+            });
+
+            if (empty($firestoreStatuts)) {
+                Log::info("✅ Aucun statut utilisateur à synchroniser depuis Firebase");
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun statut utilisateur à synchroniser',
+                    'data' => [
+                        'total' => 0,
+                        'synced' => 0,
+                        'failed' => 0
+                    ]
+                ]);
+            }
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($firestoreStatuts as $firebaseDocId => $statutData) {
+                try {
+                    $this->syncSingleStatutUtilisateurFromFirebase($firebaseDocId, $statutData);
+                    $synced++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'firebase_doc_id' => $firebaseDocId,
+                        'id_utilisateur' => $statutData['id_utilisateur'] ?? null,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("❌ Erreur sync statut utilisateur {$firebaseDocId}: " . $e->getMessage());
+                }
+            }
+
+            Log::info("✅ Sync statuts utilisateurs: {$synced} réussis, {$failed} échoués");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Synchronisation des statuts utilisateurs complétée',
+                'data' => [
+                    'total' => count($firestoreStatuts),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur globale sync statuts utilisateurs depuis Firebase: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation des statuts utilisateurs',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser les statuts utilisateurs modifiés de PostgreSQL vers Firebase
+     * 
+     * @OA\Post(
+     *     path="/api/sync/statut-utilisateurs/to-firebase",
+     *     summary="Synchroniser les statuts utilisateurs modifiés vers Firebase",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Statuts utilisateurs synchronisés vers Firebase"
+     *     )
+     * )
+     */
+    public function syncStatutUtilisateuresToFirebase()
+    {
+        try {
+            // Récupérer tous les statuts utilisateurs non synchronisés de PostgreSQL
+            $unsyncedStatuts = \App\Models\StatutUtilisateur::where('synchronized', false)
+                ->with('user')
+                ->get();
+
+            if ($unsyncedStatuts->isEmpty()) {
+                Log::info("✅ Aucun statut utilisateur à synchroniser vers Firebase");
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun statut utilisateur à synchroniser',
+                    'data' => [
+                        'total' => 0,
+                        'synced' => 0,
+                        'failed' => 0
+                    ]
+                ]);
+            }
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($unsyncedStatuts as $statutUtilisateur) {
+                try {
+                    $this->syncSingleStatutUtilisateurToFirebase($statutUtilisateur);
+                    $synced++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'id_statut_utilisateur' => $statutUtilisateur->id_statut_utilisateur,
+                        'id_utilisateur' => $statutUtilisateur->id_utilisateur,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("❌ Erreur sync statut utilisateur {$statutUtilisateur->id_statut_utilisateur}: " . $e->getMessage());
+                }
+            }
+
+            Log::info("✅ Sync statuts utilisateurs vers Firebase: {$synced} réussis, {$failed} échoués");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Synchronisation des statuts utilisateurs complétée',
+                'data' => [
+                    'total' => $unsyncedStatuts->count(),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur globale sync statuts utilisateurs vers Firebase: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation des statuts utilisateurs',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -257,6 +491,131 @@ class SyncController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération du statut des paramètres',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtenir le statut de synchronisation des statuts_utilisateurs Firebase -> PostgreSQL
+     * 
+     * @OA\Get(
+     *     path="/api/sync/statut-utilisateurs/status",
+     *     summary="Obtenir le statut de synchronisation des statuts utilisateurs",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Statut de synchronisation des statuts utilisateurs"
+     *     )
+     * )
+     */
+    public function statutUtilisateurStatus()
+    {
+        try {
+            // Récupérer TOUS les statuts utilisateurs depuis Firestore
+            $allStatuts = $this->firebaseRestService->getCollection('statut_utilisateurs');
+            
+            if (empty($allStatuts)) {
+                Log::info("✅ Aucun statut utilisateur dans Firestore");
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'total' => 0,
+                        'synchronises' => 0,
+                        'non_synchronises' => 0,
+                        'pourcentage_sync' => 0
+                    ]
+                ]);
+            }
+
+            // Compter les totaux
+            $total = count($allStatuts);
+            $nonSynced = 0;
+
+            foreach ($allStatuts as $doc) {
+                if (!isset($doc['synchronized']) || $doc['synchronized'] === false) {
+                    $nonSynced++;
+                }
+            }
+
+            $synced = $total - $nonSynced;
+
+            Log::info("📊 Statuts utilisateurs Firebase: Total={$total}, Synced={$synced}, NonSynced={$nonSynced}");
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total' => $total,
+                    'synchronises' => $synced,
+                    'non_synchronises' => $nonSynced,
+                    'pourcentage_sync' => $total > 0 ? round(($synced / $total) * 100, 2) : 0
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur récupération statut statuts_utilisateurs: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération du statut des statuts utilisateurs',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtenir le statut de synchronisation des statuts_utilisateurs PostgreSQL -> Firebase
+     * 
+     * @OA\Get(
+     *     path="/api/sync/statut-utilisateurs/to-firebase/status",
+     *     summary="Obtenir le statut de synchronisation PostgreSQL -> Firebase des statuts utilisateurs",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Statut de synchronisation des statuts utilisateurs"
+     *     )
+     * )
+     */
+    public function statutUtilisateurToFirebaseStatus()
+    {
+        try {
+            // Récupérer tous les statuts utilisateurs depuis PostgreSQL
+            $allStatuts = \App\Models\StatutUtilisateur::all();
+            
+            if ($allStatuts->isEmpty()) {
+                Log::info("✅ Aucun statut utilisateur dans PostgreSQL");
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'total' => 0,
+                        'synchronises' => 0,
+                        'non_synchronises' => 0,
+                        'pourcentage_sync' => 0
+                    ]
+                ]);
+            }
+
+            // Compter les totaux
+            $total = $allStatuts->count();
+            $nonSynced = $allStatuts->where('synchronized', false)->count();
+            $synced = $total - $nonSynced;
+
+            Log::info("📊 Statuts utilisateurs PostgreSQL: Total={$total}, Synced={$synced}, NonSynced={$nonSynced}");
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total' => $total,
+                    'synchronises' => $synced,
+                    'non_synchronises' => $nonSynced,
+                    'pourcentage_sync' => $total > 0 ? round(($synced / $total) * 100, 2) : 0
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur récupération statut statuts_utilisateurs PostgreSQL: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération du statut des statuts utilisateurs',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -437,11 +796,33 @@ class SyncController extends Controller
                     'uid' => $firebaseUid,
                     'email' => $utilisateur->email,
                     'etat' => 1,
-                    'synchronized' => false,
-                    'date' => now()->toIso8601String(),
+                    'synchronized' => true,
+                    'date_' => now()->toIso8601String(),
                     'updatedAt' => now()->toIso8601String()
                 ]
             );
+
+            // Créer/mettre à jour le statut utilisateur dans PostgreSQL
+            $statutExistant = \App\Models\StatutUtilisateur::where('id_utilisateur', $utilisateur->id_utilisateur)
+                ->orderBy('date_', 'desc')
+                ->first();
+
+            if ($statutExistant) {
+                $statutExistant->update([
+                    'etat' => 1,
+                    'date_' => now(),
+                    'synchronized' => true,
+                    'last_sync_at' => now()
+                ]);
+            } else {
+                \App\Models\StatutUtilisateur::create([
+                    'id_utilisateur' => $utilisateur->id_utilisateur,
+                    'etat' => 1,
+                    'date_' => now(),
+                    'synchronized' => true,
+                    'last_sync_at' => now()
+                ]);
+            }
 
             // Mettre à jour le statut de synchronisation
             $utilisateur->synchronized = true;
@@ -541,6 +922,245 @@ class SyncController extends Controller
             'last_sync_at' => now()->toIso8601String(),
             'updatedAt' => now()->toIso8601String()
         ];
+    }
+
+    /**
+     * Mettre à jour un utilisateur existant dans Firestore
+     * (sans créer un nouveau compte Firebase Auth)
+     */
+    private function updateUserInFirestore(User $utilisateur)
+    {
+        DB::beginTransaction();
+
+        try {
+            if (!$utilisateur->firebase_uid) {
+                throw new \Exception("L'utilisateur n'a pas de firebase_uid - ne peut pas être mis à jour");
+            }
+
+            Log::info("🔄 Mise à jour Firestore pour utilisateur: {$utilisateur->email}");
+
+            // Préparer les données à mettre à jour
+            $photoUrl = null;
+            if ($utilisateur->photo_url) {
+                try {
+                    $photoPath = $utilisateur->photo_url;
+                    
+                    // Si c'est une URL locale, charger et uploader vers ImgBB
+                    if (str_contains($photoPath, '/api/storage/utilisateur/')) {
+                        $filename = basename($photoPath);
+                        $diskPath = 'utilisateur/' . $filename;
+                        
+                        if (Storage::disk('public')->exists($diskPath)) {
+                            $fileContent = Storage::disk('public')->get($diskPath);
+                            $base64Data = base64_encode($fileContent);
+                            
+                            $uploadResult = $this->storageService->uploadBase64(
+                                $base64Data,
+                                'utilisateurs',
+                                "user_{$utilisateur->id_utilisateur}_" . basename($filename)
+                            );
+                            
+                            $photoUrl = $uploadResult['success'] ? $uploadResult['url'] : $utilisateur->photo_url;
+                        } else {
+                            $photoUrl = $utilisateur->photo_url;
+                        }
+                    } else {
+                        $photoUrl = $photoPath;
+                    }
+                } catch (\Exception $e) {
+                    Log::error("❌ Erreur traitement photo update: " . $e->getMessage());
+                    $photoUrl = $utilisateur->photo_url;
+                }
+            }
+
+            // Préparer les données de mise à jour
+            $updateData = [
+                'prenom' => $utilisateur->prenom,
+                'nom' => $utilisateur->nom,
+                'email' => $utilisateur->email,
+                'dtn' => $utilisateur->dtn,
+                'numero_telephone' => $utilisateur->numero_telephone,
+                'sexe' => $utilisateur->sexe ? [
+                    'id_sexe' => $utilisateur->sexe->id_sexe,
+                    'libelle' => $utilisateur->sexe->libelle
+                ] : null,
+                'type_utilisateur' => $utilisateur->typeUtilisateur ? [
+                    'id_type_utilisateur' => $utilisateur->typeUtilisateur->id_type_utilisateur,
+                    'libelle' => $utilisateur->typeUtilisateur->libelle
+                ] : null,
+                'adresse' => $utilisateur->adresse,
+                'photoUrl' => $photoUrl,
+                'updatedAt' => now()->toIso8601String()
+            ];
+
+            // Mettre à jour le document dans Firestore
+            $this->firebaseRestService->saveDocument(
+                'utilisateurs',
+                $utilisateur->firebase_uid,
+                $updateData
+            );
+
+            // Marquer comme synchronisé dans PostgreSQL
+            $utilisateur->synchronized = true;
+            $utilisateur->last_sync_at = now();
+            $utilisateur->save();
+
+            DB::commit();
+
+            Log::info("✅ Utilisateur {$utilisateur->id_utilisateur} mis à jour dans Firestore");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("❌ Erreur mise à jour Firestore utilisateur {$utilisateur->id_utilisateur}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Synchroniser un statut utilisateur unique depuis Firebase vers PostgreSQL
+     */
+    private function syncSingleStatutUtilisateurFromFirebase(string $firebaseDocId, array $statutData)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Récupérer l'ID utilisateur
+            $idUtilisateur = $statutData['id_utilisateur'] ?? null;
+            
+            // Si pas d'ID utilisateur, chercher par email
+            if (!$idUtilisateur && isset($statutData['email'])) {
+                $user = User::where('email', $statutData['email'])->first();
+                if ($user) {
+                    $idUtilisateur = $user->id_utilisateur;
+                    Log::info("🔍 Utilisateur trouvé par email: {$statutData['email']} -> ID: {$idUtilisateur}");
+                } else {
+                    Log::warning("⚠️ Utilisateur non trouvé pour email: {$statutData['email']}");
+                    throw new \Exception("Utilisateur avec email {$statutData['email']} non trouvé dans PostgreSQL");
+                }
+            }
+            
+            if (!$idUtilisateur) {
+                throw new \Exception("ID utilisateur ou email non trouvé dans les données du statut");
+            }
+
+            // Vérifier que l'utilisateur existe dans PostgreSQL
+            $user = User::find($idUtilisateur);
+            if (!$user) {
+                throw new \Exception("Utilisateur {$idUtilisateur} non trouvé dans PostgreSQL");
+            }
+
+            Log::info("🔄 Synchronisation statut utilisateur pour: {$user->email}");
+
+            // Préparer les données du statut
+            $etat = $statutData['etat'] ?? 1;
+            $date = isset($statutData['date_']) ? \Carbon\Carbon::parse($statutData['date_']) : (isset($statutData['date']) ? \Carbon\Carbon::parse($statutData['date']) : now());
+
+            // Chercher le statut le plus récent pour cet utilisateur
+            $existingStatut = \App\Models\StatutUtilisateur::where('id_utilisateur', $idUtilisateur)
+                ->orderBy('date_', 'desc')
+                ->first();
+
+            if ($existingStatut) {
+                // Mettre à jour le statut existant
+                $existingStatut->update([
+                    'etat' => $etat,
+                    'date_' => $date,
+                    'synchronized' => true,
+                    'last_sync_at' => now()
+                ]);
+                $statutUtilisateur = $existingStatut;
+                Log::info("🔄 Statut utilisateur mis à jour: ID={$statutUtilisateur->id_statut_utilisateur}");
+            } else {
+                // Créer un nouveau statut
+                $statutUtilisateur = \App\Models\StatutUtilisateur::create([
+                    'id_utilisateur' => $idUtilisateur,
+                    'etat' => $etat,
+                    'date_' => $date,
+                    'synchronized' => true,
+                    'last_sync_at' => now()
+                ]);
+                Log::info("✨ Nouveau statut utilisateur créé: ID={$statutUtilisateur->id_statut_utilisateur}");
+            }
+
+            // Marquer comme synchronisé dans Firestore
+            $this->firebaseRestService->saveDocument(
+                'statut_utilisateurs',
+                $firebaseDocId,
+                array_merge($statutData, [
+                    'synchronized' => true,
+                    'id_statut_utilisateur_postgres' => $statutUtilisateur->id_statut_utilisateur,
+                    'last_sync_at' => now()->toIso8601String()
+                ])
+            );
+
+            DB::commit();
+
+            Log::info("✅ Statut utilisateur {$idUtilisateur} synchronisé -> PostgreSQL ID: {$statutUtilisateur->id_statut_utilisateur}");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("❌ Erreur sync statut utilisateur {$firebaseDocId}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Synchroniser un statut utilisateur de PostgreSQL vers Firebase
+     * 
+     * @param \App\Models\StatutUtilisateur $statutUtilisateur
+     * @throws \Exception
+     */
+    private function syncSingleStatutUtilisateurToFirebase(\App\Models\StatutUtilisateur $statutUtilisateur)
+    {
+        DB::beginTransaction();
+
+        try {
+            $user = $statutUtilisateur->user;
+            
+            if (!$user) {
+                throw new \Exception("Utilisateur {$statutUtilisateur->id_utilisateur} non trouvé");
+            }
+
+            Log::info("🔄 Synchronisation statut utilisateur {$statutUtilisateur->id_statut_utilisateur} vers Firebase pour: {$user->email}");
+
+            // Préparer les données pour Firestore
+            // Générer une nouvelle clé pour Firestore (pas l'ID PostgreSQL)
+            $firestoreDocId = 'statut_' . $statutUtilisateur->id_statut_utilisateur . '_' . \Illuminate\Support\Str::random(8);
+            
+            $firestoreData = [
+                'date_' => $statutUtilisateur->date_->toIso8601String(),
+                'etat' => $statutUtilisateur->etat,
+                'id_utilisateur' => $statutUtilisateur->id_utilisateur,
+                'email' => $user->email,
+                'synchronized' => true,
+                'id_statut_utilisateur_postgres' => $statutUtilisateur->id_statut_utilisateur,
+                'last_sync_at' => now()->toIso8601String()
+            ];
+
+            // Ajouter comme NOUVEAU document dans Firestore (pas update)
+            $this->firebaseRestService->saveDocument(
+                'statut_utilisateurs',
+                $firestoreDocId,
+                $firestoreData
+            );
+
+            Log::info("📝 Nouveau statut utilisateur créé dans Firestore: {$firestoreDocId}");
+
+            // Marquer comme synchronisé dans PostgreSQL
+            $statutUtilisateur->update([
+                'synchronized' => true,
+                'last_sync_at' => now()
+            ]);
+
+            DB::commit();
+
+            Log::info("✅ Statut utilisateur {$statutUtilisateur->id_statut_utilisateur} synchronisé -> Firebase (nouvel ID: {$firestoreDocId})");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("❌ Erreur sync statut utilisateur {$statutUtilisateur->id_statut_utilisateur}: " . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**

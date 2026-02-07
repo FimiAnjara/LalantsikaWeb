@@ -7,26 +7,13 @@ use Illuminate\Console\Command;
 
 class SyncParametresToFirebase extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'sync:parametres';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
     protected $description = 'Synchroniser les paramètres non synchronisés vers Firebase';
 
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
         $controller = new SyncController(app('App\Services\Firebase\FirebaseRestService'));
+        
         $response = $controller->syncParametresToFirebase();
         
         $data = json_decode($response->getContent(), true);

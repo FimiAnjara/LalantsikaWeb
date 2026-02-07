@@ -41,13 +41,19 @@ Route::prefix('sync')->group(function () {
     
     // Synchroniser les histo_statuts de PostgreSQL vers Firebase
     Route::post('/histo-statuts/to-firebase', [SyncController::class, 'syncHistoStatutsToFirebase']);
-    
+
+    // Synchroniser les paramètres de PostgreSQL vers Firebase
+    Route::post('/parametres/to-firebase', [SyncController::class, 'syncParametresToFirebase']);
+
     // =============================================
     // Statuts de synchronisation
     // =============================================
     
     // Obtenir le statut de synchronisation PostgreSQL -> Firebase
     Route::get('/status', [SyncController::class, 'status']);
+
+    // Obtenir le statut de synchronisation des paramètres
+    Route::get('/parametres/status', [SyncController::class, 'parametreStatus']);
     
     // Obtenir le statut de synchronisation Firebase -> PostgreSQL
     Route::get('/firebase-status', [SyncController::class, 'firebaseStatus']);

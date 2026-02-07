@@ -18,6 +18,7 @@ export default function Synchro() {
     const [syncStatus, setSyncStatus] = useState(null)
     const [firebaseStatus, setFirebaseStatus] = useState(null)
     const [histoToFirebaseStatus, setHistoToFirebaseStatus] = useState(null)
+    const [parametreStatus, setParametreStatus] = useState(null)
     const [statusLoading, setStatusLoading] = useState(true)
     const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
     const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
@@ -30,7 +31,7 @@ export default function Synchro() {
     // Récupérer tous les statuts
     const fetchAllStatus = async () => {
         setStatusLoading(true)
-        await Promise.all([fetchSyncStatus(), fetchFirebaseStatus(), fetchHistoToFirebaseStatus()])
+        await Promise.all([fetchSyncStatus(), fetchFirebaseStatus(), fetchHistoToFirebaseStatus(), fetchParametreStatus()])
         setStatusLoading(false)
     }
 
@@ -76,11 +77,27 @@ export default function Synchro() {
         }
     }
 
+    // Récupérer le statut des paramètres PostgreSQL -> Firebase
+    const fetchParametreStatus = async () => {
+        try {
+            const response = await api.get('/sync/parametres/status')
+            if (response.data.success) {
+                setParametreStatus({
+                    total: response.data.data.total || 0,
+                    synced: response.data.data.synchronises || 0,
+                    pending: response.data.data.non_synchronises || 0
+                })
+            }
+        } catch (err) {
+            console.error('Erreur récupération statut paramètres:', err)
+        }
+    }
+
     // Synchronisation complète bidirectionnelle
     const handleFullSync = async () => {
         try {
             setSyncing(true)
-            let results = { toFirebase: null, fromFirebase: null, histoToFirebase: null, errors: [] }
+            let results = { toFirebase: null, fromFirebase: null, histoToFirebase: null, parametres: null, errors: [] }
 
             // 1. Sync PostgreSQL -> Firebase (utilisateurs)
             try {
@@ -112,11 +129,21 @@ export default function Synchro() {
                 results.errors.push('Histo statuts: ' + (err.response?.data?.message || err.message))
             }
 
+            // 4. Sync PostgreSQL -> Firebase (paramètres)
+            try {
+                const response = await api.post('/sync/parametres/to-firebase')
+                if (response.data.success) {
+                    results.parametres = response.data.data
+                }
+            } catch (err) {
+                results.errors.push('Paramètres: ' + (err.response?.data?.message || err.message))
+            }
+
             // Construire le message simplifié
             let message = ''
             let hasErrors = results.errors.length > 0
 
-            if (results.toFirebase || results.histoToFirebase) {
+            if (results.toFirebase || results.histoToFirebase || results.parametres) {
                 message += '⬆️ Envoyé vers Firebase:\n'
                 if (results.toFirebase) {
                     message += `   • ${results.toFirebase.synced} utilisateur(s)\n`
@@ -128,6 +155,10 @@ export default function Synchro() {
                         message += `   • ${results.histoToFirebase.signalements_updated} signalement(s) mis à jour\n`
                     }
                     if (results.histoToFirebase.failed > 0) hasErrors = true
+                }
+                if (results.parametres) {
+                    message += `   • ${results.parametres.synced} paramètre(s)\n`
+                    if (results.parametres.failed > 0) hasErrors = true
                 }
             }
 
@@ -188,8 +219,13 @@ export default function Synchro() {
         return Math.round((histoToFirebaseStatus.synced / histoToFirebaseStatus.total) * 100)
     }
 
+    const getParametrePercent = () => {
+        if (!parametreStatus || parametreStatus.total === 0) return 100
+        return Math.round((parametreStatus.synced / parametreStatus.total) * 100)
+    }
+
     const isAllSynced = () => {
-        return getUserSyncPercent() === 100 && getFirebaseSyncPercent() === 100 && getHistoToFirebasePercent() === 100
+        return getUserSyncPercent() === 100 && getFirebaseSyncPercent() === 100 && getHistoToFirebasePercent() === 100 && getParametrePercent() === 100
     }
 
     return (
@@ -263,6 +299,25 @@ export default function Synchro() {
                                 <CProgress 
                                     value={getHistoToFirebasePercent()} 
                                     color={getHistoToFirebasePercent() === 100 ? 'success' : 'info'}
+                                    className="sync-progress"
+                                />
+                            </div>
+
+                            {/* Progression PostgreSQL -> Firebase (Paramètres) */}
+                            <div className="sync-item mb-4">
+                                <div className="sync-item-header">
+                                    <div className="d-flex align-items-center">
+                                        <CIcon icon={cilCloudUpload} className="me-2 text-secondary" />
+                                        <span className="fw-semibold">Paramètres</span>
+                                        <span className="text-muted ms-2">PostgreSQL → Firebase</span>
+                                    </div>
+                                    <span className="sync-stats">
+                                        {parametreStatus?.synced || 0} / {parametreStatus?.total || 0}
+                                    </span>
+                                </div>
+                                <CProgress 
+                                    value={getParametrePercent()} 
+                                    color={getParametrePercent() === 100 ? 'success' : 'secondary'}
                                     className="sync-progress"
                                 />
                             </div>

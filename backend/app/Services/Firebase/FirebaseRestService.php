@@ -70,6 +70,13 @@ class FirebaseRestService
         $response = @file_get_contents($url, false, $context);
         $statusCode = $this->getHttpStatusCode($http_response_header ?? []);
         
+        // Debug: log la requête et la réponse
+        if ($statusCode === 0) {
+            \Log::warning("⚠️ Firestore GET request failed: status=0 (network error or SSL issue)");
+            \Log::warning("   URL: " . $url);
+            \Log::warning("   Headers: " . json_encode($http_response_header ?? []));
+        }
+        
         return [
             'status' => $statusCode,
             'body' => $response,
@@ -294,7 +301,16 @@ class FirebaseRestService
     public function getCollection(string $collection): array
     {
         try {
+            // Vérifier les credentials
+            if (empty($this->apiKey)) {
+                Log::error("❌ Firebase API key not configured - cannot fetch collection {$collection}");
+                throw new \Exception("Firebase API key not configured");
+            }
+
             $response = $this->firestoreGet($collection);
+
+            // Debug: afficher la réponse
+            Log::info("Firestore getCollection({$collection}) response: status={$response['status']}, has_json=" . (isset($response['json']) ? 'yes' : 'no'));
 
             if ($response['status'] === 200 && $response['json']) {
                 $documents = [];
@@ -306,19 +322,23 @@ class FirebaseRestService
                     $documents[$docId] = $this->documentToArray($doc);
                 }
                 
+                Log::info("✅ Collection {$collection} retrieved: " . count($documents) . " documents");
                 return $documents;
             }
 
             // Collection vide
             if ($response['status'] === 404) {
+                Log::info("ℹ️ Collection {$collection} not found or empty (404)");
                 return [];
             }
 
-            Log::error("Firestore get collection error: " . $response['status'] . " - " . $response['body']);
-            throw new \Exception("Failed to get collection");
+            // Erreur avec détails
+            $body = substr($response['body'] ?? 'no body', 0, 500);
+            Log::error("❌ Firestore get collection error for {$collection}: status=" . $response['status'] . ", body=" . $body);
+            throw new \Exception("Failed to get collection {$collection}: " . $body);
 
         } catch (\Exception $e) {
-            Log::error("Firestore REST error: " . $e->getMessage());
+            Log::error("❌ Firestore REST error in getCollection({$collection}): " . $e->getMessage());
             throw $e;
         }
     }

@@ -10,6 +10,7 @@ use App\Models\HistoStatut;
 use App\Models\Statut;
 use App\Models\Entreprise;
 use App\Models\Parametre;
+use App\Models\ImageSignalement;
 use App\Services\Firebase\FirebaseRestService;
 use App\Services\Firebase\StorageService;
 use App\Services\Notification\FcmService;
@@ -536,8 +537,7 @@ class SyncController extends Controller
                 'libelle' => $utilisateur->typeUtilisateur->libelle
             ] : null,
             'adresse' => $utilisateur->adresse,
-            'photo_profil' => $photoUrl,
-            'photo_url' => $photoUrl,
+            'photoUrl' => $photoUrl,
             'last_sync_at' => now()->toIso8601String(),
             'updatedAt' => now()->toIso8601String()
         ];
@@ -895,6 +895,7 @@ class SyncController extends Controller
 
     /**
      * Synchroniser un histo_statut unique depuis Firebase vers PostgreSQL
+     * Télécharge les images depuis Firebase et les enregistre localement
      */
     private function syncSingleHistoStatutFromFirebase(string $firebaseDocId, array $histoData)
     {
@@ -972,6 +973,21 @@ class SyncController extends Controller
 
             Log::info("📝 HistoStatut créé/mis à jour: ID={$histoStatut->id_histo_statut}");
 
+            // Télécharger et enregistrer les images depuis Firebase
+            if (isset($histoData['images']) && is_array($histoData['images']) && !empty($histoData['images'])) {
+                $imagesCount = 0;
+                foreach ($histoData['images'] as $imageUrl) {
+                    try {
+                        $this->downloadAndSaveHistoStatutImage($imageUrl, $histoStatut->id_histo_statut);
+                        $imagesCount++;
+                    } catch (\Exception $e) {
+                        Log::error("⚠️ Erreur téléchargement image pour histo_statut {$histoStatut->id_histo_statut}: " . $e->getMessage());
+                        // Continuer avec les autres images
+                    }
+                }
+                Log::info("📷 {$imagesCount} image(s) téléchargée(s) pour histo_statut {$histoStatut->id_histo_statut}");
+            }
+
             // Note: Le statut est géré via histo_statut, pas dans la table signalement
             // (la colonne id_statut n'existe pas dans signalement)
 
@@ -994,6 +1010,45 @@ class SyncController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("❌ Erreur sync histo_statut {$firebaseDocId}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Télécharger une image depuis une URL et l'enregistrer localement
+     * Crée un enregistrement dans image_signalement
+     */
+    private function downloadAndSaveHistoStatutImage(string $imageUrl, int $idHistoStatut)
+    {
+        try {
+            // Télécharger l'image depuis l'URL
+            $imageContent = file_get_contents($imageUrl);
+            if ($imageContent === false) {
+                throw new \Exception("Impossible de télécharger l'image depuis {$imageUrl}");
+            }
+
+            // Générer un nom de fichier unique
+            $filename = 'histo-statut-' . $idHistoStatut . '-' . time() . '-' . uniqid() . '.jpg';
+            
+            // Sauvegarder dans storage/app/public/histo-statut/
+            $path = 'histo-statut/' . $filename;
+            Storage::disk('public')->put($path, $imageContent);
+
+            Log::info("💾 Image sauvegardée: storage/app/public/{$path}");
+
+            // Créer l'enregistrement dans image_signalement
+            $imageSignalement = new ImageSignalement([
+                'image' => $path,
+                'id_histo_statut' => $idHistoStatut,
+                'synchronized' => true,
+                'last_sync_at' => now()
+            ]);
+            $imageSignalement->save();
+
+            Log::info("📸 Image_signalement créée: ID={$imageSignalement->id_image_signalement}, path={$path}");
+
+        } catch (\Exception $e) {
+            Log::error("❌ Erreur lors du téléchargement/sauvegarde de l'image {$imageUrl}: " . $e->getMessage());
             throw $e;
         }
     }

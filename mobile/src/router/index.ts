@@ -103,6 +103,15 @@ router.beforeEach(async (to, from, next) => {
   const routeName = to.name as string;
   const requiresAuth = to.meta.requiresAuth === true;
 
+  // Vérifier si c'est la première ouverture de l'app
+  // Si oui, rediriger vers Welcome (sauf si on vient de Splash ou qu'on est déjà sur Welcome)
+  const isFirstLaunch = await sessionService.isFirstLaunch();
+  
+  if (isFirstLaunch && routeName !== 'Welcome' && routeName !== 'SplashPage') {
+    console.log('👋 Première ouverture, redirection vers Welcome');
+    return next({ name: 'Welcome' });
+  }
+
   // Routes publiques - pas de vérification
   if (!requiresAuth || publicRoutes.includes(routeName)) {
     return next();

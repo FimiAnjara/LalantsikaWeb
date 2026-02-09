@@ -14,7 +14,7 @@ import { Network } from '@capacitor/network';
 class AuthService {
   // Compteur de tentatives en mémoire (par session)
   private loginAttempts: Map<string, number> = new Map();
-  private maxTentatives: number = 3; // Valeur par défaut, sera chargée depuis Firestore
+  private readonly DEFAULT_MAX_TENTATIVES: number = 3; // Valeur par défaut si erreur réseau
 
   /**
    * Vérifie si l'appareil a une connexion internet
@@ -30,23 +30,28 @@ class AuthService {
       return true;
     }
   }
-  
-  // Initialise le service (charge les paramètres)
-  async init(): Promise<void> {
+
+  /**
+   * Récupère la valeur maximale de tentatives depuis Firestore
+   * (toujours à jour, pas de cache)
+   */
+  private async getMaxTentatives(): Promise<number> {
     try {
-      this.maxTentatives = await parametreService.getMaxTentatives();
-      console.log('🔧 Max tentatives:', this.maxTentatives);
+      const maxTentatives = await parametreService.getMaxTentatives();
+      console.log('🔧 Max tentatives (Firestore):', maxTentatives);
+      return maxTentatives;
     } catch (error) {
-      console.error('Erreur init authService:', error);
+      console.warn('⚠️ Impossible de récupérer maxTentatives depuis Firestore, utilisation valeur par défaut:', this.DEFAULT_MAX_TENTATIVES);
+      return this.DEFAULT_MAX_TENTATIVES;
     }
   }
 
   // Incrémente le compteur de tentatives
-  private incrementAttempts(email: string): number {
+  private incrementAttempts(email: string, maxTentatives: number): number {
     const current = this.loginAttempts.get(email) || 0;
     const newCount = current + 1;
     this.loginAttempts.set(email, newCount);
-    console.log(`⚠️ Tentative ${newCount}/${this.maxTentatives} pour ${email}`);
+    console.log(`⚠️ Tentative ${newCount}/${maxTentatives} pour ${email}`);
     return newCount;
   }
 
@@ -55,19 +60,20 @@ class AuthService {
     this.loginAttempts.delete(email);
   }
 
-  // Retourne le nombre de tentatives restantes
+  // Retourne le nombre de tentatives restantes (utilise la valeur par défaut)
   getRemainingAttempts(email: string): number {
     const current = this.loginAttempts.get(email) || 0;
-    return this.maxTentatives - current;
+    return this.DEFAULT_MAX_TENTATIVES - current;
   }
 
   // Connexion utilisateur
   // Étapes:
   // 1. Vérifier la connexion internet
-  // 2. Authentification Firebase (login + mot de passe)
-  // 3. Vérifier si l'utilisateur existe dans Firestore
-  // 4. Vérifier si le compte est bloqué
-  // 5. Vérifier si c'est un Utilisateur (pas Manager)
+  // 2. Récupérer le nombre max de tentatives depuis Firestore (toujours à jour)
+  // 3. Authentification Firebase (login + mot de passe)
+  // 4. Vérifier si l'utilisateur existe dans Firestore
+  // 5. Vérifier si le compte est bloqué
+  // 6. Vérifier si c'est un Utilisateur (pas Manager)
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
       const isConnected = await this.checkNetworkConnection();
@@ -75,13 +81,16 @@ class AuthService {
         throw new Error('NETWORK_ERROR');
       }
 
+      // Récupérer la valeur actuelle depuis Firestore (pas de cache)
+      const maxTentatives = await this.getMaxTentatives();
+
       let userCredential;
       try {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       } catch (authError: any) {
         if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
-          const attempts = this.incrementAttempts(email);
-          if (attempts >= this.maxTentatives) {
+          const attempts = this.incrementAttempts(email, maxTentatives);
+          if (attempts >= maxTentatives) {
             try {
               await statutUtilisateurService.blockUser(email, attempts);
             } catch (blockError) {
@@ -90,7 +99,7 @@ class AuthService {
             throw new Error('MAX_TENTATIVES');
           }
         
-          const remaining = this.maxTentatives - attempts;
+          const remaining = maxTentatives - attempts;
           throw new Error(`TENTATIVE_ECHOUEE:${remaining}`);
         }
         throw authError;
@@ -110,7 +119,7 @@ class AuthService {
       }
 
       const currentAttempts = this.loginAttempts.get(email) || 0;
-      if (currentAttempts >= this.maxTentatives) {
+      if (currentAttempts >= maxTentatives) {
         await this.logout();
         throw new Error('COMPTE_BLOQUE');
       }

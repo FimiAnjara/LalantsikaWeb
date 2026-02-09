@@ -26,6 +26,8 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonPage, IonContent } from '@ionic/vue'
 import { useBackgroundAnimation } from '../composables/useBackgroundAnimation'
+import { sessionService } from '@/services/auth'
+import { auth } from '@/services/firebase/config'
 
 const router = useRouter()
 const step = ref(0)
@@ -47,20 +49,41 @@ onMounted(() => {
   }, 1200)
 })
 
-const nextStep = () => {
+const nextStep = async () => {
   if (step.value > 0) return
   step.value = 1
   
   // Show title very quickly
-  setTimeout(() => {
+  setTimeout(async () => {
     step.value = 2
     
     // Quick look at the welcome message then go
-    setTimeout(() => {
+    setTimeout(async () => {
       // Accelerate background for transition
       setSpeed(4)
       
-      router.replace('/welcome')
+      // Déterminer la destination selon la situation
+      const isFirstLaunch = await sessionService.isFirstLaunch()
+      
+      if (isFirstLaunch) {
+        // Première ouverture → Welcome
+        console.log('👋 Première ouverture, redirection vers Welcome')
+        router.replace('/welcome')
+      } else {
+        // Pas la première fois, vérifier la session
+        const isSessionValid = await sessionService.isSessionValid()
+        const firebaseUser = auth.currentUser
+        
+        if (firebaseUser && isSessionValid) {
+          // Session valide → Map
+          console.log('✅ Session valide, redirection vers Map')
+          router.replace('/map')
+        } else {
+          // Pas de session → Login
+          console.log('🔒 Pas de session, redirection vers Login')
+          router.replace('/login')
+        }
+      }
     }, 1200)
   }, 200)
 }

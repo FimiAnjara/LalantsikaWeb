@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { CSpinner, CAlert } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { 
-    cilLocationPin, 
-    cilResizeBoth, 
-    cilMoney, 
+import {
+    cilLocationPin,
+    cilResizeBoth,
+    cilMoney,
     cilChartPie,
     cilCheckCircle,
     cilReload,
@@ -98,8 +98,8 @@ export default function Recap() {
     const totalPoints = signalements.length;
     const totalSurface = signalements.reduce((acc, s) => acc + s.surface, 0);
     const totalBudget = signalements.reduce((acc, s) => acc + s.budget, 0);
-    const averageProgress = totalPoints > 0 
-        ? Math.round(signalements.reduce((acc, s) => acc + getProgressValue(s.status), 0) / totalPoints) 
+    const averageProgress = totalPoints > 0
+        ? Math.round(signalements.reduce((acc, s) => acc + getProgressValue(s.status), 0) / totalPoints)
         : 0;
 
     if (loading) {
@@ -216,7 +216,7 @@ export default function Recap() {
                                 <td>
                                     <div className="progress-cell">
                                         <div className="progress-bar-custom">
-                                            <div 
+                                            <div
                                                 className={`progress-fill ${getProgressClass(s.status)}`}
                                                 style={{ width: `${getProgressValue(s.status)}%` }}
                                             ></div>

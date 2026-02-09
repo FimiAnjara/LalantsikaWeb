@@ -6,12 +6,12 @@ import L from 'leaflet'
 import { CAlert, CSpinner } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { subscribeToSignalements, getSignalementHistory } from '../../../services/firebase/signalementService'
-import { 
+import {
     cilSearch,
-    cilLocationPin, 
-    cilCalendar, 
-    cilResizeBoth, 
-    cilMoney, 
+    cilLocationPin,
+    cilCalendar,
+    cilResizeBoth,
+    cilMoney,
     cilBuilding,
     cilWifiSignalOff,
     cilLayers,
@@ -61,7 +61,7 @@ const createColoredIcon = (status, isSelected = false) => {
     const iconPath = getMarkerIconPath(status);
     const size = isSelected ? 40 : 28;
     const height = isSelected ? 54 : 38;
-    
+
     return L.divIcon({
         className: `custom-marker ${isSelected ? 'selected' : ''}`,
         html: `<div class="gm-pin-marker">
@@ -149,7 +149,7 @@ export default function Signalement() {
         const photos = [];
         // Add main photo
         if (selectedSignalement.photo) photos.push(selectedSignalement.photo);
-        
+
         // Add photos from history items
         signalementHistory.forEach(h => {
             // Support both 'photo' (singular) and 'images' (array)
@@ -255,18 +255,18 @@ export default function Signalement() {
     // Filter signalements based on activeFilter and searchQuery
     useEffect(() => {
         let filtered = signalements;
-        
+
         if (activeFilter !== 'all') {
             filtered = filtered.filter(s => s.status.toLowerCase() === activeFilter);
         }
-        
+
         if (searchQuery) {
-            filtered = filtered.filter(s => 
+            filtered = filtered.filter(s =>
                 s.problem.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (s.location && s.location.toLowerCase().includes(searchQuery.toLowerCase()))
             );
         }
-        
+
         setFilteredSignalements(filtered);
     }, [signalements, activeFilter, searchQuery]);
 
@@ -277,38 +277,38 @@ export default function Signalement() {
     return (
         <div className="map-page-container">
             {!isOnline ? (
-                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5" 
-                    style={{ 
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5"
+                    style={{
                         background: 'linear-gradient(135deg, #E8E2DB 0%, #d4cfc7 100%)',
                         minHeight: '100vh'
                     }}>
                     <CIcon icon={cilWifiSignalOff} size="7xl" className="mb-4" style={{ color: '#547792', opacity: 0.5 }} />
                     <h2 style={{ color: '#1A3263', fontWeight: 700 }}>Connexion requise</h2>
                     <p className="text-center px-4" style={{ maxWidth: '500px', color: '#666' }}>
-                        La carte interactive nécessite une connexion internet pour charger les fonds de carte. 
+                        La carte interactive nécessite une connexion internet pour charger les fonds de carte.
                         Veuillez vérifier votre accès réseau.
                     </p>
                 </div>
             ) : loading ? (
-                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5" 
-                    style={{ 
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5"
+                    style={{
                         background: 'linear-gradient(135deg, #E8E2DB 0%, #d4cfc7 100%)',
                         minHeight: '100vh'
                     }}>
                     <CSpinner size="xl" className="mb-3" style={{ color: '#1A3263' }} />
                     <h3 style={{ color: '#1A3263', fontWeight: 700 }}>Chargement de la carte...</h3>
-                    <p style={{ color: '#666' }}>Récupération des signalements en cours</p>
+                    🔵 En cours
                 </div>
             ) : error ? (
-                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5" 
-                    style={{ 
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5"
+                    style={{
                         background: 'linear-gradient(135deg, #E8E2DB 0%, #d4cfc7 100%)',
                         minHeight: '100vh'
                     }}>
                     <CAlert color="danger" className="text-center">
                         <h4>Erreur de chargement</h4>
                         <p>{error}</p>
-                        <button 
+                        <button
                             className="btn btn-outline-danger"
                             onClick={() => window.location.reload()}
                         >
@@ -335,7 +335,7 @@ export default function Signalement() {
                     <div className="map-controls-bar" style={{ right: selectedSignalement ? '415px' : '15px', transition: 'right 0.3s ease-in-out' }}>
                         {/* Search Bar */}
                         <form className="map-search-bar" onSubmit={handleSearch}>
-                            <input 
+                            <input
                                 type="text"
                                 className="map-search-input"
                                 placeholder="Rechercher..."
@@ -349,25 +349,25 @@ export default function Signalement() {
 
                         {/* Filter Bubbles */}
                         <div className="map-filter-bubbles">
-                            <button 
+                            <button
                                 className={`filter-bubble ${activeFilter === 'all' ? 'active' : ''}`}
                                 onClick={() => setActiveFilter('all')}
                             >
                                 Tous ({signalements.length})
                             </button>
-                            <button 
+                            <button
                                 className={`filter-bubble danger ${activeFilter === 'nouveau' ? 'active' : ''}`}
                                 onClick={() => setActiveFilter('nouveau')}
                             >
                                 🔴 Nouveaux
                             </button>
-                            <button 
+                            <button
                                 className={`filter-bubble warning ${activeFilter === 'en cours' ? 'active' : ''}`}
                                 onClick={() => setActiveFilter('en cours')}
                             >
-                                � En cours
+                                🔵 En cours
                             </button>
-                            <button 
+                            <button
                                 className={`filter-bubble success ${activeFilter === 'terminé' ? 'active' : ''}`}
                                 onClick={() => setActiveFilter('terminé')}
                             >
@@ -378,15 +378,15 @@ export default function Signalement() {
 
                     {/* Map */}
                     <div style={{ position: 'relative', height: '100%', width: '100%', overflow: 'hidden' }}>
-                        <MapContainer 
-                            center={[-18.8792, 47.5079]} 
-                            zoom={13} 
+                        <MapContainer
+                            center={[-18.8792, 47.5079]}
+                            zoom={13}
                             className={`map-fullscreen ${selectedSignalement ? 'with-panel' : ''}`}
                             zoomControl={false}
                         >
-                            <MapController 
-                                center={selectedSignalement ? selectedSignalement.position : searchLocation} 
-                                zoom={selectedSignalement ? 18 : 15} 
+                            <MapController
+                                center={selectedSignalement ? selectedSignalement.position : searchLocation}
+                                zoom={selectedSignalement ? 18 : 15}
                                 offset={!!selectedSignalement}
                             />
                             <MapEvents onMapClick={() => setSelectedSignalement(null)} />
@@ -394,8 +394,8 @@ export default function Signalement() {
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                        
-                            
+
+
                             {filteredSignalements.length === 0 && signalements.length > 0 ? (
                                 <div className="position-absolute top-50 start-50 translate-middle bg-white p-4 rounded shadow border" style={{ zIndex: 1000 }}>
                                     <div className="text-center">
@@ -413,10 +413,10 @@ export default function Signalement() {
                                     </div>
                                 </div>
                             ) : null}
-                            
+
                             {filteredSignalements.map((s) => (
-                                <Marker 
-                                    key={s.id} 
+                                <Marker
+                                    key={s.id}
                                     position={s.position}
                                     icon={createColoredIcon(s.status, selectedSignalement?.id === s.id)}
                                     eventHandlers={{
@@ -453,17 +453,17 @@ export default function Signalement() {
                             {selectedSignalement && (
                                 <>
                                     <div className="panel-header">
-                                        <button 
+                                        <button
                                             className="close-panel-btn"
                                             onClick={() => setSelectedSignalement(null)}
                                         >
                                             <CIcon icon={cilX} />
                                         </button>
-                                        
+
                                         {allPhotos.length > 0 ? (
                                             <>
-                                                <img 
-                                                    src={allPhotos[currentPhotoIndex]} 
+                                                <img
+                                                    src={allPhotos[currentPhotoIndex]}
                                                     alt={selectedSignalement.problem}
                                                     className="panel-header-img"
                                                     onClick={() => window.open(allPhotos[currentPhotoIndex], '_blank')}
@@ -471,7 +471,7 @@ export default function Signalement() {
                                                 />
                                                 {allPhotos.length > 1 && (
                                                     <div className="photo-navigation">
-                                                        <button 
+                                                        <button
                                                             className="photo-nav-btn prev"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -483,7 +483,7 @@ export default function Signalement() {
                                                         <div className="photo-counter">
                                                             {currentPhotoIndex + 1} / {allPhotos.length}
                                                         </div>
-                                                        <button 
+                                                        <button
                                                             className="photo-nav-btn next"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -504,9 +504,9 @@ export default function Signalement() {
 
                                     <div className="panel-content">
                                         <div className="mb-4">
-                                            <div 
+                                            <div
                                                 className="panel-status-badge"
-                                                style={{ 
+                                                style={{
                                                     backgroundColor: getStatusColor(selectedSignalement.status),
                                                     color: 'white'
                                                 }}
@@ -542,7 +542,7 @@ export default function Signalement() {
                                                     </div>
                                                     <div>
                                                         <small style={{ color: '#999', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>Surface</small>
-                                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#333' }}>{selectedSignalement.surface} m²</div>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#333' }}>{selectedSignalement.surface} </div>
                                                     </div>
                                                 </div>
                                                 <div className="panel-info-card">
@@ -570,39 +570,47 @@ export default function Signalement() {
                                             <h3 className="panel-section-title">
                                                 <span>Chronologie des travaux</span>
                                             </h3>
-                                            <div className="status-timeline">
-                                                <div className={`timeline-item ${selectedSignalement.status.toLowerCase() === 'nouveau' || signalementHistory.length > 0 ? 'active' : ''}`}>
-                                                    <div className="timeline-date">{selectedSignalement.date}</div>
-                                                    <div className="timeline-title">Signalement enregistré</div>
-                                                    <div className="timeline-desc">Le problème a été identifié et validé par les services techniques.</div>
-                                                </div>
-                                                
+                                            <div className="status-timeline" style={{ position: 'relative', paddingLeft: '35px' }}>
                                                 {loadingHistory ? (
                                                     <div className="text-center py-4">
                                                         <CSpinner size="sm" style={{ color: 'var(--primary-dark)' }} />
                                                         <p style={{ fontSize: '0.8rem', color: '#999', marginTop: '10px' }}>Chargement de l'historique...</p>
                                                     </div>
-                                                ) : signalementHistory.map((h, idx) => (
-                                                    <div key={h.id} className="timeline-item active">
-                                                        <div className="timeline-date">{h.date}</div>
-                                                        <div className="timeline-title">{h.statut?.libelle || 'Mise à jour du chantier'}</div>
-                                                        <div className="timeline-desc">{h.description || 'Action effectuée pour la résolution du problème.'}</div>
-                                                        {h.photo && (
-                                                            <img 
-                                                                src={h.photo} 
-                                                                alt="Preuve des travaux" 
-                                                                className="timeline-img"
-                                                                onClick={() => window.open(h.photo, '_blank')}
-                                                            />
+                                                ) : (
+                                                    <>
+                                                        {selectedSignalement.status.toLowerCase() !== 'terminé' && (
+                                                            <div className="timeline-item">
+                                                                <div className="timeline-title" style={{ color: '#ccc' }}>Prochaines étapes</div>
+                                                                <div className="timeline-desc">En attente des prochaines interventions sur le terrain.</div>
+                                                            </div>
                                                         )}
-                                                    </div>
-                                                ))}
 
-                                                {selectedSignalement.status.toLowerCase() !== 'terminé' && !loadingHistory && (
-                                                    <div className="timeline-item">
-                                                        <div className="timeline-title" style={{ color: '#ccc' }}>Prochaines étapes</div>
-                                                        <div className="timeline-desc">En attente des prochaines interventions sur le terrain.</div>
-                                                    </div>
+                                                        {/* Display history items (descending) */}
+                                                        {signalementHistory.map((h, idx) => (
+                                                            <div key={h.id} className="timeline-item active">
+                                                                <div className="timeline-date">{h.date}</div>
+                                                                <div className="timeline-title">{h.statut?.libelle || 'Mise à jour du chantier'}</div>
+                                                                <div className="timeline-desc">{h.description || 'Action effectuée pour la résolution du problème.'}</div>
+                                                                {h.photo && (
+                                                                    <img
+                                                                        src={h.photo}
+                                                                        alt="Preuve des travaux"
+                                                                        className="timeline-img"
+                                                                        onClick={() => window.open(h.photo, '_blank')}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        ))}
+
+                                                        {/* Ensure creation item is visible at the bottom if not in history */}
+                                                        {!signalementHistory.some(h => h.statut?.id_statut === 1 || h.description === 'Signalement créé') && (
+                                                            <div className="timeline-item active">
+                                                                <div className="timeline-date">{selectedSignalement.date}</div>
+                                                                <div className="timeline-title">Signalement enregistré</div>
+                                                                <div className="timeline-desc">Le problème a été identifié et validé par les services techniques.</div>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
@@ -625,7 +633,7 @@ export default function Signalement() {
                             </div>
                             <div className="legend-item">
                                 <span className="legend-dot warning"></span>
-                                Travaux en cours
+                                🔵 En cours
                             </div>
                             <div className="legend-item">
                                 <span className="legend-dot success"></span>
@@ -634,7 +642,8 @@ export default function Signalement() {
                         </div>
                     </div>
                 </>
-            )}
-        </div>
+            )
+            }
+        </div >
     )
 }

@@ -278,12 +278,11 @@ const activeSignalements = computed(() => {
   return viewMode.value === 'mine' ? (props.mySignalements || []) : props.signalements;
 });
 
-// Computed
 const totalSignalements = computed(() => activeSignalements.value.length);
 
 const totalBudget = computed(() => {
   return activeSignalements.value.reduce((sum, sig) => {
-    return sum + (sig.budget || 500000);
+    return sum + (sig.budget || 0);
   }, 0);
 });
 

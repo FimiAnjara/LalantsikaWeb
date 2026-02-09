@@ -1018,7 +1018,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-left: 1px solid rgba(0,0,0,0.05);
+    border-left: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .signalement-side-panel.open {
@@ -1038,7 +1038,7 @@
     left: 0;
     right: 0;
     height: 60%;
-    background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
     z-index: 1;
 }
 
@@ -1079,7 +1079,7 @@
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 10;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     color: var(--primary-dark);
 }
 
@@ -1112,14 +1112,14 @@
     cursor: pointer;
     transition: all 0.3s ease;
     color: white;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .photo-nav-btn:hover {
     background: rgba(255, 255, 255, 0.9);
     color: var(--primary-dark);
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 .photo-counter {
@@ -1139,7 +1139,7 @@
     padding: 28px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(0,0,0,0.1) transparent;
+    scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
 }
 
 .panel-content::-webkit-scrollbar {
@@ -1147,7 +1147,7 @@
 }
 
 .panel-content::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.1);
+    background-color: rgba(0, 0, 0, 0.1);
     border-radius: 10px;
 }
 
@@ -1194,7 +1194,7 @@
 .panel-info-card:hover {
     background: #ffffff;
     transform: translateY(-4px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
     border-color: var(--primary-light);
 }
 
@@ -1216,7 +1216,7 @@
     font-weight: 700;
     font-size: 0.85rem;
     margin-bottom: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .panel-info-card:hover {
@@ -1226,9 +1226,17 @@
 }
 
 @keyframes markerPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .custom-marker.selected div {
@@ -1264,14 +1272,21 @@
     flex-direction: column;
     min-width: 180px;
     max-width: 240px;
-    border: 1px solid rgba(0,0,0,0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     animation: tooltipAppear 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     white-space: normal;
 }
 
 @keyframes tooltipAppear {
-    from { opacity: 0; transform: translateY(10px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .tooltip-header {
@@ -1307,6 +1322,7 @@
     margin-bottom: 4px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -1340,7 +1356,7 @@
 
 .leaflet-tooltip-top:before {
     border-top-color: white;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.05));
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.05));
 }
 
 .status-timeline {
@@ -1367,7 +1383,7 @@
 .timeline-item::before {
     content: '';
     position: absolute;
-    left: -32px;
+    left: -29px;
     top: 6px;
     width: 16px;
     height: 16px;
@@ -1428,19 +1444,25 @@
         width: 100%;
         right: -100%;
     }
+
     .map-fullscreen.with-panel {
         width: 100%;
     }
+
     .map-info-panel {
-        bottom: 80px; /* Leave room for mobile nav if any */
+        bottom: 80px;
+        /* Leave room for mobile nav if any */
     }
+
     .map-info-panel.hidden-mobile {
         display: none;
     }
+
     .map-controls-bar {
         flex-direction: column;
         align-items: stretch;
     }
+
     .map-search-bar {
         width: 100%;
     }

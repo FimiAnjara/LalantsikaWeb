@@ -51,7 +51,7 @@ export async function getSignalementHistory(signalementId) {
         const q = query(
             colRef,
             where('firebase_signalement_id', '==', signalementId),
-            orderBy('daty', 'asc')
+            orderBy('daty', 'desc')
         )
         const snapshot = await getDocs(q)
         return snapshot.docs.map(doc => ({
@@ -60,8 +60,29 @@ export async function getSignalementHistory(signalementId) {
             date: formatDate(doc.data().daty)
         }))
     } catch (error) {
-        console.error('Error fetching history:', error)
-        return []
+        console.warn('Error fetching history with orderBy, falling back to client-side sort:', error)
+        try {
+            const colRef = collection(db, HISTORY_COLLECTION)
+            const q = query(
+                colRef,
+                where('firebase_signalement_id', '==', signalementId)
+            )
+            const snapshot = await getDocs(q)
+            const results = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                date: formatDate(doc.data().daty)
+            }))
+            // Trier en mémoire par date décroissante
+            return results.sort((a, b) => {
+                const dateA = a.daty?.toDate ? a.daty.toDate().getTime() : new Date(a.daty).getTime()
+                const dateB = b.daty?.toDate ? b.daty.toDate().getTime() : new Date(b.daty).getTime()
+                return dateB - dateA
+            })
+        } catch (innerError) {
+            console.error('Final error fetching history:', innerError)
+            return []
+        }
     }
 }
 
@@ -100,9 +121,8 @@ function transformSignalement(doc) {
         position: [latitude, longitude],
         problem: data.description || 'Problème de route',
         location: data.city || 'Non spécifié',
-        location: data.city || 'Non spécifié',
         date: formatDate(data.daty),
-        status: statusLibelle,
+        dateRaw: data.daty, // Keep raw date for chart processing
         status: statusLibelle,
         surface: data.surface || 0,
         budget: data.budget || 0,
@@ -110,6 +130,8 @@ function transformSignalement(doc) {
         surfaceFormatted: data.surface ? data.surface + ' m²' : 'N/A',
         entreprise: data.entreprise?.nom || 'Non assignée',
         photo: data.photo || null,
-        category: data.category || null
+        category: data.category || null,
+        userUid: data.utilisateur?.firebase_uid || null // User UID for filtering
     }
 }
+

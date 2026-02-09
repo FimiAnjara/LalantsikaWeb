@@ -5,7 +5,6 @@ use App\Http\Controllers\ProductController;
 use App\Models\Category;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [ProductController::class, 'index'])->name('home');
 
 Route::get('/hello', function () {
     return 'Hello, World!';
@@ -39,8 +38,3 @@ Route::get('/contact', function () {
     $email = 'jean@gmail.com';
     return view('contact',['email' => $email]);
 });
-
-
-
-Route::resource('products', ProductController::class);
-Route::resource('categories', CategoryController::class);

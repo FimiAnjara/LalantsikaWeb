@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y \
 # Installation des extensions PHP
 RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql
 
-
 # Installation de Composer
 RUN curl -sS https://getcomposer.org/installer | php -- \
     --install-dir=/usr/local/bin \
-    --filename=composer
+    --filename=composer && \
+    chmod +x /usr/local/bin/composer
 
 # Définition du répertoire de travail
 WORKDIR /var/www/html
@@ -26,23 +26,21 @@ WORKDIR /var/www/html
 # Copie des fichiers de configuration
 COPY composer.json composer.lock ./
 
-# Installation des dépendances PHP
-# RUN composer install --no-scripts --no-autoloader
+# Installation des dépendances Composer (sans dev)
+RUN composer install --no-dev --no-scripts --no-autoloader && \
+    composer dump-autoload --optimize
 
 # Copie de tous les fichiers de l'application
 COPY . .
-
-# Finalisation de l'installation Composer
-RUN composer dump-autoload --optimize
 
 # Copie et rendre exécutable le script d'initialisation
 COPY docker/init.sh /usr/local/bin/init.sh
 RUN chmod +x /usr/local/bin/init.sh
 
 # Configuration des permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html/storage && \
+    chmod -R 755 /var/www/html/bootstrap/cache
 
 # Exposition du port
 EXPOSE 9000

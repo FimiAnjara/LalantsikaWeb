@@ -10,6 +10,25 @@ const COLLECTION_NAME = 'signalements'
 const HISTORY_COLLECTION = 'histo_statuts'
 
 /**
+ * Formater une date (Timestamp Firestore ou String)
+ */
+const formatDate = (dateField) => {
+    if (!dateField) return 'N/A'
+
+    // Si c'est un Timestamp Firestore (objet avec méthode toDate)
+    if (dateField && typeof dateField.toDate === 'function') {
+        return dateField.toDate().toLocaleDateString('fr-FR')
+    }
+
+    // Sinon essayer de convertir en Date standard
+    const date = new Date(dateField)
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) return 'Date invalide'
+
+    return date.toLocaleDateString('fr-FR')
+}
+
+/**
  * Récupérer tous les signalements depuis Firestore (lecture unique)
  * @returns {Promise<Array>} Liste des signalements transformés pour l'affichage
  */
@@ -30,7 +49,7 @@ export async function getSignalementHistory(signalementId) {
     try {
         const colRef = collection(db, HISTORY_COLLECTION)
         const q = query(
-            colRef, 
+            colRef,
             where('firebase_signalement_id', '==', signalementId),
             orderBy('daty', 'asc')
         )
@@ -38,7 +57,7 @@ export async function getSignalementHistory(signalementId) {
         return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
-            date: doc.data().daty ? new Date(doc.data().daty).toLocaleDateString('fr-FR') : 'N/A'
+            date: formatDate(doc.data().daty)
         }))
     } catch (error) {
         console.error('Error fetching history:', error)
@@ -71,7 +90,7 @@ export function subscribeToSignalements(onData, onError) {
  */
 function transformSignalement(doc) {
     const data = doc.data()
-    
+
     const latitude = data.point?.latitude || 0
     const longitude = data.point?.longitude || 0
     const statusLibelle = data.statut?.libelle || 'Nouveau'
@@ -81,7 +100,9 @@ function transformSignalement(doc) {
         position: [latitude, longitude],
         problem: data.description || 'Problème de route',
         location: data.city || 'Non spécifié',
-        date: data.daty ? new Date(data.daty).toLocaleDateString('fr-FR') : 'N/A',
+        location: data.city || 'Non spécifié',
+        date: formatDate(data.daty),
+        status: statusLibelle,
         status: statusLibelle,
         surface: data.surface || 0,
         budget: data.budget || 0,

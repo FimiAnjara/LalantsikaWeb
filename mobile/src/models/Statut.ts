@@ -22,8 +22,7 @@ export enum StatutEnum {
 export const STATUT_OPTIONS: Statut[] = [
   { id_statut: 1, libelle: 'Nouveau' },
   { id_statut: 2, libelle: 'En cours' },
-  { id_statut: 3, libelle: 'Terminé' },
-  { id_statut: 4, libelle: 'Rejeté' }
+  { id_statut: 3, libelle: 'Terminé' }
 ];
 
 /**
@@ -34,8 +33,7 @@ export const getStatutType = (id_statut: number): string => {
   const types: Record<number, string> = {
     [StatutEnum.NOUVEAU]: 'nouveau',
     [StatutEnum.EN_COURS]: 'info',
-    [StatutEnum.TERMINE]: 'success',
-    [StatutEnum.REJETE]: 'danger'
+    [StatutEnum.TERMINE]: 'success'
   };
   return types[id_statut] || 'default';
 };
@@ -47,8 +45,7 @@ export const getStatutColor = (id_statut: number): string => {
   const colors: Record<number, string> = {
     [StatutEnum.NOUVEAU]: '#ff9800',
     [StatutEnum.EN_COURS]: '#2196f3',
-    [StatutEnum.TERMINE]: '#4caf50',
-    [StatutEnum.REJETE]: '#f44336'
+    [StatutEnum.TERMINE]: '#4caf50'
   };
   return colors[id_statut] || '#999999';
 };

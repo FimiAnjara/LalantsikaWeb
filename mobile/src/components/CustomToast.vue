@@ -92,12 +92,12 @@ watch(() => props.message, () => {
 .custom-toast {
   position: fixed;
   top: calc(env(safe-area-inset-top, 12px) + 16px);
-  right: 12px;
-  left: auto;
-  transform: none;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 9999;
   min-width: 280px;
   max-width: calc(100vw - 24px);
+  width: calc(100vw - 24px);
   background: linear-gradient(135deg, #0e1b33 0%, #1A3263 100%);
   border-radius: 14px;
   box-shadow:
@@ -172,6 +172,8 @@ watch(() => props.message, () => {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  text-align: left;
+  align-items: flex-start;
 }
 
 .toast-title {
@@ -179,6 +181,9 @@ watch(() => props.message, () => {
   font-weight: 700;
   color: #ffffff;
   letter-spacing: 0.01em;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .toast-message {
@@ -190,6 +195,9 @@ watch(() => props.message, () => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .toast-close {
@@ -223,34 +231,34 @@ watch(() => props.message, () => {
   to { width: 0%; }
 }
 
-/* Animations - slide from right */
+/* Animations - slide from top, centered */
 .toast-slide-enter-active {
-  animation: slideInRight 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: slideInDown 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .toast-slide-leave-active {
-  animation: slideOutRight 0.25s cubic-bezier(0.55, 0, 1, 0.45);
+  animation: slideOutUp 0.25s cubic-bezier(0.55, 0, 1, 0.45);
 }
 
-@keyframes slideInRight {
+@keyframes slideInDown {
   from {
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateX(-50%) translateY(-100%);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(-50%) translateY(0);
   }
 }
 
-@keyframes slideOutRight {
+@keyframes slideOutUp {
   from {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(-50%) translateY(0);
   }
   to {
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateX(-50%) translateY(-100%);
   }
 }
 </style>

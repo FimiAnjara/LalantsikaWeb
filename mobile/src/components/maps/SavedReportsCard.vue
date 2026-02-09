@@ -81,14 +81,6 @@
               <span class="f-dot" style="background:#34A853"></span>
               Terminé
             </button>
-            <button 
-              class="f-chip f-chip-danger" 
-              :class="{ active: filterStatus === 'danger' }"
-              @click="filterStatus = filterStatus === 'danger' ? '' : 'danger'"
-            >
-              <span class="f-dot" style="background:#78909C"></span>
-              Rejeté
-            </button>
           </div>
         </div>
 
@@ -277,13 +269,9 @@ const displayedMergedReports = computed(() => {
   return mergedReports.value.slice(0, itemsPerPage);
 });
 
-// Handle report click - in sheet mode, locate on map; otherwise open details
+// Handle report click - always navigate to detail page
 const handleReportClick = (report: Report) => {
-  if (props.isSheetMode) {
-    emit('locate-report', report);
-  } else {
-    emit('open-details', report);
-  }
+  emit('open-details', report);
 };
 
 // Methods

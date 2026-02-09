@@ -63,54 +63,30 @@ class AuthService {
 
   // Connexion utilisateur
   // Étapes:
-  // 0. Vérifier la connexion internet
-  // 1. Vérifier si bloqué
-  // 2. Vérifier si c'est un Utilisateur (pas Manager)
-  // 3. Authentification Firebase
-  // 4. Gestion des tentatives
+  // 1. Vérifier la connexion internet
+  // 2. Authentification Firebase (login + mot de passe)
+  // 3. Vérifier si l'utilisateur existe dans Firestore
+  // 4. Vérifier si le compte est bloqué
+  // 5. Vérifier si c'est un Utilisateur (pas Manager)
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
-      // 0. Vérifier la connexion internet en premier
       const isConnected = await this.checkNetworkConnection();
       if (!isConnected) {
         throw new Error('NETWORK_ERROR');
       }
 
-      // 1. Vérifier si bloqué
-      const isBlocked = await statutUtilisateurService.isBlocked(email);
-      if (isBlocked) {
-        throw new Error('COMPTE_BLOQUE');
-      }
-
-      // 2. Vérifier le nombre de tentatives en mémoire
-      const currentAttempts = this.loginAttempts.get(email) || 0;
-      if (currentAttempts >= this.maxTentatives) {
-        throw new Error('COMPTE_BLOQUE');
-      }
-
-      // 3. Vérifier si c'est bien un Utilisateur (pas Manager)
-      const userTypeResult = await utilisateurService.isUtilisateurType(email);
-      
-      // Vérifier d'abord si c'est une erreur réseau
-      if (userTypeResult.error === 'NETWORK_ERROR') {
-        throw new Error('NETWORK_ERROR');
-      }
-      
-      if (!userTypeResult.isUtilisateur) {
-        throw new Error('MANAGER_NON_AUTORISE');
-      }
-
-      // 4. Tenter l'authentification Firebase
       let userCredential;
       try {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       } catch (authError: any) {
-        // Mot de passe incorrect
         if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
           const attempts = this.incrementAttempts(email);
-          
           if (attempts >= this.maxTentatives) {
-            await statutUtilisateurService.blockUser(email, attempts);
+            try {
+              await statutUtilisateurService.blockUser(email, attempts);
+            } catch (blockError) {
+              console.warn('Impossible de bloquer l\'utilisateur:', blockError);
+            }
             throw new Error('MAX_TENTATIVES');
           }
         
@@ -121,19 +97,36 @@ class AuthService {
       }
       
       const firebaseUser = userCredential.user;
-
-      // 5. Récupérer les données utilisateur
       const userData = await utilisateurService.getByEmail(email);
       if (!userData) {
         await this.logout();
         throw new Error('UTILISATEUR_NON_TROUVE');
       }
 
-      // 6. Mettre à jour l'UID Firebase (important si l'utilisateur change de téléphone)
+      const isBlocked = await statutUtilisateurService.isBlocked(email);
+      if (isBlocked) {
+        await this.logout();
+        throw new Error('COMPTE_BLOQUE');
+      }
+
+      const currentAttempts = this.loginAttempts.get(email) || 0;
+      if (currentAttempts >= this.maxTentatives) {
+        await this.logout();
+        throw new Error('COMPTE_BLOQUE');
+      }
+
+      const userTypeResult = await utilisateurService.isUtilisateurType(email);
+      if (userTypeResult.error === 'NETWORK_ERROR') {
+        throw new Error('NETWORK_ERROR');
+      }
+      
+      if (!userTypeResult.isUtilisateur) {
+        await this.logout();
+        throw new Error('MANAGER_NON_AUTORISE');
+      }
+
       await utilisateurService.updateFirebaseUid(email, firebaseUser.uid);
 
-      // 6.5. Mettre à jour le FCM token à chaque connexion
-      // Import dynamique pour éviter les dépendances circulaires
       const { pushNotificationService } = await import('../notification');
       const fcmToken = await pushNotificationService.getToken();
       
@@ -155,17 +148,14 @@ class AuthService {
         console.log('ℹ️ Pas de FCM token disponible (mode web ou permissions refusées)');
       }
 
-      // 7. Obtenir le token
       const token = await firebaseUser.getIdToken();
 
-      // 8. Créer l'objet utilisateur complet
       const completeUser: User = {
         ...userData,
         uid: firebaseUser.uid,
         last_sync_at: new Date().toISOString()
       };
 
-      // 9. Réinitialiser les tentatives
       this.resetAttempts(email);
       console.log('✅ Connexion réussie pour:', email);
 

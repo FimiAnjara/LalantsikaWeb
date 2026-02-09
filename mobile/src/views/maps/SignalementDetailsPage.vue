@@ -116,7 +116,8 @@
             </div>
             <div class="info-details">
               <span class="info-label">Signalé par</span>
-              <span class="info-value">{{ getUserName(signalement.utilisateur) }}</span>
+              <span class="info-value" v-if="isMySignalement" style="color: #28a745; font-weight: 700;">Signalement créé par vous</span>
+              <span class="info-value" v-else>{{ getUserName(signalement.utilisateur) }}</span>
             </div>
           </div>
           
@@ -295,6 +296,12 @@ const canEdit = computed(() => {
   return signalement.value.utilisateur?.firebase_uid === auth.currentUser.uid;
 });
 
+// Vérifier si le signalement a été créé par l'utilisateur connecté
+const isMySignalement = computed(() => {
+  if (!signalement.value || !auth.currentUser) return false;
+  return signalement.value.utilisateur?.firebase_uid === auth.currentUser.uid;
+});
+
 // Toutes les photos du signalement (de tous les historiques)
 const allPhotos = computed(() => {
   const photos: string[] = [];
@@ -396,17 +403,18 @@ const editSignalement = () => {
   }
 };
 
-const formatDate = (daty: string): string => {
+const formatDate = (daty: any): string => {
   if (!daty) return '';
   try {
-    const date = new Date(daty);
+    const date = parseHistoDate(daty);
+    if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'
     });
   } catch {
-    return daty;
+    return String(daty);
   }
 };
 

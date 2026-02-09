@@ -101,9 +101,13 @@
               <ion-icon :icon="lockClosedOutline" slot="start"></ion-icon>
               <ion-label>Changer le mot de passe</ion-label>
             </ion-item>
-            <ion-item button @click="showDeleteConfirm" detail lines="none" class="danger-item">
+            <ion-item button @click="showDeleteConfirm" detail class="danger-item">
               <ion-icon :icon="trashOutline" slot="start" color="danger"></ion-icon>
               <ion-label color="danger">Supprimer le compte</ion-label>
+            </ion-item>
+            <ion-item button @click="logout" detail lines="none" class="logout-item">
+              <ion-icon :icon="logOutOutline" slot="start" color="danger"></ion-icon>
+              <ion-label color="danger">Déconnexion</ion-label>
             </ion-item>
           </ion-list>
         </div>
@@ -162,12 +166,16 @@ import {
   trashOutline,
   createOutline,
   checkmarkOutline,
+  logOutOutline,
 } from 'ionicons/icons';
 import { authService } from '@/services/auth';
 import { getFullName } from '@/models/User';
 import { photoService } from '@/services/photo';
 import { storageService } from '@/services/storage';
 import router from '@/router';
+import { useRouter } from 'vue-router';
+
+const routerInstance = useRouter();
 
 const isEditing = ref(false);
 const loading = ref(true);
@@ -374,6 +382,38 @@ const changePassword = async () => {
         handler: (data) => {
           // TODO: Implement password change logic
           console.log('Change password:', data);
+        },
+      },
+    ],
+  });
+  await alert.present();
+};
+
+const logout = async () => {
+  const alert = await alertController.create({
+    header: 'Déconnexion',
+    message: 'Voulez-vous vraiment vous déconnecter ?',
+    buttons: [
+      {
+        text: 'Annuler',
+        role: 'cancel',
+      },
+      {
+        text: 'Déconnexion',
+        role: 'destructive',
+        handler: async () => {
+          try {
+            await authService.logout();
+            routerInstance.replace({ name: 'Login' });
+          } catch (error) {
+            console.error('Erreur déconnexion:', error);
+            const toast = await toastController.create({
+              message: 'Erreur lors de la déconnexion',
+              duration: 2000,
+              color: 'danger'
+            });
+            await toast.present();
+          }
         },
       },
     ],

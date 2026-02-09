@@ -21,7 +21,7 @@
             placeholder="Rechercher une ville..." 
             class="gm-search-input"
           />
-          <button class="gm-profile-btn" @click="toggleProfileMenu">
+          <button class="gm-profile-btn" @click="goToProfile">
             <img v-if="userPhotoUrl" :src="userPhotoUrl" alt="Profil" class="gm-profile-photo" />
             <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="#547792">
               <circle cx="12" cy="8" r="4"/>
@@ -54,38 +54,6 @@
             </svg>
             <span>Les miens</span>
           </button>
-          <button 
-            class="gm-chip gm-chip--nouveau" 
-            :class="{ active: mapFilter === 'nouveau' }"
-            @click="mapFilter = 'nouveau'"
-          >
-            <span class="gm-chip-dot" style="background:#EA4335;"></span>
-            <span>Nouveau</span>
-          </button>
-          <button 
-            class="gm-chip gm-chip--info" 
-            :class="{ active: mapFilter === 'info' }"
-            @click="mapFilter = 'info'"
-          >
-            <span class="gm-chip-dot" style="background:#4285F4;"></span>
-            <span>En cours</span>
-          </button>
-          <button 
-            class="gm-chip gm-chip--success" 
-            :class="{ active: mapFilter === 'success' }"
-            @click="mapFilter = 'success'"
-          >
-            <span class="gm-chip-dot" style="background:#34A853;"></span>
-            <span>Terminé</span>
-          </button>
-          <!-- <button 
-            class="gm-chip gm-chip--danger" 
-            :class="{ active: mapFilter === 'danger' }"
-            @click="mapFilter = 'danger'"
-          >
-            <span class="gm-chip-dot" style="background:#78909C;"></span>
-            <span>Rejeté</span>
-          </button> -->
         </div>
       </div>
 
@@ -301,8 +269,8 @@
       >
         <template #default="{ snap }">
           <SavedReportsCard
-            :my-reports="myReports"
-            :all-reports="allReports"
+            :my-reports="filteredMyReports"
+            :all-reports="filteredAllReports"
             :is-loading="isLoadingList"
             :is-sheet-mode="true"
             :snap="snap"
@@ -320,6 +288,7 @@
         <div v-if="activeMenu === 'recap'" class="recap-overlay">
           <RecapCard
             :signalements="allSignalements"
+            :my-signalements="mySignalements"
             :is-loading="isLoadingList"
             :is-fullscreen="true"
             @close="backToMap"
@@ -402,7 +371,7 @@ const isSearching = ref(false);
 const isDeleting = ref(false);
 const isValidating = ref(false);
 const loadingMessage = ref('Chargement...');
-const mapFilter = ref<'all' | 'mine' | 'nouveau' | 'info' | 'success' | 'danger'>('all');
+const mapFilter = ref<'all' | 'mine'>('all');
 const userPhotoUrl = ref<string | null>(null);
 const isLoggingOut = ref(false);
 const bottomMenuHeight = 72;
@@ -451,22 +420,22 @@ const allReports = computed(() => {
   }));
 });
 
-// Marqueurs filtrés pour la carte
+// Marqueurs filtrés pour la carte (Tous ou Les miens)
 const currentMarkers = computed(() => {
-  let source = allSignalements.value;
-  
+  const source = mapFilter.value === 'mine' ? mySignalements.value : allSignalements.value;
+  return source.map(sig => signalementService.signalementToMarker(sig));
+});
+
+// Reports filtrés selon le filtre carte (Tous / Les miens) pour la liste Signalements
+const filteredAllReports = computed(() => {
   if (mapFilter.value === 'mine') {
-    source = mySignalements.value;
+    return myReports.value;
   }
-  
-  const mapped = source.map(sig => signalementService.signalementToMarker(sig));
-  
-  // Filtrage par statut
-  if (['nouveau', 'info', 'success', 'danger'].includes(mapFilter.value)) {
-    return mapped.filter(m => m.type === mapFilter.value);
-  }
-  
-  return mapped;
+  return allReports.value;
+});
+
+const filteredMyReports = computed(() => {
+  return myReports.value;
 });
 
 // Charger les signalements au montage
@@ -551,6 +520,10 @@ const loadSignalements = async (showLoader = false) => {
 const refreshData = async () => {
   await loadSignalements();
   toastService.success('Données actualisées');
+};
+
+const goToProfile = () => {
+  router.push({ name: 'Profile' });
 };
 
 const onMapReady = (map: any) => {
@@ -733,7 +706,10 @@ const getCityName = async (lat: number, lng: number): Promise<string> => {
 
 // Gestion des signalements enregistrés
 const openReportDetails = (report: any) => {
-  // Naviguer vers la nouvelle page de détails du signalement
+  // Fermer les sheets avant de naviguer
+  showListSheet.value = false;
+  showMarkerSheet.value = false;
+  // Naviguer vers la page de détails du signalement
   router.push({ 
     name: 'SignalementDetails', 
     params: { id: report.firebase_id || report.id }
@@ -744,29 +720,12 @@ const openReportDetails = (report: any) => {
 const onMarkerClick = (marker: any) => {
   console.log('Marqueur cliqué:', marker);
   
-  // Find the full signalement
-  const sig = allSignalements.value.find(
-    s => (s.firebase_id || `sig-${s.id_signalement}`) === marker.id
-  );
-  
-  if (!sig) {
-    // Fallback: navigate to details page
-    router.push({ name: 'SignalementDetails', params: { id: marker.id } });
-    return;
-  }
-  
-  selectedSignalement.value = sig;
-  
-  // Close list sheet if open
+  // Fermer les sheets
   showListSheet.value = false;
+  showMarkerSheet.value = false;
   
-  // Center map with point at top third of screen
-  centerMapOnPointForSheet(sig.point.latitude, sig.point.longitude);
-  
-  // Open marker bottom sheet
-  nextTick(() => {
-    showMarkerSheet.value = true;
-  });
+  // Naviguer directement vers la page de détails
+  router.push({ name: 'SignalementDetails', params: { id: marker.id } });
 };
 
 const centerMapOnPointForSheet = (lat: number, lng: number) => {
@@ -1093,6 +1052,7 @@ const openRecap = async () => {
    ======================================== */
 .gm-chips-row {
   display: flex;
+  justify-content: center;
   gap: 8px;
   overflow-x: auto;
   padding: 0 2px 4px 2px;

@@ -131,8 +131,8 @@ const loading = ref(false);
 const googleLoading = ref(false);
 
 const fillTestUser = () => {
-  email.value = 'test@lalantsika.mg';
-  password.value = 'Test1234!';
+  email.value = 'sederavalisoara@gmail.com';
+  password.value = 'sedera123';
 };
 
 const { setSpeed } = useBackgroundAnimation();

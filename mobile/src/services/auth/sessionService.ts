@@ -11,7 +11,8 @@ const STORAGE_KEYS = {
   SESSION_DURATION: 'session_duration',
   AUTH_TOKEN: 'auth_token',
   USER_DATA: 'user_data',
-  REMEMBER_ME: 'remember_me'
+  REMEMBER_ME: 'remember_me',
+  FIRST_LAUNCH: 'first_launch_completed'
 };
 
 /**
@@ -108,13 +109,19 @@ class SessionService {
    * Démarre une nouvelle session
    * @param token Token d'authentification
    * @param userData Données utilisateur
-   * @param rememberMe Activer "Se souvenir de moi" (sur web uniquement)
+   * @param rememberMe Activer "Se souvenir de moi"
    * 
-   * La session expire après la durée configurée (par défaut 24h)
-   * Sur Android, l'utilisateur reste connecté tant que la session n'expire pas
+   * Sur mobile :
+   * - Avec "Se souvenir" : 2 jours (connexion automatique)
+   * - Sans "Se souvenir" : 1 heure
    */
   async startSession(token: string, userData: any, rememberMe: boolean = false): Promise<void> {
-    const expiryTime = Date.now() + this.sessionDuration;
+    // Définir la durée selon "Se souvenir de moi"
+    const sessionDuration = rememberMe 
+      ? 2 * 24 * 60 * 60 * 1000  // 2 jours si "Se souvenir de moi"
+      : 1 * 60 * 60 * 1000;      // 1 heure sinon
+    
+    const expiryTime = Date.now() + sessionDuration;
 
     // Configurer la persistance Firebase
     await this.configureFirebasePersistence(rememberMe);
@@ -125,11 +132,13 @@ class SessionService {
       Preferences.set({ key: STORAGE_KEYS.AUTH_TOKEN, value: token }),
       Preferences.set({ key: STORAGE_KEYS.USER_DATA, value: JSON.stringify(userData) }),
       Preferences.set({ key: STORAGE_KEYS.SESSION_EXPIRY, value: expiryTime.toString() }),
-      Preferences.set({ key: STORAGE_KEYS.REMEMBER_ME, value: rememberMe.toString() })
+      Preferences.set({ key: STORAGE_KEYS.REMEMBER_ME, value: rememberMe.toString() }),
+      Preferences.set({ key: STORAGE_KEYS.SESSION_DURATION, value: sessionDuration.toString() })
     ]);
 
     console.log('✅ Session démarrée');
-    console.log('   📅 Durée:', this.formatDuration(this.sessionDuration));
+    console.log('   🔐 Se souvenir:', rememberMe ? 'OUI' : 'NON');
+    console.log('   📅 Durée:', this.formatDuration(sessionDuration));
     console.log('   ⏰ Expire le:', new Date(expiryTime).toLocaleString());
   }
 
@@ -163,10 +172,17 @@ class SessionService {
    * Prolonge la session actuelle
    */
   async extendSession(): Promise<void> {
-    const { value: rememberMe } = await Preferences.get({ key: STORAGE_KEYS.REMEMBER_ME });
+    const [rememberMeResult, durationResult] = await Promise.all([
+      Preferences.get({ key: STORAGE_KEYS.REMEMBER_ME }),
+      Preferences.get({ key: STORAGE_KEYS.SESSION_DURATION })
+    ]);
     
-    if (rememberMe === 'true') {
-      const newExpiry = Date.now() + this.sessionDuration;
+    if (rememberMeResult.value === 'true') {
+      const sessionDuration = durationResult.value 
+        ? parseInt(durationResult.value, 10)
+        : 2 * 24 * 60 * 60 * 1000; // 2 jours par défaut
+        
+      const newExpiry = Date.now() + sessionDuration;
       await Preferences.set({
         key: STORAGE_KEYS.SESSION_EXPIRY,
         value: newExpiry.toString()
@@ -238,6 +254,25 @@ class SessionService {
   async isRememberMeEnabled(): Promise<boolean> {
     const { value } = await Preferences.get({ key: STORAGE_KEYS.REMEMBER_ME });
     return value === 'true';
+  }
+
+  /**
+   * Vérifie si c'est la première ouverture de l'application
+   */
+  async isFirstLaunch(): Promise<boolean> {
+    const { value } = await Preferences.get({ key: STORAGE_KEYS.FIRST_LAUNCH });
+    return value !== 'true';
+  }
+
+  /**
+   * Marque que l'utilisateur a complété la page de bienvenue
+   */
+  async completeFirstLaunch(): Promise<void> {
+    await Preferences.set({ 
+      key: STORAGE_KEYS.FIRST_LAUNCH, 
+      value: 'true' 
+    });
+    console.log('✅ Première ouverture complétée');
   }
 }
 

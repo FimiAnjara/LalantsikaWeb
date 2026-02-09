@@ -3,10 +3,11 @@
  * Lit directement depuis la collection Firestore 'signalements'
  * comme le fait l'application mobile, sans passer par le backend.
  */
-import { collection, getDocs, query, orderBy, onSnapshot } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, onSnapshot, where } from 'firebase/firestore'
 import { db } from '../../config/firebase'
 
 const COLLECTION_NAME = 'signalements'
+const HISTORY_COLLECTION = 'histo_statuts'
 
 /**
  * Récupérer tous les signalements depuis Firestore (lecture unique)
@@ -18,6 +19,31 @@ export async function getAllSignalements() {
     const snapshot = await getDocs(q)
 
     return snapshot.docs.map(doc => transformSignalement(doc))
+}
+
+/**
+ * Récupérer l'historique d'un signalement
+ * @param {string} signalementId - ID Firestore du signalement
+ * @returns {Promise<Array>} Liste de l'historique des statuts
+ */
+export async function getSignalementHistory(signalementId) {
+    try {
+        const colRef = collection(db, HISTORY_COLLECTION)
+        const q = query(
+            colRef, 
+            where('firebase_signalement_id', '==', signalementId),
+            orderBy('daty', 'asc')
+        )
+        const snapshot = await getDocs(q)
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: doc.data().daty ? new Date(doc.data().daty).toLocaleDateString('fr-FR') : 'N/A'
+        }))
+    } catch (error) {
+        console.error('Error fetching history:', error)
+        return []
+    }
 }
 
 /**

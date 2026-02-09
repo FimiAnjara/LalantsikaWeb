@@ -78,45 +78,111 @@
           </div>
         </div>
 
-        <!-- Diagramme d'avancement par date -->
+        <!-- Courbe d'évolution des signalements par date -->
         <div class="chart-section timeline-section">
-          <h3 class="section-title">Avancement par date</h3>
-          <div class="timeline-chart">
+          <h3 class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Évolution des signalements
+          </h3>
+          <div class="timeline-chart curve-chart">
             <div class="chart-area">
-              <!-- Lignes de grille horizontales -->
-              <div class="grid-lines">
-                <div v-for="i in 4" :key="'grid-' + i" class="grid-line" :style="{ bottom: (i * 25) + '%' }">
-                  <span class="grid-label">{{ Math.round(maxDateCount * i / 4) }}</span>
+              <!-- Lignes de grille verticales pour l'axe X (signalements) -->
+              <div class="grid-lines-vertical">
+                <div v-for="i in 5" :key="'grid-v-' + i" class="grid-line-vertical" :style="{ left: (i * 20) + '%' }">
+                  <span class="grid-label-x">{{ Math.round(maxDateCount * i / 5) }}</span>
                 </div>
               </div>
-              <!-- Barres du graphique -->
-              <div class="bars-container">
+              
+              <!-- Labels des dates sur l'axe Y -->
+              <div class="y-axis-labels">
                 <div 
                   v-for="(item, index) in dateChartData" 
-                  :key="item.label" 
-                  class="bar-group"
-                  :style="{ animationDelay: (index * 0.06 + 0.2) + 's' }"
+                  :key="'label-' + index"
+                  class="y-label"
+                  :style="{ bottom: (index / (dateChartData.length - 1) * 100) + '%' }"
                 >
-                  <div class="bar-stack">
-                    <div 
-                      v-for="seg in item.segments" 
-                      :key="seg.type"
-                      class="bar-segment"
-                      :class="'bar-' + seg.type"
-                      :style="{ height: (seg.count / maxDateCount * 100) + '%' }"
-                      :title="seg.label + ': ' + seg.count"
-                    ></div>
+                  {{ item.label }}
+                </div>
+              </div>
+              
+              <!-- SVG pour la courbe -->
+              <svg class="curve-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <!-- Dégradé sous la courbe -->
+                <defs>
+                  <linearGradient id="curveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4285F4;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#4285F4;stop-opacity:0.05" />
+                  </linearGradient>
+                </defs>
+                
+                <!-- Zone sous la courbe -->
+                <path
+                  :d="curveAreaPath"
+                  fill="url(#curveGradient)"
+                  class="curve-area"
+                />
+                
+                <!-- Ligne de la courbe -->
+                <path
+                  :d="curvePath"
+                  fill="none"
+                  stroke="#4285F4"
+                  stroke-width="0.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="curve-line"
+                />
+                
+                <!-- Points sur la courbe -->
+                <g class="curve-points">
+                  <circle
+                    v-for="(point, index) in curvePoints"
+                    :key="'point-' + index"
+                    :cx="point.x"
+                    :cy="point.y"
+                    r="1.5"
+                    fill="#1967D2"
+                    stroke="white"
+                    stroke-width="0.5"
+                    class="curve-point"
+                    :style="{ animationDelay: (index * 0.08 + 0.2) + 's' }"
+                    @mouseenter="hoveredPoint = index"
+                    @mouseleave="hoveredPoint = null"
+                  />
+                </g>
+              </svg>
+              
+              <!-- Tooltips -->
+              <div
+                v-for="(item, index) in dateChartData"
+                :key="'tooltip-' + index"
+                class="curve-tooltip"
+                :class="{ visible: hoveredPoint === index }"
+                :style="{
+                  left: (item.total / maxDateCount * 100) + '%',
+                  bottom: (index / (dateChartData.length - 1) * 100) + '%'
+                }"
+              >
+                <div class="tooltip-content">
+                  <div class="tooltip-header">{{ item.label }}</div>
+                  <div class="tooltip-row"><strong>{{ item.total }}</strong> signalements</div>
+                  <div class="tooltip-details">
+                    <div class="tooltip-detail nouveau">● {{ item.nouveau }} nouveaux</div>
+                    <div class="tooltip-detail info">● {{ item.info }} en cours</div>
+                    <div class="tooltip-detail success">● {{ item.success }} terminés</div>
                   </div>
-                  <span class="bar-label">{{ item.label }}</span>
-                  <span class="bar-total">{{ item.total }}</span>
                 </div>
               </div>
             </div>
-            <!-- Légende du graphique -->
+            
+            <!-- Légende -->
             <div class="chart-legend-inline">
-              <span class="legend-dot"><span class="dot" style="background:#EA4335"></span> Nouveau</span>
-              <span class="legend-dot"><span class="dot" style="background:#4285F4"></span> En cours</span>
-              <span class="legend-dot"><span class="dot" style="background:#34A853"></span> Terminé</span>
+              <div class="legend-axis">
+                <span class="axis-label">↔ Signalements</span>
+                <span class="axis-label">↕ Dates</span>
+              </div>
             </div>
           </div>
         </div>
@@ -204,6 +270,9 @@ defineEmits<{
 // Toggle state
 const viewMode = ref<'all' | 'mine'>('all');
 
+// Hovered point for tooltip
+const hoveredPoint = ref<number | null>(null);
+
 // Data source based on toggle
 const activeSignalements = computed(() => {
   return viewMode.value === 'mine' ? (props.mySignalements || []) : props.signalements;
@@ -287,7 +356,7 @@ const parseDate = (daty: any): Date | null => {
   return null;
 };
 
-// Date chart data: group signalements by month, stacked by status
+// Date chart data: group signalements by month for curve display
 const dateChartData = computed(() => {
   const monthMap = new Map<string, { nouveau: number; info: number; success: number }>();
   
@@ -318,14 +387,13 @@ const dateChartData = computed(() => {
     const [, m] = key.split('-');
     const monthIdx = parseInt(m) - 1;
     const total = counts.nouveau + counts.info + counts.success;
+    
     return {
       label: monthNames[monthIdx],
       total,
-      segments: [
-        { type: 'nouveau', count: counts.nouveau, label: 'Nouveau' },
-        { type: 'info', count: counts.info, label: 'En cours' },
-        { type: 'success', count: counts.success, label: 'Terminé' },
-      ]
+      nouveau: counts.nouveau,
+      info: counts.info,
+      success: counts.success
     };
   });
 });
@@ -333,6 +401,55 @@ const dateChartData = computed(() => {
 const maxDateCount = computed(() => {
   if (dateChartData.value.length === 0) return 1;
   return Math.max(...dateChartData.value.map(d => d.total), 1);
+});
+
+// Curve path computation (SVG path)
+const curvePoints = computed(() => {
+  return dateChartData.value.map((item, index) => ({
+    x: (item.total / maxDateCount.value) * 100,
+    y: 100 - (index / (dateChartData.value.length - 1) * 100)
+  }));
+});
+
+const curvePath = computed(() => {
+  if (curvePoints.value.length === 0) return '';
+  
+  let path = `M ${curvePoints.value[0].x} ${curvePoints.value[0].y}`;
+  
+  // Smooth curve using quadratic bezier
+  for (let i = 1; i < curvePoints.value.length; i++) {
+    const curr = curvePoints.value[i];
+    const prev = curvePoints.value[i - 1];
+    const cpX = (prev.x + curr.x) / 2;
+    path += ` Q ${cpX} ${prev.y}, ${curr.x} ${curr.y}`;
+  }
+  
+  return path;
+});
+
+const curveAreaPath = computed(() => {
+  if (curvePoints.value.length === 0) return '';
+  
+  const firstPoint = curvePoints.value[0];
+  const lastPoint = curvePoints.value[curvePoints.value.length - 1];
+  
+  // Start from bottom-left
+  let path = `M 0 ${firstPoint.y}`;
+  path += ` L ${firstPoint.x} ${firstPoint.y}`;
+  
+  // Follow the curve
+  for (let i = 1; i < curvePoints.value.length; i++) {
+    const curr = curvePoints.value[i];
+    const prev = curvePoints.value[i - 1];
+    const cpX = (prev.x + curr.x) / 2;
+    path += ` Q ${cpX} ${prev.y}, ${curr.x} ${curr.y}`;
+  }
+  
+  // Close path to bottom
+  path += ` L 0 ${lastPoint.y}`;
+  path += ` Z`;
+  
+  return path;
 });
 </script>
 
@@ -536,7 +653,7 @@ const maxDateCount = computed(() => {
   font-weight: 500;
 }
 
-/* ===== Timeline Chart (bar chart by date) ===== */
+/* ===== Curve Chart ===== */
 .timeline-section {
   margin-bottom: 2rem;
 }
@@ -545,107 +662,204 @@ const maxDateCount = computed(() => {
   margin-top: 0.5rem;
 }
 
+.curve-chart {
+  background: linear-gradient(to bottom, #fafbfc 0%, #ffffff 100%);
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  padding: 16px;
+}
+
 .chart-area {
   position: relative;
-  height: 180px;
-  padding-left: 32px;
-  padding-bottom: 28px;
+  height: 240px;
+  padding-left: 60px;
+  padding-bottom: 30px;
+  padding-right: 10px;
 }
 
-.grid-lines {
+/* Grille verticale pour l'axe X (signalements) */
+.grid-lines-vertical {
   position: absolute;
   top: 0;
-  left: 32px;
-  right: 0;
-  bottom: 28px;
+  left: 60px;
+  right: 10px;
+  bottom: 30px;
 }
 
-.grid-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: #e9ecef;
-}
-
-.grid-label {
-  position: absolute;
-  left: -30px;
-  top: -8px;
-  font-size: 0.65rem;
-  color: #999;
-  width: 26px;
-  text-align: right;
-}
-
-.bars-container {
+.grid-line-vertical {
   position: absolute;
   top: 0;
-  left: 32px;
-  right: 0;
-  bottom: 28px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  gap: 4px;
-  padding: 0 4px;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent 0%, #e9ecef 5%, #e9ecef 95%, transparent 100%);
 }
 
-.bar-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: 60px;
-  animation: statPopIn 0.4s ease-out both;
-}
-
-.bar-stack {
-  width: 100%;
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: stretch;
-  border-radius: 6px 6px 0 0;
-  overflow: hidden;
-  min-height: 2px;
-}
-
-.bar-segment {
-  width: 100%;
-  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  min-height: 0;
-}
-
-.bar-nouveau { background: #EA4335; }
-.bar-info { background: #4285F4; }
-.bar-success { background: #34A853; }
-
-.bar-label {
-  font-size: 0.68rem;
-  color: #666;
+.grid-label-x {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
   margin-top: 6px;
+  font-size: 0.68rem;
+  color: #6a737d;
   font-weight: 500;
 }
 
-.bar-total {
-  font-size: 0.62rem;
-  color: #999;
-  margin-top: 1px;
+/* Labels des dates sur l'axe Y */
+.y-axis-labels {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 30px;
+  width: 55px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
+.y-label {
+  position: absolute;
+  right: 8px;
+  transform: translateY(50%);
+  font-size: 0.72rem;
+  color: #0a1e37;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* SVG Courbe */
+.curve-svg {
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 10px;
+  bottom: 30px;
+  width: calc(100% - 70px);
+  height: calc(100% - 30px);
+  overflow: visible;
+}
+
+.curve-area {
+  opacity: 0;
+  animation: fadeInArea 1s ease-out 0.3s forwards;
+}
+
+@keyframes fadeInArea {
+  to { opacity: 1; }
+}
+
+.curve-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawLine 1.5s ease-out forwards;
+}
+
+@keyframes drawLine {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.curve-point {
+  opacity: 0;
+  transform-origin: center;
+  animation: popPoint 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.curve-point:hover {
+  r: 2;
+  fill: #EA4335;
+}
+
+@keyframes popPoint {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Tooltips */
+.curve-tooltip {
+  position: absolute;
+  transform: translate(8px, -50%);
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.curve-tooltip.visible {
+  opacity: 1;
+}
+
+.tooltip-content {
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-header {
+  font-weight: 700;
+  font-size: 0.75rem;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  color: #4285F4;
+}
+
+.tooltip-row {
+  margin: 4px 0;
+  font-size: 0.72rem;
+}
+
+.tooltip-details {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tooltip-detail {
+  font-size: 0.65rem;
+  margin: 3px 0;
+  opacity: 0.9;
+}
+
+.tooltip-detail.nouveau { color: #EA4335; }
+.tooltip-detail.info { color: #4285F4; }
+.tooltip-detail.success { color: #34A853; }
+
+/* Légende */
 .chart-legend-inline {
   display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-top: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e1e4e8;
 }
 
-.legend-dot {
+.legend-axis {
+  display: flex;
+  gap: 20px;
+  font-size: 0.72rem;
+  color: #6a737d;
+  font-weight: 500;
+}
+
+.axis-label {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.75rem;
-  color: #555;
+  gap: 4px;
 }
 
 .legend-dot .dot {

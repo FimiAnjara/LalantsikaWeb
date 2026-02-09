@@ -13,11 +13,11 @@ class UtilisateurSeeder extends Seeder
         DB::table('utilisateur')->insert([
             [
                 'identifiant' => 'user1',
-                'mdp' => Hash::make('manager123'),
-                'nom' => 'Randria',
-                'prenom' => 'Paul',
+                'mdp' => Hash::make('lalantsika123'),
+                'nom' => 'Lalantsika',
+                'prenom' => 'Admin',
                 'dtn' => '1995-03-10',
-                'email' => 'manager@example.com',
+                'email' => 'lalantsikaproject@gmail.com',
                 'photo_url' => '/storage/utilisateur/management.png',
                 'firebase_uid' => null,
                 'id_sexe' => 1,

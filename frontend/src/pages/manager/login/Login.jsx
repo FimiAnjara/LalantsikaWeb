@@ -23,8 +23,8 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 export default function ManagerLogin() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        email: '',
-        mdp: '',
+        email: 'lalantsikaproject@gmail.com',
+        mdp: 'lalantsika123',
         rememberMe: false,
     })
 
@@ -126,12 +126,6 @@ export default function ManagerLogin() {
                     <div className="login-form-section">
                         <div className="login-content">
                             <div className="mb-4 text-center">
-                                <img
-                                    src="/assets/logo/logo.png"
-                                    alt="LALANTSIKA"
-                                    height="50"
-                                    className="mb-3 rounded"
-                                />
                                 <h2 className="mb-2 text-dark fw-bold">Connexion Manager</h2>
                             </div>
 

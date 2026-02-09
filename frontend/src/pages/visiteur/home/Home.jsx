@@ -132,18 +132,11 @@ export default function Home() {
                             routiers directement depuis votre smartphone.
                         </p>
                         <div className="app-buttons">
-                            <a href="#" className="app-btn">
+                            <a href="https://www.mediafire.com/file/hrrgvslw6bpkv8q/Lalantsika.apk/file" className="app-btn">
                                 <CIcon icon={cibGooglePlay} size="xl" />
                                 <div>
                                     <small>Disponible sur</small>
-                                    <strong>Google Play</strong>
-                                </div>
-                            </a>
-                            <a href="#" className="app-btn">
-                                <CIcon icon={cibApple} size="xl" />
-                                <div>
-                                    <small>Télécharger sur</small>
-                                    <strong>App Store</strong>
+                                    <strong> MediaFire</strong>
                                 </div>
                             </a>
                         </div>

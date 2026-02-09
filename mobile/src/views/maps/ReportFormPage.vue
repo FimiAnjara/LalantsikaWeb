@@ -602,11 +602,15 @@ ion-button {
   gap: 1.5rem;
   font-size: 0.85rem !important;
   color: #999 !important;
+  flex-wrap: wrap;
+  word-break: break-all;
 }
 
 .coordinates-display span {
   display: flex;
   gap: 0.25rem;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 /* Formulaire */

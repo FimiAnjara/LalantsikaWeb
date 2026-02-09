@@ -234,6 +234,11 @@ const handleLoginError = (error: any) => {
       'Vérifiez votre connexion internet et réessayez.',
       'Erreur de connexion'
     );
+  } else if (error.message === 'UTILISATEUR_NON_TROUVE') {
+    toastService.error(
+      'Aucun compte trouvé. Veuillez vérifier vos identifiants.',
+      'Utilisateur non trouvé'
+    );
   } else if (error.message === 'MANAGER_NON_AUTORISE') {
     toastService.error(
       'Les managers ne peuvent pas se connecter sur l\'application mobile.',

@@ -78,14 +78,14 @@
             <span class="gm-chip-dot" style="background:#34A853;"></span>
             <span>Terminé</span>
           </button>
-          <button 
+          <!-- <button 
             class="gm-chip gm-chip--danger" 
             :class="{ active: mapFilter === 'danger' }"
             @click="mapFilter = 'danger'"
           >
             <span class="gm-chip-dot" style="background:#78909C;"></span>
             <span>Rejeté</span>
-          </button>
+          </button> -->
         </div>
       </div>
 

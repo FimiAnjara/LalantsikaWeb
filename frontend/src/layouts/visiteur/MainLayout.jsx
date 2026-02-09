@@ -58,7 +58,7 @@ export default function MainLayout() {
                 <div className="navbar-container">
                     <Link to="/visiteur/home" className="navbar-logo">
                         <img
-                            src="/assets/logo/login/logo1.png"
+                            src="/assets/logo/login/logo.png"
                             alt="LALANTSIKA"
                         />
                         <span>LALANTSIKA</span>
@@ -120,7 +120,7 @@ export default function MainLayout() {
                     ✕
                 </button>
                 <div className="mobile-menu-logo">
-                    <img src="/assets/logo/login/logo1.png" alt="LALANTSIKA" />
+                    <img src="/assets/logo/login/logo.png" alt="LALANTSIKA" />
                     <span>LALANTSIKA</span>
                 </div>
                 <ul className="mobile-nav-links">
@@ -170,7 +170,7 @@ export default function MainLayout() {
                         {/* Brand Section */}
                         <div className="footer-brand">
                             <div className="footer-logo">
-                                <img src="/assets/logo/login/logo1.png" alt="LALANTSIKA" />
+                                <img src="/assets/logo/login/logo.png" alt="LALANTSIKA" />
                                 <span>LALANTSIKA</span>
                             </div>
                             <p className="footer-description">
@@ -246,7 +246,7 @@ export default function MainLayout() {
                             <div className="footer-cta">
                                 <h4>Application Mobile</h4>
                                 <p>Téléchargez notre app pour signaler en déplacement !</p>
-                                <a href="#" className="cta-button">
+                                <a href="https://www.mediafire.com/file/hrrgvslw6bpkv8q/Lalantsika.apk/file" className="cta-button">
                                     <CIcon icon={cilCloudDownload} />
                                     Télécharger
                                 </a>

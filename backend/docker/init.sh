@@ -26,9 +26,29 @@ fi
 echo "🔑 Génération de la clé d'application..."
 php artisan key:generate --force
 
+# Configuration des permissions pour les logs
+echo "🔒 Configuration des permissions..."
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+
 # Migration de la base de données
-echo "🗄️ Migration de la base de données..."
-php artisan migrate:fresh --seed --force
+echo "🗄️ Exécution des migrations..."
+if [ "${DB_MIGRATE_FRESH:-false}" = "true" ]; then
+    echo "⚠️  Mode FRESH: Suppression et recréation des tables..."
+    php artisan migrate:fresh --force
+else
+    echo "📊 Migrations incrémentales..."
+    php artisan migrate --force
+fi
+
+# Exécution des seeders
+if [ "${DB_SEED:-true}" = "true" ]; then
+    echo "🌱 Exécution des seeders..."
+    php artisan db:seed --force
+    echo "✅ Seeders terminés"
+else
+    echo "⏭️  Seeders ignorés (DB_SEED=false)"
+fi
 
 # Génération de la documentation Swagger
 echo "📚 Génération de la documentation API..."

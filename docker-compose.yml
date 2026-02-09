@@ -4,8 +4,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: laravel_app_signalement
+    environment:
+      - DB_MIGRATE_FRESH=true  # true = migrate:fresh, false = migrate
+      - DB_SEED=true            # true = exécute les seeders, false = ignore
     volumes:
       - ./backend:/var/www/html
+    depends_on:
+      - postgres
     networks:
       - lalantsikaWeb
 

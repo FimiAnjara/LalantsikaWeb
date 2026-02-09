@@ -317,7 +317,7 @@ export default function ManagerLayout() {
                     <div className="sidebar-header">
                         <div className="sidebar-brand d-flex align-items-center justify-content-center">
                             <img
-                                src="/assets/logo/login/logo1.png"
+                                src="/assets/logo/login/logo4.png"
                                 alt="LALANTSIKA"
                                 height="60"
                                 width="60"
@@ -337,7 +337,7 @@ export default function ManagerLayout() {
             >
                 <COffcanvasHeader className="border-bottom">
                     <img
-                        src="/assets/logo/login/logo1.png"
+                        src="/assets/logo/login/logo4.png"
                         alt="LALANTSIKA"
                         height="40"
                         width="40"

@@ -254,8 +254,16 @@
         </template>
       </BottomSheet>
 
+      <!-- Lightbox pour photos du detail panel -->
+      <PhotoLightbox 
+        :photos="lightboxPhotos"
+        :initial-index="lightboxIndex"
+        :is-open="showLightbox"
+        @close="showLightbox = false"
+      />
+
       <!-- ====================== -->
-      <!-- BOTTOM SHEET: Signalements List -->
+      <!-- BOTTOM SHEET: Signalements List / Detail -->
       <!-- ====================== -->
       <BottomSheet
         ref="listSheetRef"
@@ -268,7 +276,17 @@
         @snap-change="onListSheetSnap"
       >
         <template #default="{ snap }">
+          <!-- Vue détail du signalement (remplace la liste) -->
+          <SignalementDetailPanel
+            v-if="showDetailPanel"
+            :signalement-id="detailSignalementId"
+            @back="closeDetailPanel"
+            @edit="editSignalementFromPanel"
+            @open-lightbox="onDetailLightbox"
+          />
+          <!-- Vue liste des signalements -->
           <SavedReportsCard
+            v-else
             :my-reports="filteredMyReports"
             :all-reports="filteredAllReports"
             :is-loading="isLoadingList"
@@ -354,6 +372,8 @@ import SpinnerLoader from '@/components/SpinnerLoader.vue';
 import BottomSheet from '@/components/BottomSheet.vue';
 import SavedReportsCard from '@/components/maps/SavedReportsCard.vue';
 import RecapCard from '@/components/maps/RecapCard.vue';
+import SignalementDetailPanel from '@/components/maps/SignalementDetailPanel.vue';
+import PhotoLightbox from '@/components/PhotoLightbox.vue';
 import router from '@/router';
 import { signalementService } from '@/services/signalement';
 import { authService } from '@/services/auth';
@@ -382,6 +402,15 @@ const showListSheet = ref(false);
 const markerSheetRef = ref<any>(null);
 const listSheetRef = ref<any>(null);
 const selectedSignalement = ref<Signalement | null>(null);
+
+// Detail panel state (inline in list bottom sheet)
+const showDetailPanel = ref(false);
+const detailSignalementId = ref<string>('');
+
+// Lightbox state (for detail panel photos)
+const showLightbox = ref(false);
+const lightboxIndex = ref(0);
+const lightboxPhotos = ref<string[]>([]);
 
 // Données de signalements depuis Firestore
 const allSignalements = ref<Signalement[]>([]);
@@ -706,27 +735,67 @@ const getCityName = async (lat: number, lng: number): Promise<string> => {
 
 // Gestion des signalements enregistrés
 const openReportDetails = (report: any) => {
-  // Fermer les sheets avant de naviguer
-  showListSheet.value = false;
-  showMarkerSheet.value = false;
-  // Naviguer vers la page de détails du signalement
-  router.push({ 
-    name: 'SignalementDetails', 
-    params: { id: report.firebase_id || report.id }
+  // Ouvrir le detail panel dans la sheet au lieu de naviguer
+  detailSignalementId.value = report.firebase_id || report.id;
+  showDetailPanel.value = true;
+  
+  // Mettre la sheet en mode half pour afficher le détail (scroll pour le reste)
+  nextTick(() => {
+    listSheetRef.value?.snapToPoint?.('half');
   });
+};
+
+// Fermer le panel de détail et revenir à la liste
+const closeDetailPanel = () => {
+  showDetailPanel.value = false;
+  detailSignalementId.value = '';
+  
+  // Revenir à la position peek de la liste
+  nextTick(() => {
+    listSheetRef.value?.snapToPoint?.('peek');
+  });
+};
+
+// Editer un signalement depuis le panel
+const editSignalementFromPanel = (signalement: Signalement) => {
+  showDetailPanel.value = false;
+  showListSheet.value = false;
+  if (signalement.firebase_id) {
+    router.push({
+      name: 'EditSignalement',
+      params: { id: signalement.firebase_id }
+    });
+  }
+};
+
+// Ouvrir la lightbox depuis le panel de détail
+const onDetailLightbox = (photos: string[], index: number) => {
+  lightboxPhotos.value = photos;
+  lightboxIndex.value = index;
+  showLightbox.value = true;
 };
 
 // ========== MARKER SHEET LOGIC ==========
 const onMarkerClick = (marker: any) => {
   console.log('Marqueur cliqué:', marker);
   
-  // Fermer les sheets
-  showListSheet.value = false;
+  // Fermer la marker sheet si ouverte
   showMarkerSheet.value = false;
   
-  // Naviguer directement vers la page de détails
-  router.push({ name: 'SignalementDetails', params: { id: marker.id } });
+  // Ouvrir le detail panel dans la list sheet
+  activeMenu.value = 'saved';
+  detailSignalementId.value = marker.id;
+  showDetailPanel.value = true;
+  
+  nextTick(() => {
+    showListSheet.value = true;
+    nextTick(() => {
+      listSheetRef.value?.snapToPoint?.('half');
+    });
+  });
 };
+
+// ========== MARKER SHEET LOGIC (continued)
 
 const centerMapOnPointForSheet = (lat: number, lng: number) => {
   const leafletMap = mapComponent.value?.getMapInstance?.();
@@ -769,7 +838,18 @@ const openFullDetails = () => {
   if (selectedSignalement.value) {
     const id = selectedSignalement.value.firebase_id || `sig-${selectedSignalement.value.id_signalement}`;
     showMarkerSheet.value = false;
-    router.push({ name: 'SignalementDetails', params: { id } });
+    
+    // Ouvrir le detail panel dans la list sheet
+    activeMenu.value = 'saved';
+    detailSignalementId.value = id;
+    showDetailPanel.value = true;
+    
+    nextTick(() => {
+      showListSheet.value = true;
+      nextTick(() => {
+        listSheetRef.value?.snapToPoint?.('full');
+      });
+    });
   }
 };
 
@@ -878,6 +958,10 @@ const openSignalementsList = async () => {
   activeMenu.value = 'saved';
   showMarkerSheet.value = false;
   
+  // Revenir à la liste si on est sur le détail
+  showDetailPanel.value = false;
+  detailSignalementId.value = '';
+  
   // Open list bottom sheet
   nextTick(() => {
     showListSheet.value = true;
@@ -936,6 +1020,8 @@ const backToMap = () => {
   activeMenu.value = 'map';
   showMarkerSheet.value = false;
   showListSheet.value = false;
+  showDetailPanel.value = false;
+  detailSignalementId.value = '';
   // Forcer le rafraîchissement de la carte après fermeture des modales
   setTimeout(() => {
     mapComponent.value?.invalidateSize();
@@ -947,6 +1033,8 @@ const openRecap = async () => {
   activeMenu.value = 'recap';
   showMarkerSheet.value = false;
   showListSheet.value = false;
+  showDetailPanel.value = false;
+  detailSignalementId.value = '';
   await loadSignalements(true);
 };
 </script>

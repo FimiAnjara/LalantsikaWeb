@@ -5,9 +5,7 @@ import LoginPage from '../views/auth/LoginPage.vue';
 import ProfilePage from '../views/settings/ProfilePage.vue';
 import ModePage from '../views/settings/ModePage.vue';
 import MapPage from '../views/maps/MapPage.vue';
-import ReportDetailsPage from '../views/maps/ReportDetailsPage.vue';
 import ReportFormPage from '../views/maps/ReportFormPage.vue';
-import SignalementDetailsPage from '../views/maps/SignalementDetailsPage.vue';
 import SplashPage from '../views/SplashPage.vue';
 import { sessionService } from '@/services/auth';
 import { auth } from '@/services/firebase/config';
@@ -23,6 +21,7 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/splash',
+    name: 'SplashPage',
     component: SplashPage
   },
   {
@@ -60,18 +59,6 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/report/:id',
-    name: 'ReportDetails',
-    component: ReportDetailsPage,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/signalement/:id',
-    name: 'SignalementDetails',
-    component: SignalementDetailsPage,
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/signalement/:id/edit',
     name: 'EditSignalement',
     component: ReportFormPage,
@@ -84,11 +71,6 @@ const routes: Array<RouteRecordRaw> = [
     component: ReportFormPage,
     meta: { requiresAuth: true }
   },
-  {
-    path: '/splash',
-    name: 'SplashPage',
-    component: SplashPage
-  }
 ]
 
 const router = createRouter({
@@ -102,15 +84,6 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const routeName = to.name as string;
   const requiresAuth = to.meta.requiresAuth === true;
-
-  // Vérifier si c'est la première ouverture de l'app
-  // Si oui, rediriger vers Welcome (sauf si on vient de Splash ou qu'on est déjà sur Welcome)
-  const isFirstLaunch = await sessionService.isFirstLaunch();
-  
-  if (isFirstLaunch && routeName !== 'Welcome' && routeName !== 'SplashPage') {
-    console.log('👋 Première ouverture, redirection vers Welcome');
-    return next({ name: 'Welcome' });
-  }
 
   // Routes publiques - pas de vérification
   if (!requiresAuth || publicRoutes.includes(routeName)) {
@@ -130,7 +103,6 @@ router.beforeEach(async (to, from, next) => {
   
   if (!isSessionValid) {
     console.log('⏰ Session expirée, redirection vers Login');
-    // Optionnel: afficher un toast
     return next({ name: 'Login' });
   }
 

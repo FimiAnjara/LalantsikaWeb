@@ -78,100 +78,102 @@
           </div>
         </div>
 
-        <!-- Courbe d'évolution des signalements par date -->
+        <!-- Courbe de progression des signalements par mois -->
         <div class="chart-section timeline-section">
           <h3 class="section-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
-            Évolution des signalements
+            Progression des statuts par mois
           </h3>
-          <div class="timeline-chart curve-chart">
-            <div class="chart-area">
-              <!-- Lignes de grille verticales pour l'axe X (signalements) -->
-              <div class="grid-lines-vertical">
-                <div v-for="i in 5" :key="'grid-v-' + i" class="grid-line-vertical" :style="{ left: (i * 20) + '%' }">
-                  <span class="grid-label-x">{{ Math.round(maxDateCount * i / 5) }}</span>
-                </div>
-              </div>
-              
-              <!-- Labels des dates sur l'axe Y -->
-              <div class="y-axis-labels">
-                <div 
-                  v-for="(item, index) in dateChartData" 
-                  :key="'label-' + index"
-                  class="y-label"
-                  :style="{ bottom: (index / (dateChartData.length - 1) * 100) + '%' }"
-                >
-                  {{ item.label }}
+          <div class="timeline-chart curve-chart" @click.self="selectedPoint = null">
+            <div class="chart-area" @click.self="selectedPoint = null">
+              <!-- Lignes de grille horizontales (pourcentages) -->
+              <div class="grid-lines-horizontal">
+                <div v-for="i in 6" :key="'grid-h-' + i" class="grid-line-horizontal" :style="{ bottom: ((i - 1) * 20) + '%' }">
+                  <span class="grid-label-y">{{ (i - 1) * 20 }}%</span>
                 </div>
               </div>
               
               <!-- SVG pour la courbe -->
-              <svg class="curve-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <svg class="curve-svg" :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
                 <!-- Dégradé sous la courbe -->
                 <defs>
-                  <linearGradient id="curveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style="stop-color:#4285F4;stop-opacity:0.3" />
-                    <stop offset="100%" style="stop-color:#4285F4;stop-opacity:0.05" />
+                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4285F4;stop-opacity:0.25" />
+                    <stop offset="100%" style="stop-color:#4285F4;stop-opacity:0.02" />
                   </linearGradient>
                 </defs>
                 
                 <!-- Zone sous la courbe -->
                 <path
-                  :d="curveAreaPath"
-                  fill="url(#curveGradient)"
+                  v-if="progressAreaPath"
+                  :d="progressAreaPath"
+                  fill="url(#progressGradient)"
                   class="curve-area"
                 />
                 
                 <!-- Ligne de la courbe -->
                 <path
-                  :d="curvePath"
+                  v-if="progressCurvePath"
+                  :d="progressCurvePath"
                   fill="none"
                   stroke="#4285F4"
-                  stroke-width="0.8"
+                  :stroke-width="chartHeight * 0.012"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   class="curve-line"
                 />
                 
-                <!-- Points sur la courbe -->
+                <!-- Points cliquables -->
                 <g class="curve-points">
                   <circle
-                    v-for="(point, index) in curvePoints"
+                    v-for="(point, index) in progressPoints"
                     :key="'point-' + index"
                     :cx="point.x"
                     :cy="point.y"
-                    r="1.5"
-                    fill="#1967D2"
+                    :r="selectedPoint === index ? chartHeight * 0.025 : chartHeight * 0.018"
+                    :fill="selectedPoint === index ? '#EA4335' : '#1967D2'"
                     stroke="white"
-                    stroke-width="0.5"
+                    :stroke-width="chartHeight * 0.008"
                     class="curve-point"
+                    :class="{ active: selectedPoint === index }"
                     :style="{ animationDelay: (index * 0.08 + 0.2) + 's' }"
-                    @mouseenter="hoveredPoint = index"
-                    @mouseleave="hoveredPoint = null"
+                    @click.stop="toggleTooltip(index)"
                   />
                 </g>
               </svg>
+
+              <!-- Labels mois sur l'axe X -->
+              <div class="x-axis-labels">
+                <span 
+                  v-for="(item, index) in progressChartData" 
+                  :key="'xlabel-' + index"
+                  class="x-label"
+                  :style="{ left: progressPoints[index] ? (progressPoints[index].x / chartWidth * 100) + '%' : '0%' }"
+                >
+                  {{ item.label }}
+                </span>
+              </div>
               
-              <!-- Tooltips -->
+              <!-- Tooltips (positionnés au-dessus des points) -->
               <div
-                v-for="(item, index) in dateChartData"
+                v-for="(item, index) in progressChartData"
                 :key="'tooltip-' + index"
                 class="curve-tooltip"
-                :class="{ visible: hoveredPoint === index }"
+                :class="{ visible: selectedPoint === index }"
                 :style="{
-                  left: (item.total / maxDateCount * 100) + '%',
-                  bottom: (index / (dateChartData.length - 1) * 100) + '%'
+                  left: progressPoints[index] ? (progressPoints[index].x / chartWidth * 100) + '%' : '0%',
+                  bottom: progressPoints[index] ? ((chartHeight - progressPoints[index].y) / chartHeight * 100) + '%' : '0%'
                 }"
               >
                 <div class="tooltip-content">
-                  <div class="tooltip-header">{{ item.label }}</div>
-                  <div class="tooltip-row"><strong>{{ item.total }}</strong> signalements</div>
+                  <div class="tooltip-header">{{ item.label }} — {{ item.progression.toFixed(0) }}%</div>
+                  <div class="tooltip-row"><strong>{{ item.total }}</strong> signalement{{ item.total > 1 ? 's' : '' }}</div>
                   <div class="tooltip-details">
-                    <div class="tooltip-detail nouveau">● {{ item.nouveau }} nouveaux</div>
-                    <div class="tooltip-detail info">● {{ item.info }} en cours</div>
-                    <div class="tooltip-detail success">● {{ item.success }} terminés</div>
+                    <div class="tooltip-detail nouveau">● {{ item.nouveau }} Nouveau{{ item.nouveau > 1 ? 'x' : '' }} (0%)</div>
+                    <div class="tooltip-detail info">● {{ item.info }} En cours (50%)</div>
+                    <div class="tooltip-detail success">● {{ item.success }} Terminé{{ item.success > 1 ? 's' : '' }} (100%)</div>
                   </div>
                 </div>
               </div>
@@ -180,8 +182,8 @@
             <!-- Légende -->
             <div class="chart-legend-inline">
               <div class="legend-axis">
-                <span class="axis-label">↔ Signalements</span>
-                <span class="axis-label">↕ Dates</span>
+                <span class="axis-label"><span class="legend-dot"><span class="dot" style="background:#4285F4"></span></span> Progression moyenne</span>
+                <span class="axis-label">↔ Mois &nbsp; ↕ Pourcentage</span>
               </div>
             </div>
           </div>
@@ -270,8 +272,12 @@ defineEmits<{
 // Toggle state
 const viewMode = ref<'all' | 'mine'>('all');
 
-// Hovered point for tooltip
-const hoveredPoint = ref<number | null>(null);
+// Hovered/selected point for tooltip (click-based for mobile)
+const selectedPoint = ref<number | null>(null);
+
+const toggleTooltip = (index: number) => {
+  selectedPoint.value = selectedPoint.value === index ? null : index;
+};
 
 // Data source based on toggle
 const activeSignalements = computed(() => {
@@ -356,8 +362,14 @@ const parseDate = (daty: any): Date | null => {
   return null;
 };
 
-// Date chart data: group signalements by month for curve display
-const dateChartData = computed(() => {
+// Chart dimensions (virtual SVG units)
+const chartWidth = 300;
+const chartHeight = 200;
+const chartPadding = { left: 10, right: 10, top: 15, bottom: 10 };
+
+// Chart data: group signalements by month, compute progression %
+// Progression = (nouveau*0 + en_cours*50 + terminé*100) / total
+const progressChartData = computed(() => {
   const monthMap = new Map<string, { nouveau: number; info: number; success: number }>();
   
   activeSignalements.value.forEach(sig => {
@@ -369,17 +381,13 @@ const dateChartData = computed(() => {
     }
     const bucket = monthMap.get(key)!;
     const type = getStatutType(sig.statut.id_statut);
-    if (type === 'nouveau') bucket.nouveau++;
-    else if (type === 'info') bucket.info++;
+    if (type === 'info') bucket.info++;
     else if (type === 'success') bucket.success++;
-    else bucket.nouveau++; // fallback
+    else bucket.nouveau++;
   });
 
-  // Sort by date key
   const sorted = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-
-  // Take last 6 months max
-  const recent = sorted.slice(-6);
+  const recent = sorted.slice(-12);
 
   const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
@@ -387,68 +395,71 @@ const dateChartData = computed(() => {
     const [, m] = key.split('-');
     const monthIdx = parseInt(m) - 1;
     const total = counts.nouveau + counts.info + counts.success;
+    const progression = total > 0
+      ? (counts.nouveau * 0 + counts.info * 50 + counts.success * 100) / total
+      : 0;
     
     return {
       label: monthNames[monthIdx],
       total,
       nouveau: counts.nouveau,
       info: counts.info,
-      success: counts.success
+      success: counts.success,
+      progression
     };
   });
 });
 
-const maxDateCount = computed(() => {
-  if (dateChartData.value.length === 0) return 1;
-  return Math.max(...dateChartData.value.map(d => d.total), 1);
+// Points on progression curve (x = evenly spaced months, y = percentage inverted)
+const progressPoints = computed(() => {
+  const n = progressChartData.value.length;
+  if (n === 0) return [];
+  const usableW = chartWidth - chartPadding.left - chartPadding.right;
+  const usableH = chartHeight - chartPadding.top - chartPadding.bottom;
+  
+  return progressChartData.value.map((item, index) => {
+    const x = n === 1
+      ? chartPadding.left + usableW / 2
+      : chartPadding.left + (index / (n - 1)) * usableW;
+    const y = chartPadding.top + (1 - item.progression / 100) * usableH;
+    return { x, y };
+  });
 });
 
-// Curve path computation (SVG path)
-const curvePoints = computed(() => {
-  return dateChartData.value.map((item, index) => ({
-    x: (item.total / maxDateCount.value) * 100,
-    y: 100 - (index / (dateChartData.value.length - 1) * 100)
-  }));
-});
-
-const curvePath = computed(() => {
-  if (curvePoints.value.length === 0) return '';
+// Smooth bezier path through progression points
+const progressCurvePath = computed(() => {
+  const pts = progressPoints.value;
+  if (pts.length === 0) return '';
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
   
-  let path = `M ${curvePoints.value[0].x} ${curvePoints.value[0].y}`;
-  
-  // Smooth curve using quadratic bezier
-  for (let i = 1; i < curvePoints.value.length; i++) {
-    const curr = curvePoints.value[i];
-    const prev = curvePoints.value[i - 1];
+  let path = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const curr = pts[i];
     const cpX = (prev.x + curr.x) / 2;
-    path += ` Q ${cpX} ${prev.y}, ${curr.x} ${curr.y}`;
+    path += ` C ${cpX} ${prev.y}, ${cpX} ${curr.y}, ${curr.x} ${curr.y}`;
   }
-  
   return path;
 });
 
-const curveAreaPath = computed(() => {
-  if (curvePoints.value.length === 0) return '';
+// Area path under the curve (for gradient fill)
+const progressAreaPath = computed(() => {
+  const pts = progressPoints.value;
+  if (pts.length < 2) return '';
   
-  const firstPoint = curvePoints.value[0];
-  const lastPoint = curvePoints.value[curvePoints.value.length - 1];
+  const bottomY = chartHeight - chartPadding.bottom;
+  let path = `M ${pts[0].x} ${bottomY}`;
+  path += ` L ${pts[0].x} ${pts[0].y}`;
   
-  // Start from bottom-left
-  let path = `M 0 ${firstPoint.y}`;
-  path += ` L ${firstPoint.x} ${firstPoint.y}`;
-  
-  // Follow the curve
-  for (let i = 1; i < curvePoints.value.length; i++) {
-    const curr = curvePoints.value[i];
-    const prev = curvePoints.value[i - 1];
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const curr = pts[i];
     const cpX = (prev.x + curr.x) / 2;
-    path += ` Q ${cpX} ${prev.y}, ${curr.x} ${curr.y}`;
+    path += ` C ${cpX} ${prev.y}, ${cpX} ${curr.y}, ${curr.x} ${curr.y}`;
   }
   
-  // Close path to bottom
-  path += ` L 0 ${lastPoint.y}`;
+  path += ` L ${pts[pts.length - 1].x} ${bottomY}`;
   path += ` Z`;
-  
   return path;
 });
 </script>
@@ -672,56 +683,53 @@ const curveAreaPath = computed(() => {
 .chart-area {
   position: relative;
   height: 240px;
-  padding-left: 60px;
-  padding-bottom: 30px;
-  padding-right: 10px;
+  padding-left: 36px;
+  padding-bottom: 28px;
+  padding-right: 8px;
+  padding-top: 8px;
 }
 
-/* Grille verticale pour l'axe X (signalements) */
-.grid-lines-vertical {
+/* Lignes de grille horizontales (pourcentages) */
+.grid-lines-horizontal {
   position: absolute;
-  top: 0;
-  left: 60px;
-  right: 10px;
-  bottom: 30px;
+  top: 8px;
+  left: 36px;
+  right: 8px;
+  bottom: 28px;
 }
 
-.grid-line-vertical {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: linear-gradient(to bottom, transparent 0%, #e9ecef 5%, #e9ecef 95%, transparent 100%);
-}
-
-.grid-label-x {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 6px;
-  font-size: 0.68rem;
-  color: #6a737d;
-  font-weight: 500;
-}
-
-/* Labels des dates sur l'axe Y */
-.y-axis-labels {
+.grid-line-horizontal {
   position: absolute;
   left: 0;
-  top: 0;
-  bottom: 30px;
-  width: 55px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  right: 0;
+  height: 1px;
+  background: #e9ecef;
 }
 
-.y-label {
+.grid-label-y {
   position: absolute;
+  right: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.65rem;
+  color: #6a737d;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Labels mois sur l'axe X */
+.x-axis-labels {
+  position: absolute;
+  left: 36px;
   right: 8px;
-  transform: translateY(50%);
-  font-size: 0.72rem;
+  bottom: 0;
+  height: 24px;
+}
+
+.x-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.68rem;
   color: #0a1e37;
   font-weight: 600;
   white-space: nowrap;
@@ -730,12 +738,12 @@ const curveAreaPath = computed(() => {
 /* SVG Courbe */
 .curve-svg {
   position: absolute;
-  top: 0;
-  left: 60px;
-  right: 10px;
-  bottom: 30px;
-  width: calc(100% - 70px);
-  height: calc(100% - 30px);
+  top: 8px;
+  left: 36px;
+  right: 8px;
+  bottom: 28px;
+  width: calc(100% - 44px);
+  height: calc(100% - 36px);
   overflow: visible;
 }
 
@@ -765,12 +773,11 @@ const curveAreaPath = computed(() => {
   transform-origin: center;
   animation: popPoint 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
-.curve-point:hover {
-  r: 2;
-  fill: #EA4335;
+.curve-point.active {
+  filter: drop-shadow(0 0 4px rgba(234, 67, 53, 0.5));
 }
 
 @keyframes popPoint {
@@ -787,11 +794,12 @@ const curveAreaPath = computed(() => {
 /* Tooltips */
 .curve-tooltip {
   position: absolute;
-  transform: translate(8px, -50%);
+  transform: translate(-50%, -100%);
+  margin-bottom: 12px;
   pointer-events: none;
   z-index: 100;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .curve-tooltip.visible {
@@ -862,7 +870,14 @@ const curveAreaPath = computed(() => {
   gap: 4px;
 }
 
+.legend-dot {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
 .legend-dot .dot {
+  display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 3px;

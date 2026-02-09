@@ -10,6 +10,18 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="profile-page">
+      <!-- Pull-to-refresh (geste invisible, spinner custom) -->
+      <ion-refresher slot="fixed" :pull-factor="0.5" :pull-min="60" :pull-max="120" @ionRefresh="handleRefresh($event)">
+        <ion-refresher-content pulling-text="Tirer pour actualiser" :refreshing-spinner="null" refreshing-text="" />
+      </ion-refresher>
+
+      <!-- Spinner fullscreen pour pull-to-refresh -->
+      <SpinnerLoader 
+        v-if="isRefreshing" 
+        :fullscreen="true" 
+        message="Actualisation du profil..." 
+      />
+
       <!-- Profile Header -->
       <div class="profile-header">
         <div class="avatar-container" @click="changeProfilePhoto">
@@ -146,6 +158,8 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
+  IonRefresher,
+  IonRefresherContent,
   IonButtons,
   IonBackButton,
   IonButton,
@@ -168,6 +182,7 @@ import {
   checkmarkOutline,
   logOutOutline,
 } from 'ionicons/icons';
+import SpinnerLoader from '@/components/SpinnerLoader.vue';
 import { authService } from '@/services/auth';
 import { getFullName } from '@/models/User';
 import { photoService } from '@/services/photo';
@@ -180,6 +195,7 @@ const routerInstance = useRouter();
 const isEditing = ref(false);
 const loading = ref(true);
 const isUploadingPhoto = ref(false);
+const isRefreshing = ref(false);
 
 const user = ref({
   id: 0,
@@ -197,7 +213,7 @@ const user = ref({
 const originalUser = ref({ ...user.value });
 
 // Charger les données utilisateur
-onMounted(async () => {
+const loadProfile = async () => {
   try {
     const currentUser = await authService.getCurrentUser();
     
@@ -208,15 +224,14 @@ onMounted(async () => {
         prenom: currentUser.prenom || '',
         nom: currentUser.nom || '',
         email: currentUser.email || '',
-        phone: '', // Le champ phone n'existe pas dans le modèle actuel
+        phone: '',
         identifiant: currentUser.identifiant || '',
         photoUrl: currentUser.photoUrl || '',
-        reportsCount: 0, // À calculer depuis la base de données
+        reportsCount: 0,
         joinDate: formatJoinDate(currentUser.last_sync_at || new Date().toISOString())
       };
       originalUser.value = { ...user.value };
     } else {
-      // Rediriger vers login si pas d'utilisateur
       router.push({ name: 'Login' });
     }
   } catch (error) {
@@ -230,7 +245,24 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+};
+
+onMounted(() => loadProfile());
+
+// Pull-to-refresh handler
+const handleRefresh = async (event: CustomEvent) => {
+  // Fermer le refresher Ionic immédiatement
+  (event.target as HTMLIonRefresherElement).complete();
+  
+  // Afficher notre spinner custom
+  isRefreshing.value = true;
+  
+  try {
+    await loadProfile();
+  } finally {
+    isRefreshing.value = false;
+  }
+};
 
 // Formater la date d'inscription
 const formatJoinDate = (dateString?: string) => {

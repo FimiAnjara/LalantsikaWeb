@@ -2,9 +2,14 @@
   <ion-page>
     <ion-content :fullscreen="true" class="map-page">
       
-      <!-- Spinner Fullscreen pour recherche de ville, suppression et déconnexion -->
+      <!-- Pull-to-refresh (désactivé en vue carte pour éviter les déclenchements accidentels) -->
+      <ion-refresher slot="fixed" :disabled="activeMenu === 'map'" :pull-factor="0.4" :pull-min="100" :pull-max="200" @ionRefresh="handleRefresh($event)">
+        <ion-refresher-content pulling-text="Tirer pour actualiser" :refreshing-spinner="null" refreshing-text="" />
+      </ion-refresher>
+
+      <!-- Spinner Fullscreen pour recherche de ville, suppression, déconnexion ET pull-to-refresh -->
       <SpinnerLoader 
-        v-if="isSearching || isDeleting || isLoggingOut" 
+        v-if="isSearching || isDeleting || isLoggingOut || isRefreshing" 
         :fullscreen="true" 
         :message="loadingMessage" 
       />
@@ -366,7 +371,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { IonPage, IonContent, alertController, actionSheetController, onIonViewWillEnter } from '@ionic/vue';
+import { IonPage, IonContent, IonRefresher, IonRefresherContent, alertController, actionSheetController, onIonViewWillEnter } from '@ionic/vue';
 import MapComponent from '@/components/MapComponent.vue';
 import SpinnerLoader from '@/components/SpinnerLoader.vue';
 import BottomSheet from '@/components/BottomSheet.vue';
@@ -394,6 +399,7 @@ const loadingMessage = ref('Chargement...');
 const mapFilter = ref<'all' | 'mine'>('all');
 const userPhotoUrl = ref<string | null>(null);
 const isLoggingOut = ref(false);
+const isRefreshing = ref(false);
 const bottomMenuHeight = 72;
 
 // Bottom sheet states
@@ -549,6 +555,27 @@ const loadSignalements = async (showLoader = false) => {
 const refreshData = async () => {
   await loadSignalements();
   toastService.success('Données actualisées');
+};
+
+// Pull-to-refresh handler
+const handleRefresh = async (event: CustomEvent) => {
+  // Fermer le refresher Ionic immédiatement
+  (event.target as HTMLIonRefresherElement).complete();
+  
+  // Afficher notre spinner custom
+  isRefreshing.value = true;
+  loadingMessage.value = 'Synchronisation...';
+  
+  try {
+    await loadSignalements();
+    await loadUserPhoto();
+    toastService.success('Données synchronisées');
+  } catch (error) {
+    console.error('Erreur lors du rafraîchissement:', error);
+    toastService.error('Erreur de synchronisation');
+  } finally {
+    isRefreshing.value = false;
+  }
 };
 
 const goToProfile = () => {
@@ -781,6 +808,9 @@ const onMarkerClick = (marker: any) => {
   
   // Fermer la marker sheet si ouverte
   showMarkerSheet.value = false;
+  
+  // Centrer et zoomer sur le marqueur (comme "Localiser")
+  centerMapOnPointForSheet(marker.lat, marker.lng);
   
   // Ouvrir le detail panel dans la list sheet
   activeMenu.value = 'saved';

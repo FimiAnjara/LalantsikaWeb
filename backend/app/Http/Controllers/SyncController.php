@@ -497,6 +497,70 @@ class SyncController extends Controller
     }
 
     /**
+     * Obtenir le statut de synchronisation des signalements modifiés (budget et entreprise)
+     * PostgreSQL -> Firebase
+     * 
+     * @OA\Get(
+     *     path="/api/sync/signalements/to-firebase/status",
+     *     summary="Obtenir le statut de synchronisation des signalements vers Firebase",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Statut de synchronisation des signalements"
+     *     )
+     * )
+     */
+    public function signalementsToFirebaseStatus()
+    {
+        try {
+            // Debug: Compter TOUS les signalements d'abord
+            $allSignalements = Signalement::count();
+            Log::info("DEBUG: Total signalements dans la table: {$allSignalements}");
+            
+            // Compter seulement les signalements qui ont un budget ET une entreprise assignée
+            $total = Signalement::whereNotNull('budget')
+                ->whereNotNull('id_entreprise')
+                ->count();
+            
+            Log::info("DEBUG: Signalements avec budget ET entreprise: {$total}");
+            
+            // Compter ceux qui sont synchronisés (synchronized = true)
+            $synced = Signalement::where('synchronized', true)
+                ->whereNotNull('budget')
+                ->whereNotNull('id_entreprise')
+                ->count();
+            
+            Log::info("DEBUG: Signalements synced: {$synced}");
+            
+            // Compter ceux qui ne sont pas synchronisés (synchronized = false ou null)
+            $notSynced = Signalement::whereRaw('synchronized = false OR synchronized IS NULL')
+                ->whereNotNull('budget')
+                ->whereNotNull('id_entreprise')
+                ->count();
+
+            Log::info("signalementsToFirebaseStatus: total={$total}, synced={$synced}, notSynced={$notSynced}");
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total' => $total,
+                    'synchronises' => $synced,
+                    'non_synchronises' => $notSynced,
+                    'pourcentage_sync' => $total > 0 ? round(($synced / $total) * 100, 2) : 0
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur récupération statut signalements: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération du statut des signalements',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Obtenir le statut de synchronisation des statuts_utilisateurs Firebase -> PostgreSQL
      * 
      * @OA\Get(
@@ -1992,6 +2056,150 @@ class SyncController extends Controller
             }
         } catch (\Exception $e) {
             Log::error("Erreur mise à jour statut signalement {$idSignalement} dans Firestore: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Synchroniser les signalements modifiés (budget et entreprise) de PostgreSQL vers Firebase
+     * 
+     * @OA\Post(
+     *     path="/api/sync/signalements/to-firebase",
+     *     summary="Synchroniser les signalements modifiés vers Firebase",
+     *     tags={"Synchronisation"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Synchronisation réussie"
+     *     )
+     * )
+     */
+    public function syncSignalementsToFirebase()
+    {
+        try {
+            // Récupérer les signalements non synchronisés (synchronized = false ou null) 
+            // ET qui ont un budget ET une entreprise assignée
+            $signalements = Signalement::whereRaw('synchronized = false OR synchronized IS NULL')
+                ->whereNotNull('budget')
+                ->whereNotNull('id_entreprise')
+                ->with(['utilisateur', 'entreprise', 'statut'])
+                ->get();
+
+            Log::info("Signalements à synchroniser vers Firebase: " . $signalements->count());
+
+            if ($signalements->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aucun signalement à synchroniser',
+                    'data' => [
+                        'total' => 0,
+                        'synced' => 0,
+                        'failed' => 0
+                    ]
+                ]);
+            }
+
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($signalements as $signalement) {
+                try {
+                    $this->syncSingleSignalementToFirebase($signalement);
+                    $synced++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = [
+                        'id' => $signalement->id_signalement,
+                        'error' => $e->getMessage()
+                    ];
+                    Log::error("Erreur sync signalement {$signalement->id_signalement} vers Firebase: " . $e->getMessage());
+                }
+            }
+
+            Log::info("✅ Sync signalements vers Firebase: {$synced} réussis, {$failed} échoués");
+
+            return response()->json([
+                'success' => true,
+                'message' => "Synchronisation signalements vers Firebase terminée",
+                'data' => [
+                    'total' => $signalements->count(),
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur globale sync signalements vers Firebase: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la synchronisation',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Synchroniser un seul signalement vers Firebase (budget et entreprise)
+     */
+    private function syncSingleSignalementToFirebase(Signalement $signalement)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Trouver le document Firebase correspondant au signalement PostgreSQL
+            $firebaseSignalementId = null;
+            $allSignalements = $this->firebaseRestService->getCollection('signalements');
+            
+            foreach ($allSignalements as $docId => $doc) {
+                if (isset($doc['id_signalement_postgres']) && $doc['id_signalement_postgres'] == $signalement->id_signalement) {
+                    $firebaseSignalementId = $docId;
+                    break;
+                }
+            }
+
+            if (!$firebaseSignalementId) {
+                throw new \Exception("Signalement {$signalement->id_signalement} non trouvé dans Firestore");
+            }
+
+            // Récupérer le document existant
+            $existingDoc = $this->firebaseRestService->getDocument('signalements', $firebaseSignalementId);
+            if (!$existingDoc) {
+                throw new \Exception("Impossible de récupérer le document existant");
+            }
+
+            // Ajouter/mettre à jour les champs budget et entreprise
+            $existingDoc['budget'] = $signalement->budget;
+            $existingDoc['id_entreprise'] = $signalement->id_entreprise;
+            $existingDoc['synchronized'] = true;
+            $existingDoc['last_sync_at'] = now()->toIso8601String();
+
+            // Si l'entreprise existe, ajouter son objet complet
+            if ($signalement->entreprise) {
+                $existingDoc['entreprise'] = [
+                    'id_entreprise' => $signalement->entreprise->id_entreprise,
+                    'nom_entreprise' => $signalement->entreprise->nom_entreprise ?? $signalement->entreprise->nom,
+                    'contact' => $signalement->entreprise->contact
+                ];
+            }
+
+            // Mettre à jour le document dans Firestore (fusion complète)
+            $this->firebaseRestService->saveDocument(
+                'signalements',
+                $firebaseSignalementId,
+                $existingDoc
+            );
+
+            // Marquer le signalement comme synchronisé dans PostgreSQL
+            $signalement->update(['synchronized' => true]);
+
+            DB::commit();
+
+            Log::info("✅ Signalement {$signalement->id_signalement} synchronisé vers Firebase (budget: {$signalement->budget}, entreprise: {$signalement->id_entreprise})");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Erreur sync signalement {$signalement->id_signalement}: " . $e->getMessage());
             throw $e;
         }
     }

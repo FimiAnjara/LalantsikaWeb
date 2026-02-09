@@ -209,10 +209,11 @@ export default function SignalementFiche() {
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
             
-            // Mettre à jour le signalement (id_entreprise et budget seulement, pas de changement de statut)
+            // Mettre à jour le signalement (id_entreprise, budget et synchronized=false)
             const updateData = {
                 id_entreprise: selectedEntreprise,
-                budget: assignBudget
+                budget: assignBudget,
+                synchronized: false  // Marquer comme non synchronisé pour sync avec Firebase
             }
             
             // Ajouter la surface seulement si elle est renseignée
@@ -235,7 +236,7 @@ export default function SignalementFiche() {
                 throw new Error(result.message || 'Erreur lors de la mise à jour')
             }
 
-            setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement assigné avec succès.' })
+            setModal({ visible: true, type: 'success', title: 'Succès', message: 'Signalement assigné avec succès. Synchronisation en attente.' })
             setAssignModal({ visible: false })
             // Recharger le signalement
             setTimeout(() => {
@@ -258,17 +259,15 @@ export default function SignalementFiche() {
         }
     }
 
-    // Construire l'URL de la photo de l'utilisateur
-    const buildUserPhotoUrl = () => {
-        if (!signalement?.utilisateur?.photo_url) return null
-        
-        const photoPath = signalement.utilisateur.photo_url
-        // Si c'est une URL locale, la convertir en API URL
-        if (photoPath.includes('/storage/utilisateur/')) {
-            return `/api/storage/${photoPath.split('/storage/')[1]}`
+    // Helper pour construire l'URL de la photo (locale ou externe)
+    const getPhotoUrl = (photoUrl) => {
+        if (!photoUrl) return null
+        // Si l'URL commence par http, c'est une URL externe (imgBB, etc.)
+        if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+            return photoUrl
         }
-        // Sinon retourner telle quelle (URL externe ImgBB)
-        return photoPath
+        // Sinon, c'est un chemin local Laravel
+        return `${API_BASE_URL}${photoUrl}`
     }
 
     const handleDelete = () => {
@@ -479,38 +478,14 @@ export default function SignalementFiche() {
                             <h5 className="mb-0 fw-bold">Rapporté par</h5>
                         </CCardHeader>
                         <CCardBody className="p-4 text-center">
-                            <div className="mb-3">
-                                {buildUserPhotoUrl() ? (
-                                    <div style={{ 
-                                        width: '120px', 
-                                        height: '120px', 
-                                        margin: '0 auto 12px',
-                                        borderRadius: '50%',
-                                        overflow: 'hidden',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                        border: '3px solid #fff'
-                                    }}>
-                                        <img 
-                                            src={buildUserPhotoUrl()} 
-                                            alt={`${signalement.utilisateur.prenom} ${signalement.utilisateur.nom}`}
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover'
-                                            }}
-                                            onError={(e) => {
-                                                // Si l'image ne peut pas être chargée, afficher les initiales
-                                                e.target.style.display = 'none'
-                                            }}
-                                        />
+                            <div className="mb-3 d-flex justify-content-center">
+                                {signalement.utilisateur?.photo_url ? (
+                                    <div className="profile-photo-wrapper">
+                                        <img src={getPhotoUrl(signalement.utilisateur.photo_url)} alt={`${signalement.utilisateur.prenom} ${signalement.utilisateur.nom}`} className="profile-photo" />
                                     </div>
                                 ) : (
                                     <CAvatar size="xl" className="profile-avatar mb-2 shadow-sm">
-                                        {signalement.utilisateur && signalement.utilisateur.prenom && signalement.utilisateur.nom ? (
-                                            <>
-                                                {signalement.utilisateur.prenom.charAt(0)}{signalement.utilisateur.nom.charAt(0)}
-                                            </>
-                                        ) : null}
+                                        {signalement.utilisateur?.prenom?.charAt(0) || ''}{signalement.utilisateur?.nom?.charAt(0) || ''}
                                     </CAvatar>
                                 )}
                             </div>

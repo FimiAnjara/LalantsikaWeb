@@ -301,6 +301,7 @@ class SignalementController extends Controller
                 'id_entreprise' => 'nullable|exists:entreprise,id_entreprise',
                 'latitude' => 'nullable|numeric',
                 'longitude' => 'nullable|numeric',
+                'synchronized' => 'nullable|boolean',
             ]);
 
             $updated = false;
@@ -320,6 +321,10 @@ class SignalementController extends Controller
             }
             if ($request->has('budget')) {
                 $signalement->budget = $request->budget;
+                $updated = true;
+            }
+            if ($request->has('synchronized')) {
+                $signalement->synchronized = $request->synchronized;
                 $updated = true;
             }
 

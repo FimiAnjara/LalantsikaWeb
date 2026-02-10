@@ -27,7 +27,7 @@ class UtilisateurSeeder extends Seeder
             ],
             [
                 'identifiant' => 'user1',
-                'mdp' => Hash::make('user123'),
+                'mdp' => 'user123',
                 'nom' => 'Teste',
                 'prenom' => 'User',
                 'dtn' => '1995-03-10',

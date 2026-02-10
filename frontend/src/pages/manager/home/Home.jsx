@@ -201,8 +201,11 @@ export default function ManagerHome() {
             const entreprise = sig.entreprise
             if (!entreprise) return
             
-            const id = entreprise.id_entreprise
+            // L'API retourne id, pas id_entreprise
+            const id = entreprise.id || entreprise.id_entreprise
             const nom = entreprise.nom || `Entreprise #${id}`
+            
+            if (!id) return
             
             if (!entreprisesMap.has(id)) {
                 entreprisesMap.set(id, {

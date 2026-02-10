@@ -19,3 +19,4 @@ require __DIR__.'/parametre.php';
 require __DIR__.'/storage.php';
 require __DIR__.'/debug.php';
 require __DIR__.'/test-register.php';
+require __DIR__.'/tarif.php';

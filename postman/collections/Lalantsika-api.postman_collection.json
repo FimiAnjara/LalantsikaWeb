@@ -417,6 +417,142 @@
         }
       ],
       "id": "e68a6780-72f3-4337-a7af-04be0190832f"
+    },
+    {
+      "name": "Synchronisation",
+      "item": [
+        {
+          "name": "Synchronisation utilisateurs",
+          "id": "261a7fd3-bd10-49db-ab52-d7c56c23bb68",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/sync/utilisateurs",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "sync",
+                "utilisateurs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Synchronisation signalement",
+          "id": "7b135b1c-c7dc-4eb0-af16-74c558e63b55",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/sync/signalements/to-firebase",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "sync",
+                "signalements",
+                "to-firebase"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Synchronisation status",
+          "id": "86c5580f-64b4-4c88-9b46-d63e1b182371",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/sync/histo-statuts/to-firebase",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "sync",
+                "histo-statuts",
+                "to-firebase"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Synchronisation Etat utilisateur",
+          "id": "d5ec17b0-07d3-4167-8642-4864eac272d5",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/sync/statut-utilisateurs/to-firebase",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "sync",
+                "statut-utilisateurs",
+                "to-firebase"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Synchronisation parametrre",
+          "id": "c8caa70e-204b-4af9-913d-a43530e6fcf3",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/sync/statut-utilisateurs/to-firebase",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "sync",
+                "statut-utilisateurs",
+                "to-firebase"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Synchronisation complete (forcé)",
+          "id": "8c95f244-0385-4cd8-b6b2-32705c5d9aee",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/sync/force",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "sync",
+                "force"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "eb6a0e6a-57af-479e-a12a-688b7f346fb6"
     }
   ],
   "variable": [

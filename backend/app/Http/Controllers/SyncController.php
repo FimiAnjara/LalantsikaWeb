@@ -1243,8 +1243,13 @@ class SyncController extends Controller
     public function syncSignalementsFromFirebase()
     {
         try {
-            // Récupérer les signalements non synchronisés depuis Firestore
-            $firestoreSignalements = $this->firebaseRestService->queryCollection('signalements', ['synchronized' => false]);
+            // Récupérer TOUS les signalements depuis Firestore et filtrer côté PHP
+            $allSignalements = $this->firebaseRestService->getCollection('signalements');
+            
+            // Filtrer les non synchronisés (synchronized = false ou absent)
+            $firestoreSignalements = array_filter($allSignalements, function($doc) {
+                return !isset($doc['synchronized']) || $doc['synchronized'] === false;
+            });
 
             if (empty($firestoreSignalements)) {
                 return response()->json([
@@ -1309,8 +1314,13 @@ class SyncController extends Controller
     public function syncHistoStatutsFromFirebase()
     {
         try {
-            // Récupérer les histo_statuts non synchronisés depuis Firestore
-            $firestoreHistoStatuts = $this->firebaseRestService->queryCollection('histo_statuts', ['synchronized' => false]);
+            // Récupérer TOUS les histo_statuts depuis Firestore et filtrer côté PHP
+            $allHistoStatuts = $this->firebaseRestService->getCollection('histo_statuts');
+            
+            // Filtrer les non synchronisés (synchronized = false ou absent)
+            $firestoreHistoStatuts = array_filter($allHistoStatuts, function($doc) {
+                return !isset($doc['synchronized']) || $doc['synchronized'] === false;
+            });
 
             if (empty($firestoreHistoStatuts)) {
                 return response()->json([

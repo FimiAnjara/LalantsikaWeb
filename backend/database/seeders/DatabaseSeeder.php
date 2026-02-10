@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             StatutSeeder::class,
             EntrepriseSeeder::class,
             ParametreSeeder::class,
+            TarifSeeder::class,
         ]);
 
         // Tables avec dépendances

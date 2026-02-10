@@ -1,0 +1,413 @@
+{
+  "info": {
+    "_postman_id": "30f4088b-341b-4000-8d54-62755e27b89d",
+    "name": "Lalantsika-api",
+    "description": "# 🚀 Get started here\n\nThis template guides you through CRUD operations (GET, POST, PUT, DELETE), variables, and tests.\n\n## 🔖 **How to use this template**\n\n#### **Step 1: Send requests**\n\nRESTful APIs allow you to perform CRUD operations using the POST, GET, PUT, and DELETE HTTP methods.\n\nThis collection contains each of these [request](https://learning.postman.com/docs/sending-requests/requests/) types. Open each request and click \"Send\" to see what happens.\n\n#### **Step 2: View responses**\n\nObserve the response tab for status code (200 OK), response time, and size.\n\n#### **Step 3: Send new Body data**\n\nUpdate or add new data in \"Body\" in the POST request. Typically, Body data is also used in PUT request.\n\n```\n{\n    \"name\": \"Add your name in the body\"\n}\n\n ```\n\n#### **Step 4: Update the variable**\n\nVariables enable you to store and reuse values in Postman. We have created a [variable](https://learning.postman.com/docs/sending-requests/variables/) called `base_url` with the sample request [https://postman-api-learner.glitch.me](https://postman-api-learner.glitch.me). Replace it with your API endpoint to customize this collection.\n\n#### **Step 5: Add tests in the \"Scripts\" tab**\n\nAdding tests to your requests can help you confirm that your API is working as expected. You can write test scripts in JavaScript and view the output in the \"Test Results\" tab.\n\n<img src=\"https://content.pstmn.io/fa30ea0a-373d-4545-a668-e7b283cca343/aW1hZ2UucG5n\" alt=\"\" height=\"1530\" width=\"2162\">\n\n## 💪 Pro tips\n\n- Use folders to group related requests and organize the collection.\n    \n- Add more [scripts](https://learning.postman.com/docs/writing-scripts/intro-to-scripts/) to verify if the API works as expected and execute workflows.\n    \n\n## 💡Related templates\n\n[API testing basics](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9a37a28-055b-49cd-8c7e-97494a21eb54&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[API documentation](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9c28f47-1253-44af-a2f3-20dce4da1f18&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[Authorization methods](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=31a9a6ed-4cdf-4ced-984c-d12c9aec1c27&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentification",
+      "item": [
+        {
+          "name": "Login",
+          "id": "7b0ac925-f02e-4bdb-a2eb-ee4483edad5b",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"manager@example.com\",\n    \"mdp\": \"manager123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/auth/login",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "7a5a9c96-258e-4142-b425-c3fff715b5d9"
+    },
+    {
+      "name": "Utilisateurs",
+      "item": [
+        {
+          "name": "liste utilisateurs",
+          "id": "f3beede5-931e-4ccd-8cb9-3003a4c09523",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/users",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "details utilisateur",
+          "id": "78f7cc7f-197f-4735-b559-2a96c56026c5",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/users/1",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "users",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "mettre à jour un utilisateur",
+          "id": "371ff35d-5416-42cd-aed9-3c0589ace754",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/users/1",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "users",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "supprimer un utilisateur",
+          "id": "10db8bd8-f12b-4aae-ac29-8be1430bd9e6",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/users/1",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "users",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "bloquer un utilisateur",
+          "id": "ec29b615-2a5c-4826-ace3-2501325b7d23",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/users/1/block",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "users",
+                "1",
+                "block"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "debloquer un utilisateur",
+          "id": "c94d2221-8c16-42b3-8619-3f17a3ca28c4",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/users/1/unblock",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "users",
+                "1",
+                "unblock"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listes les types d'utilisateur",
+          "id": "82551fac-7a81-4881-a1f2-33f5d6e5583a",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/user-types",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "user-types"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listes lestypes de status",
+          "id": "46ac8316-802c-4059-b0ed-2e2a447fdeef",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/user-statuses",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "user-statuses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "avoire les sexes disponibles",
+          "id": "6c1ac946-977c-4067-aa52-d901dcc8f0b9",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/sexes",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "sexes"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "a05f5cb6-e82d-4acb-b388-64909cc49c50"
+    },
+    {
+      "name": "Signalements",
+      "item": [
+        {
+          "name": "Listes des signalements",
+          "id": "4159e2ec-f080-46bc-9971-48791a120bac",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "Liste des signalements pour les visiteurs",
+          "id": "4b31d492-8e21-49fd-ae60-5582f8d47f17",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "details d'une signalement",
+          "id": "3b027470-f2a6-4e9c-819e-78f0c1ab944b",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "Mettre à jour un signalement",
+          "id": "18db7552-57d3-4707-bc4c-13f59b140f3e",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"id_entreprise\": 0,\r\n  \"budget\": 0\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/reports/1",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "reports",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "supprimer un signalement",
+          "id": "d0d15365-8aa6-4da7-a814-50e61abf639a",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/reports/1",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "reports",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "recuperer l'historique d'un statue",
+          "id": "f8cbd372-e4a6-40b5-a901-b2f00f295686",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "Ajouter un etape à l'historique de status",
+          "id": "83d84a6a-7a42-4355-a02c-0f564ee17ec6",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"id_statut\": 2,\r\n  \"description\": \"Les travaux ont débuté sur le site.\",\r\n  \"daty\": \"2026-02-10 10:45:00\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/reports/1/histostatus",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "reports",
+                "1",
+                "histostatus"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "liste des status possible",
+          "id": "c8e25885-479d-43b2-9f28-30696432b960",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ],
+      "id": "e68a6780-72f3-4337-a7af-04be0190832f"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "id": "530bbdd9-38d3-441e-92dc-61f171c18dc2",
+      "key": "id",
+      "value": "1"
+    },
+    {
+      "id": "57b5ecc1-1ffd-4eb5-a9a4-fa78c5251c5d",
+      "key": "base_url",
+      "value": "https://template.postman-echo.com"
+    }
+  ]
+}

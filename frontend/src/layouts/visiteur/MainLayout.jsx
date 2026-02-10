@@ -67,8 +67,8 @@ export default function MainLayout() {
                     {/* Desktop Navigation */}
                     <ul className="navbar-nav-desktop">
                         <li>
-                            <Link 
-                                to="/visiteur/home" 
+                            <Link
+                                to="/visiteur/home"
                                 className={`nav-link-modern ${isActive('/visiteur/home') ? 'active' : ''}`}
                             >
                                 <CIcon icon={cilHome} />
@@ -76,8 +76,8 @@ export default function MainLayout() {
                             </Link>
                         </li>
                         <li>
-                            <Link 
-                                to="/visiteur/signalement" 
+                            <Link
+                                to="/visiteur/signalement"
                                 className={`nav-link-modern ${isActive('/visiteur/signalement') ? 'active' : ''}`}
                             >
                                 <CIcon icon={cilMap} />
@@ -85,8 +85,8 @@ export default function MainLayout() {
                             </Link>
                         </li>
                         <li>
-                            <Link 
-                                to="/visiteur/recap" 
+                            <Link
+                                to="/visiteur/recap"
                                 className={`nav-link-modern ${isActive('/visiteur/recap') ? 'active' : ''}`}
                             >
                                 <CIcon icon={cilNotes} />
@@ -96,7 +96,7 @@ export default function MainLayout() {
                     </ul>
 
                     {/* Hamburger Button */}
-                    <button 
+                    <button
                         className={`hamburger-btn ${mobileMenuOpen ? 'open' : ''}`}
                         onClick={toggleMobileMenu}
                         aria-label="Menu"
@@ -109,7 +109,7 @@ export default function MainLayout() {
             </nav>
 
             {/* Mobile Menu Overlay */}
-            <div 
+            <div
                 className={`mobile-menu-overlay ${mobileMenuOpen ? 'open' : ''}`}
                 onClick={closeMobileMenu}
             ></div>
@@ -125,8 +125,8 @@ export default function MainLayout() {
                 </div>
                 <ul className="mobile-nav-links">
                     <li>
-                        <Link 
-                            to="/visiteur/home" 
+                        <Link
+                            to="/visiteur/home"
                             className={`mobile-nav-link ${isActive('/visiteur/home') ? 'active' : ''}`}
                             onClick={closeMobileMenu}
                         >
@@ -135,8 +135,8 @@ export default function MainLayout() {
                         </Link>
                     </li>
                     <li>
-                        <Link 
-                            to="/visiteur/signalement" 
+                        <Link
+                            to="/visiteur/signalement"
                             className={`mobile-nav-link ${isActive('/visiteur/signalement') ? 'active' : ''}`}
                             onClick={closeMobileMenu}
                         >
@@ -145,8 +145,8 @@ export default function MainLayout() {
                         </Link>
                     </li>
                     <li>
-                        <Link 
-                            to="/visiteur/recap" 
+                        <Link
+                            to="/visiteur/recap"
                             className={`mobile-nav-link ${isActive('/visiteur/recap') ? 'active' : ''}`}
                             onClick={closeMobileMenu}
                         >
@@ -164,109 +164,106 @@ export default function MainLayout() {
 
             {/* Modern Footer - Hide on map page */}
             {!isMapPage && (
-            <footer className="modern-footer">
-                <div className="footer-container">
-                    <div className="footer-grid">
-                        {/* Brand Section */}
-                        <div className="footer-brand">
-                            <div className="footer-logo">
-                                <img src="/assets/logo/login/logo.png" alt="LALANTSIKA" />
-                                <span>LALANTSIKA</span>
+                <footer className="modern-footer">
+                    <div className="footer-container">
+                        <div className="footer-grid">
+                            {/* Brand Section */}
+                            <div className="footer-brand">
+                                <div className="footer-logo">
+                                    <img src="/assets/logo/login/logo.png" alt="LALANTSIKA" />
+                                    <span>LALANTSIKA</span>
+                                </div>
+                                <p className="footer-description">
+                                    Votre plateforme participative pour une route plus sûre à Madagascar.
+                                    Ensemble, améliorons nos infrastructures routières grâce à la puissance
+                                    de la communauté.
+                                </p>
+                                <div className="footer-social">
+                                    <a href="https://web.facebook.com/sedera.randria.73" className="social-link" title="Facebook">
+                                        <CIcon icon={cibFacebook} size="lg" />
+                                    </a>
+                                    <a href="https://www.linkedin.com/signup?_l=fr" className="social-link" title="LinkedIn">
+                                        <CIcon icon={cibLinkedin} size="lg" />
+                                    </a>
+                                </div>
                             </div>
-                            <p className="footer-description">
-                                Votre plateforme participative pour une route plus sûre à Madagascar. 
-                                Ensemble, améliorons nos infrastructures routières grâce à la puissance 
-                                de la communauté.
+
+                            {/* Quick Links */}
+                            <div className="footer-section">
+                                <h4>Navigation</h4>
+                                <ul className="footer-links">
+                                    <li>
+                                        <Link to="/visiteur/home">
+                                            <CIcon icon={cilArrowRight} size="sm" />
+                                            Accueil
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/visiteur/signalement">
+                                            <CIcon icon={cilArrowRight} size="sm" />
+                                            Carte des signalements
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/visiteur/recap">
+                                            <CIcon icon={cilArrowRight} size="sm" />
+                                            Récapitulatif
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Contact */}
+                            <div className="footer-section">
+                                <h4>Contact</h4>
+                                <ul className="footer-links">
+                                    <li>
+                                        <a href="mailto:lalantsikaproject@gmail.com">
+                                            <CIcon icon={cilEnvelopeOpen} size="sm" />
+                                            lalantsikaproject@gmail.com
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="tel:+261381322871">
+                                            <CIcon icon={cilPhone} size="sm" />
+                                            +261 38 13 228 71
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#">
+                                            <CIcon icon={cilLocationPin} size="sm" />
+                                            Antananarivo, Madagascar
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* CTA Section */}
+                            <div className="footer-section">
+                                <div className="footer-cta">
+                                    <h4>Application Mobile</h4>
+                                    <p>Téléchargez notre app pour signaler en déplacement !</p>
+                                    <a href="https://www.mediafire.com/file/hrrgvslw6bpkv8q/Lalantsika.apk/file" className="cta-button">
+                                        <CIcon icon={cilCloudDownload} />
+                                        Télécharger
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Bottom */}
+                        <div className="footer-bottom">
+                            <p className="footer-copyright">
+                                © 2026 Lalantsika. Tous droits réservés.
                             </p>
-                            <div className="footer-social">
-                                <a href="#" className="social-link" title="Facebook">
-                                    <CIcon icon={cibFacebook} size="lg" />
-                                </a>
-                                <a href="#" className="social-link" title="Twitter">
-                                    <CIcon icon={cibTwitter} size="lg" />
-                                </a>
-                                <a href="#" className="social-link" title="LinkedIn">
-                                    <CIcon icon={cibLinkedin} size="lg" />
-                                </a>
-                            </div>
-                        </div>
-
-                        {/* Quick Links */}
-                        <div className="footer-section">
-                            <h4>Navigation</h4>
-                            <ul className="footer-links">
-                                <li>
-                                    <Link to="/visiteur/home">
-                                        <CIcon icon={cilArrowRight} size="sm" />
-                                        Accueil
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link to="/visiteur/signalement">
-                                        <CIcon icon={cilArrowRight} size="sm" />
-                                        Carte des signalements
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link to="/visiteur/recap">
-                                        <CIcon icon={cilArrowRight} size="sm" />
-                                        Récapitulatif
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
-
-                        {/* Contact */}
-                        <div className="footer-section">
-                            <h4>Contact</h4>
-                            <ul className="footer-links">
-                                <li>
-                                    <a href="mailto:contact@lalantsika.mg">
-                                        <CIcon icon={cilEnvelopeOpen} size="sm" />
-                                        contact@lalantsika.mg
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="tel:+261340000000">
-                                        <CIcon icon={cilPhone} size="sm" />
-                                        +261 34 00 000 00
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#">
-                                        <CIcon icon={cilLocationPin} size="sm" />
-                                        Antananarivo, Madagascar
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-
-                        {/* CTA Section */}
-                        <div className="footer-section">
-                            <div className="footer-cta">
-                                <h4>Application Mobile</h4>
-                                <p>Téléchargez notre app pour signaler en déplacement !</p>
-                                <a href="https://www.mediafire.com/file/hrrgvslw6bpkv8q/Lalantsika.apk/file" className="cta-button">
-                                    <CIcon icon={cilCloudDownload} />
-                                    Télécharger
-                                </a>
+                            <div className="footer-legal-links">
+                                <a href="#">Politique de confidentialité</a>
+                                <a href="#">Conditions d'utilisation</a>
+                                <a href="#">Mentions légales</a>
                             </div>
                         </div>
                     </div>
-
-                    {/* Footer Bottom */}
-                    <div className="footer-bottom">
-                        <p className="footer-copyright">
-                            © 2026 Lalantsika. Tous droits réservés.
-                        </p>
-                        <div className="footer-legal-links">
-                            <a href="#">Politique de confidentialité</a>
-                            <a href="#">Conditions d'utilisation</a>
-                            <a href="#">Mentions légales</a>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+                </footer>
             )}
         </div>
     )

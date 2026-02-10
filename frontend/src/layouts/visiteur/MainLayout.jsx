@@ -257,9 +257,7 @@ export default function MainLayout() {
                                 © 2026 Lalantsika. Tous droits réservés.
                             </p>
                             <div className="footer-legal-links">
-                                <a href="#">Politique de confidentialité</a>
-                                <a href="#">Conditions d'utilisation</a>
-                                <a href="#">Mentions légales</a>
+
                             </div>
                         </div>
                     </div>

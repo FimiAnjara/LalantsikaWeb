@@ -958,6 +958,89 @@
                 ]
             }
         },
+        "/tarifs/current": {
+            "get": {
+                "tags": [
+                    "Tarifs"
+                ],
+                "summary": "Récupérer le tarif actuel",
+                "description": "Récupère le tarif actuel (le plus récent)",
+                "operationId": "7388e31e3022fbef7dfbb19fa940b88c",
+                "responses": {
+                    "200": {
+                        "description": "Tarif récupéré avec succès"
+                    },
+                    "404": {
+                        "description": "Aucun tarif trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/tarifs": {
+            "get": {
+                "tags": [
+                    "Tarifs"
+                ],
+                "summary": "Liste tous les tarifs",
+                "description": "Liste tous les tarifs",
+                "operationId": "741ed1b2780b2e22ec0c4fc9ad5111f5",
+                "responses": {
+                    "200": {
+                        "description": "Liste des tarifs"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tarifs"
+                ],
+                "summary": "Créer un nouveau tarif",
+                "description": "Créer un nouveau tarif",
+                "operationId": "b19e0f805aa21b39c6e025b31c85f78c",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "montant"
+                                ],
+                                "properties": {
+                                    "montant": {
+                                        "description": "Montant du tarif par m²",
+                                        "type": "number"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Tarif créé avec succès"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/users": {
             "get": {
                 "tags": [
@@ -1294,6 +1377,10 @@
         {
             "name": "Signalements",
             "description": "Gestion des signalements, leur état et leur historique"
+        },
+        {
+            "name": "Tarifs",
+            "description": "Gestion des tarifs"
         },
         {
             "name": "Utilisateurs",

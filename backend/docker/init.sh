@@ -50,6 +50,11 @@ else
     echo "⏭️  Seeders ignorés (DB_SEED=false)"
 fi
 
+# Création du lien symbolique storage
+echo "🔗 Création du lien symbolique storage..."
+rm -f public/storage
+php artisan storage:link
+
 # Génération de la documentation Swagger
 echo "📚 Génération de la documentation API..."
 php artisan l5-swagger:generate

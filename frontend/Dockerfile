@@ -13,7 +13,7 @@ RUN npm ci
 COPY . .
 
 # Variables d'environnement pour le build (peuvent être surchargées via docker-compose)
-ARG VITE_API_URL=http://localhost:8000
+ARG VITE_API_URL=http://localhost:8000/api
 ENV VITE_API_URL=$VITE_API_URL
 
 # Build de production

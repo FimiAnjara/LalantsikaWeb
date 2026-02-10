@@ -41,6 +41,23 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - lalantsikaWeb
+
+  # Frontend React buildé et servi par Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    container_name: lalantsika_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - web
+    networks:
+      - lalantsikaWeb
+    restart: unless-stopped
+
   # Serveur de cartes TileServer
   tileserver:
     build:

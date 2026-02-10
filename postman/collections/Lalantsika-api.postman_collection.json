@@ -252,7 +252,18 @@
           "id": "4159e2ec-f080-46bc-9971-48791a120bac",
           "request": {
             "method": "GET",
-            "header": []
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/reports",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "reports"
+              ]
+            }
           },
           "response": []
         },
@@ -261,7 +272,19 @@
           "id": "4b31d492-8e21-49fd-ae60-5582f8d47f17",
           "request": {
             "method": "GET",
-            "header": []
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/public/reports",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "public",
+                "reports"
+              ]
+            }
           },
           "response": []
         },
@@ -270,7 +293,19 @@
           "id": "3b027470-f2a6-4e9c-819e-78f0c1ab944b",
           "request": {
             "method": "GET",
-            "header": []
+            "header": [],
+            "url": {
+              "raw": "{{ip}}:{{port}}/api/reports/1",
+              "host": [
+                "{{ip}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "reports",
+                "1"
+              ]
+            }
           },
           "response": []
         },
@@ -330,7 +365,10 @@
           "id": "f8cbd372-e4a6-40b5-a901-b2f00f295686",
           "request": {
             "method": "GET",
-            "header": []
+            "header": [],
+            "url": {
+              "raw": ""
+            }
           },
           "response": []
         },
@@ -370,7 +408,10 @@
           "id": "c8e25885-479d-43b2-9f28-30696432b960",
           "request": {
             "method": "GET",
-            "header": []
+            "header": [],
+            "url": {
+              "raw": ""
+            }
           },
           "response": []
         }
@@ -378,34 +419,14 @@
       "id": "e68a6780-72f3-4337-a7af-04be0190832f"
     }
   ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          ""
-        ]
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          ""
-        ]
-      }
-    }
-  ],
   "variable": [
     {
-      "id": "530bbdd9-38d3-441e-92dc-61f171c18dc2",
+      "id": "5e0ad573-ccf1-4d8d-af11-86ae311bd146",
       "key": "id",
       "value": "1"
     },
     {
-      "id": "57b5ecc1-1ffd-4eb5-a9a4-fa78c5251c5d",
+      "id": "d4648a71-23ae-40b8-bf37-e5cca9ea4914",
       "key": "base_url",
       "value": "https://template.postman-echo.com"
     }

@@ -35,6 +35,10 @@ export const ENDPOINTS = {
     // Parametres
     PARAMETRES: `${API_URL}/parametres`,
     PARAMETRES_SYNC: `${API_URL}/parametres/sync`,
+
+    // Tarifs
+    TARIFS: `${API_URL}/tarifs`,
+    TARIF_CURRENT: `${API_URL}/tarifs/current`,
 };
 
 // Helper pour les requêtes authentifiées

@@ -12,7 +12,7 @@ import {
     CAlert,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilSave, cilSettings } from '@coreui/icons'
+import { cilSave, cilSettings, cilMoney } from '@coreui/icons'
 import Modal from '../../../components/Modal'
 import { ENDPOINTS, getAuthHeaders } from '../../../config/api'
 import { SuccessModal } from '../../../components/ui'
@@ -23,15 +23,25 @@ export default function Parametres() {
         maxAttempts: 3,
     })
 
+    const [tarif, setTarif] = useState({
+        montant: 0,
+        date_: null
+    })
+
     const [saved, setSaved] = useState(false)
+    const [tarifSaved, setTarifSaved] = useState(false)
     const [loading, setLoading] = useState(true)
+    const [loadingTarif, setLoadingTarif] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [savingTarif, setSavingTarif] = useState(false)
     const [error, setError] = useState(null)
+    const [tarifError, setTarifError] = useState(null)
     const [modal, setModal] = useState({ visible: false, type: 'success', title: '', message: '' })
 
     // Charger les paramètres au montage
     useEffect(() => {
         loadParametres()
+        loadTarif()
     }, [])
 
     const loadParametres = async () => {
@@ -53,6 +63,27 @@ export default function Parametres() {
             setError('Erreur de connexion lors du chargement des paramètres')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const loadTarif = async () => {
+        try {
+            setLoadingTarif(true)
+            setTarifError(null)
+            const response = await fetch(ENDPOINTS.TARIF_CURRENT, {
+                headers: getAuthHeaders()
+            })
+            const result = await response.json()
+            if (result.success && result.data) {
+                setTarif({
+                    montant: result.data.montant || 0,
+                    date_: result.data.date_
+                })
+            }
+        } catch (err) {
+            // Pas d'erreur affichée si aucun tarif n'existe encore
+        } finally {
+            setLoadingTarif(false)
         }
     }
 
@@ -99,6 +130,52 @@ export default function Parametres() {
             setError('Erreur de connexion lors de la sauvegarde')
         } finally {
             setSaving(false)
+        }
+    }
+
+    const handleTarifChange = (e) => {
+        const { value } = e.target
+        setTarif({
+            ...tarif,
+            montant: parseFloat(value) || 0,
+        })
+    }
+
+    const handleSaveTarif = async () => {
+        try {
+            setSavingTarif(true)
+            setTarifError(null)
+            
+            const response = await fetch(ENDPOINTS.TARIFS, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    montant: tarif.montant
+                })
+            })
+            
+            const result = await response.json()
+            
+            if (result.success) {
+                setTarifSaved(true)
+                setTarif({
+                    montant: result.data.montant,
+                    date_: result.data.date_
+                })
+                setModal({
+                    visible: true,
+                    type: 'success',
+                    title: 'Tarif sauvegardé',
+                    message: 'Le tarif a été mis à jour avec succès'
+                })
+                setTimeout(() => setTarifSaved(false), 3000)
+            } else {
+                setTarifError(result.message || 'Erreur lors de la sauvegarde du tarif')
+            }
+        } catch (err) {
+            setTarifError('Erreur de connexion lors de la sauvegarde du tarif')
+        } finally {
+            setSavingTarif(false)
         }
     }
 
@@ -186,6 +263,88 @@ export default function Parametres() {
                 </CCardBody>
             </CCard>
             )}
+
+            {/* Section Tarif */}
+            <CCard className="settings-card mt-4">
+                <CCardHeader className="settings-card-header">
+                    <CIcon icon={cilMoney} className="me-2" />
+                    Configuration du Tarif
+                </CCardHeader>
+                <CCardBody className="p-4">
+                    {tarifError && (
+                        <CAlert color="danger" className="mb-4">
+                            {tarifError}
+                        </CAlert>
+                    )}
+                    
+                    {loadingTarif ? (
+                        <div className="text-center py-4">
+                            <CSpinner size="sm" className="me-2" />
+                            Chargement du tarif...
+                        </div>
+                    ) : (
+                        <CForm>
+                            <CRow className="g-4 mb-4">
+                                <CCol lg="6">
+                                    <label className="form-label">
+                                        Prix par m² (Ariary) <span className="text-danger">*</span>
+                                    </label>
+                                    <p className="text-muted small mb-3">
+                                        Ce montant sera utilisé pour calculer le budget estimé des signalements (prix × niveau × surface)
+                                    </p>
+                                    <CFormInput
+                                        type="number"
+                                        name="montant"
+                                        value={tarif.montant}
+                                        onChange={handleTarifChange}
+                                        min="0"
+                                        step="100"
+                                        className="input-setting"
+                                        placeholder="Ex: 5000"
+                                        required
+                                    />
+                                    {tarif.date_ && (
+                                        <small className="text-muted d-block mt-2">
+                                            Dernière mise à jour: {new Date(tarif.date_).toLocaleDateString('fr-FR', { 
+                                                year: 'numeric', 
+                                                month: 'long', 
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </small>
+                                    )}
+                                </CCol>
+                            </CRow>
+
+                            <div className="d-flex gap-2 pt-3 border-top">
+                                <CButton
+                                    onClick={handleSaveTarif}
+                                    className="btn-save"
+                                    disabled={savingTarif || tarif.montant <= 0}
+                                >
+                                    {savingTarif ? (
+                                        <>
+                                            <CSpinner size="sm" className="me-2" />
+                                            Sauvegarde...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CIcon icon={cilSave} className="me-2" />
+                                            Sauvegarder le tarif
+                                        </>
+                                    )}
+                                </CButton>
+                                {tarifSaved && (
+                                    <div className="alert alert-success mb-0 d-flex align-items-center">
+                                        ✓ Tarif sauvegardé avec succès
+                                    </div>
+                                )}
+                            </div>
+                        </CForm>
+                    )}
+                </CCardBody>
+            </CCard>
         </div>
     )
 }

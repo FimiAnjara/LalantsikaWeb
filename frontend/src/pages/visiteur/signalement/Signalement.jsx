@@ -142,6 +142,7 @@ export default function Signalement() {
     const [signalementHistory, setSignalementHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [historyImageIndexes, setHistoryImageIndexes] = useState({});
 
     // Collect all available photos for the selected signalement
     const allPhotos = useMemo(() => {
@@ -203,6 +204,7 @@ export default function Signalement() {
     useEffect(() => {
         if (selectedSignalement) {
             setCurrentPhotoIndex(0)
+            setHistoryImageIndexes({})
             setLoadingHistory(true)
             fetch(ENDPOINTS.REPORT_HISTO_PUBLIC(selectedSignalement.id))
                 .then(res => res.json())
@@ -226,6 +228,7 @@ export default function Signalement() {
                 })
         } else {
             setSignalementHistory([])
+            setHistoryImageIndexes({})
         }
     }, [selectedSignalement])
 
@@ -629,13 +632,72 @@ export default function Signalement() {
                                                                 <div className="timeline-date">{h.date}</div>
                                                                 <div className="timeline-title">{h.statut?.libelle || 'Mise à jour du chantier'}</div>
                                                                 <div className="timeline-desc">{h.description || 'Action effectuée pour la résolution du problème.'}</div>
-                                                                {h.photo && (
-                                                                    <img
-                                                                        src={h.photo}
-                                                                        alt="Preuve des travaux"
-                                                                        className="timeline-img"
-                                                                        onClick={() => window.open(h.photo, '_blank')}
-                                                                    />
+                                                                {h.images && h.images.length > 0 && (
+                                                                    <div className="timeline-img-container" style={{ position: 'relative' }}>
+                                                                        <img
+                                                                            src={h.images[historyImageIndexes[h.id] || 0]}
+                                                                            alt="Preuve des travaux"
+                                                                            className="timeline-img"
+                                                                            onClick={() => window.open(h.images[historyImageIndexes[h.id] || 0], '_blank')}
+                                                                        />
+                                                                        {h.images.length > 1 && (
+                                                                            <div className="timeline-img-nav" style={{
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                gap: '8px',
+                                                                                marginTop: '6px'
+                                                                            }}>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        const currentIdx = historyImageIndexes[h.id] || 0;
+                                                                                        const newIdx = currentIdx === 0 ? h.images.length - 1 : currentIdx - 1;
+                                                                                        setHistoryImageIndexes(prev => ({ ...prev, [h.id]: newIdx }));
+                                                                                    }}
+                                                                                    style={{
+                                                                                        background: 'rgba(0,0,0,0.5)',
+                                                                                        border: 'none',
+                                                                                        borderRadius: '50%',
+                                                                                        width: '24px',
+                                                                                        height: '24px',
+                                                                                        display: 'flex',
+                                                                                        alignItems: 'center',
+                                                                                        justifyContent: 'center',
+                                                                                        cursor: 'pointer',
+                                                                                        color: 'white'
+                                                                                    }}
+                                                                                >
+                                                                                    <CIcon icon={cilChevronLeft} size="sm" />
+                                                                                </button>
+                                                                                <span style={{ fontSize: '0.75rem', color: '#666' }}>
+                                                                                    {(historyImageIndexes[h.id] || 0) + 1} / {h.images.length}
+                                                                                </span>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        const currentIdx = historyImageIndexes[h.id] || 0;
+                                                                                        const newIdx = currentIdx === h.images.length - 1 ? 0 : currentIdx + 1;
+                                                                                        setHistoryImageIndexes(prev => ({ ...prev, [h.id]: newIdx }));
+                                                                                    }}
+                                                                                    style={{
+                                                                                        background: 'rgba(0,0,0,0.5)',
+                                                                                        border: 'none',
+                                                                                        borderRadius: '50%',
+                                                                                        width: '24px',
+                                                                                        height: '24px',
+                                                                                        display: 'flex',
+                                                                                        alignItems: 'center',
+                                                                                        justifyContent: 'center',
+                                                                                        cursor: 'pointer',
+                                                                                        color: 'white'
+                                                                                    }}
+                                                                                >
+                                                                                    <CIcon icon={cilChevronRight} size="sm" />
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         ))}

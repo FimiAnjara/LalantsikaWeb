@@ -733,4 +733,209 @@ class FirebaseRestService
             return false;
         }
     }
+
+    /**
+     * Obtenir un access token OAuth2 via le service account pour les API Admin
+     */
+    protected function getServiceAccountAccessToken(): ?string
+    {
+        try {
+            $serviceAccountPath = storage_path('app/firebase/service-account.json');
+            
+            if (!file_exists($serviceAccountPath)) {
+                Log::error("❌ Service account file not found");
+                return null;
+            }
+
+            $sa = json_decode(file_get_contents($serviceAccountPath), true);
+            
+            // Créer le JWT
+            $now = time();
+            $header = base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
+            $claims = base64_encode(json_encode([
+                'iss' => $sa['client_email'],
+                'scope' => 'https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/firebase',
+                'aud' => 'https://oauth2.googleapis.com/token',
+                'iat' => $now,
+                'exp' => $now + 3600
+            ]));
+            
+            $signatureInput = str_replace(['+', '/', '='], ['-', '_', ''], $header) . '.' . str_replace(['+', '/', '='], ['-', '_', ''], $claims);
+            
+            openssl_sign($signatureInput, $signature, $sa['private_key'], 'SHA256');
+            $jwt = $signatureInput . '.' . str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+            
+            // Échanger le JWT contre un access token
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => 'Content-Type: application/x-www-form-urlencoded',
+                    'content' => http_build_query([
+                        'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                        'assertion' => $jwt
+                    ]),
+                    'timeout' => 30,
+                    'ignore_errors' => true,
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
+            
+            $response = @file_get_contents('https://oauth2.googleapis.com/token', false, $context);
+            $result = json_decode($response, true);
+            
+            if (isset($result['access_token'])) {
+                return $result['access_token'];
+            }
+            
+            Log::error("❌ Failed to get access token: " . json_encode($result));
+            return null;
+        } catch (\Exception $e) {
+            Log::error("❌ Service account token error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Lister tous les utilisateurs Firebase Auth via l'API Admin
+     */
+    public function listAllAuthUsers(): array
+    {
+        try {
+            $accessToken = $this->getServiceAccountAccessToken();
+            if (!$accessToken) {
+                throw new \Exception('Impossible d\'obtenir un access token pour l\'API Admin');
+            }
+
+            $users = [];
+            $nextPageToken = null;
+
+            do {
+                $url = "https://identitytoolkit.googleapis.com/v1/projects/{$this->projectId}/accounts:batchGet?maxResults=100";
+                if ($nextPageToken) {
+                    $url .= "&nextPageToken={$nextPageToken}";
+                }
+
+                $context = stream_context_create([
+                    'http' => [
+                        'method' => 'GET',
+                        'header' => "Authorization: Bearer {$accessToken}\r\nContent-Type: application/json",
+                        'timeout' => 30,
+                        'ignore_errors' => true,
+                    ],
+                    'ssl' => [
+                        'verify_peer' => true,
+                        'verify_peer_name' => true,
+                    ]
+                ]);
+
+                $response = @file_get_contents($url, false, $context);
+                $result = json_decode($response, true);
+
+                if (isset($result['users'])) {
+                    foreach ($result['users'] as $user) {
+                        $users[] = [
+                            'uid' => $user['localId'] ?? null,
+                            'email' => $user['email'] ?? null,
+                            'displayName' => $user['displayName'] ?? null,
+                        ];
+                    }
+                }
+
+                $nextPageToken = $result['nextPageToken'] ?? null;
+            } while ($nextPageToken);
+
+            Log::info("✅ Firebase Auth: " . count($users) . " utilisateurs listés");
+            return $users;
+        } catch (\Exception $e) {
+            Log::error("❌ Firebase Auth list users error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Supprimer un utilisateur Firebase Auth par UID via l'API Admin
+     */
+    public function deleteAuthUserByUid(string $uid): bool
+    {
+        try {
+            $accessToken = $this->getServiceAccountAccessToken();
+            if (!$accessToken) {
+                throw new \Exception('Impossible d\'obtenir un access token');
+            }
+
+            $url = "https://identitytoolkit.googleapis.com/v1/projects/{$this->projectId}/accounts:delete";
+
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Authorization: Bearer {$accessToken}\r\nContent-Type: application/json",
+                    'content' => json_encode(['localId' => $uid]),
+                    'timeout' => 30,
+                    'ignore_errors' => true,
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
+
+            $response = @file_get_contents($url, false, $context);
+            $statusCode = $this->getHttpStatusCode($http_response_header ?? []);
+
+            if ($statusCode === 200) {
+                Log::info("✅ Firebase Auth user deleted by UID: {$uid}");
+                return true;
+            }
+
+            Log::error("❌ Failed to delete user {$uid}: status={$statusCode}, body={$response}");
+            return false;
+        } catch (\Exception $e) {
+            Log::error("❌ Delete auth user error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Supprimer tous les utilisateurs Firebase Auth
+     */
+    public function deleteAllAuthUsers(): array
+    {
+        try {
+            $users = $this->listAllAuthUsers();
+            $deleted = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($users as $user) {
+                if (!empty($user['uid'])) {
+                    if ($this->deleteAuthUserByUid($user['uid'])) {
+                        $deleted++;
+                    } else {
+                        $failed++;
+                        $errors[] = $user['email'] ?? $user['uid'];
+                    }
+                }
+            }
+
+            Log::info("Firebase Auth reset: {$deleted} supprimés, {$failed} échoués sur " . count($users) . " total");
+
+            return [
+                'success' => $failed === 0,
+                'total_users' => count($users),
+                'deleted_count' => $deleted,
+                'failed_count' => $failed,
+                'errors' => $errors
+            ];
+        } catch (\Exception $e) {
+            Log::error("❌ Delete all auth users error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'deleted_count' => 0
+            ];
+        }
+    }
 }

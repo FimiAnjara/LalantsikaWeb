@@ -1,22 +1,33 @@
-FROM node:18-alpine
+# ============ Stage 1 : Build ============
+FROM node:18-alpine AS build
 
-# Installation des dépendances système
-RUN apk add --no-cache git
-
-# Définition du répertoire de travail
 WORKDIR /app
 
-# Copie des fichiers de configuration des dépendances
+# Copie des fichiers de dépendances
 COPY package*.json ./
 
 # Installation des dépendances
-RUN npm install
+RUN npm ci
 
 # Copie du reste de l'application
 COPY . .
 
-# Exposition du port
-EXPOSE 5173
+# Variables d'environnement pour le build (peuvent être surchargées via docker-compose)
+ARG VITE_API_URL=http://localhost:8000
+ENV VITE_API_URL=$VITE_API_URL
 
-# Configuration de Vite pour écouter sur toutes les interfaces
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Build de production
+RUN npm run build
+
+# ============ Stage 2 : Serve avec Nginx ============
+FROM nginx:1.25-alpine
+
+# Copie du build dans le dossier Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copie de la config Nginx personnalisée
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

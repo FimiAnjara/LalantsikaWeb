@@ -35,6 +35,7 @@ export const ENDPOINTS = {
     // Parametres
     PARAMETRES: `${API_URL}/parametres`,
     PARAMETRES_SYNC: `${API_URL}/parametres/sync`,
+    PARAMETRES_RESET_FIREBASE: `${API_URL}/parametres/reset-firebase`,
 };
 
 // Helper pour les requêtes authentifiées

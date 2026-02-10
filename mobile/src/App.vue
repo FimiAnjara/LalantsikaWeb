@@ -39,13 +39,8 @@ onMounted(async () => {
         return;
       }
       
-      // Pour les autres pages, retour normal
-      if (canGoBack) {
-        router.back();
-      } else {
-        // Fallback : aller à la carte
-        router.push({ name: 'Map' });
-      }
+      // Pour les autres pages, retour vers la carte
+      router.replace({ name: 'Map' });
     });
   } else {
     console.log('🌐 Mode navigateur - Les notifications push natives ne sont pas disponibles');

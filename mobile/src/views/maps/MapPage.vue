@@ -2,8 +2,8 @@
   <ion-page>
     <ion-content :fullscreen="true" class="map-page">
       
-      <!-- Pull-to-refresh (désactivé en vue carte pour éviter les déclenchements accidentels) -->
-      <ion-refresher slot="fixed" :disabled="activeMenu === 'map'" :pull-factor="0.4" :pull-min="100" :pull-max="200" @ionRefresh="handleRefresh($event)">
+      <!-- Pull-to-refresh (très peu sensible sur la carte) -->
+      <ion-refresher slot="fixed" :pull-factor="0.3" :pull-min="150" :pull-max="250" @ionRefresh="handleRefresh($event)">
         <ion-refresher-content pulling-text="Tirer pour actualiser" :refreshing-spinner="null" refreshing-text="" />
       </ion-refresher>
 

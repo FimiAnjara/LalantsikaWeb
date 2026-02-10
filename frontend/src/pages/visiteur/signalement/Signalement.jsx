@@ -297,7 +297,6 @@ export default function Signalement() {
                     }}>
                     <CSpinner size="xl" className="mb-3" style={{ color: '#1A3263' }} />
                     <h3 style={{ color: '#1A3263', fontWeight: 700 }}>Chargement de la carte...</h3>
-                    🔵 En cours
                 </div>
             ) : error ? (
                 <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5"
@@ -633,7 +632,7 @@ export default function Signalement() {
                             </div>
                             <div className="legend-item">
                                 <span className="legend-dot warning"></span>
-                                🔵 En cours
+                                En cours
                             </div>
                             <div className="legend-item">
                                 <span className="legend-dot success"></span>

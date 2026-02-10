@@ -14,6 +14,19 @@ import {
 } from '@coreui/icons'
 import { subscribeToSignalements } from '../../../services/firebase/signalementService'
 
+// Fonction pour formater les nombres avec des points comme séparateurs (gère les entiers et les doubles)
+const formatNumber = (num) => {
+    if (num === null || num === undefined) return '0';
+
+    // On sépare la partie entière de la partie décimale
+    const parts = num.toString().split('.');
+    // On formate la partie entière avec des points
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    // On rejoint avec une virgule pour les décimales (standard FR/MG) ou on garde le point si vous préférez
+    return parts.length > 1 ? parts.join(',') : parts[0];
+};
+
 const getStatusBadgeClass = (status) => {
     switch (status) {
         case 'nouveau': return 'nouveau';
@@ -74,8 +87,8 @@ export default function Recap() {
                     location: s.location,
                     date: s.date,
                     status: s.status,
-                    surface: s.surface || 0,
-                    budget: s.budget || 0,
+                    surface: Number(s.surface) || 0,
+                    budget: Number(s.budget) || 0,
                     entreprise: s.entreprise
                 }))
                 setSignalements(transformed)
@@ -159,7 +172,7 @@ export default function Recap() {
                     <div className="stat-card-icon">
                         <CIcon icon={cilMoney} size="xl" />
                     </div>
-                    <div className="stat-card-value">{(totalBudget / 1000000).toFixed(1)}M Ar</div>
+                    <div className="stat-card-value">{formatNumber(totalBudget)} Ar</div>
                     <div className="stat-card-label">Budget Total</div>
                 </div>
             </div>
@@ -188,9 +201,9 @@ export default function Recap() {
                             <th>Problème</th>
                             <th>Lieu</th>
                             <th>Entreprise</th>
-                            <th>Surface</th>
-                            <th>Budget</th>
                             <th>Statut</th>
+                            <th style={{ textAlign: 'right' }}>Surface (m²)</th>
+                            <th style={{ textAlign: 'right' }}>Budget (Ar)</th>
                             <th>Progression</th>
                         </tr>
                     </thead>
@@ -205,14 +218,14 @@ export default function Recap() {
                                 </td>
                                 <td>{s.location}</td>
                                 <td>{s.entreprise}</td>
-                                <td>{s.surface} m²</td>
-                                <td>{s.budget.toLocaleString()} Ar</td>
                                 <td>
-                                    <span className={`status-badge ${getStatusBadgeClass(s.status)}`}>
+                                    <span className={`status-badge-${getStatusBadgeClass(s.status)}`}>
                                         <CIcon icon={getStatusIcon(s.status)} size="sm" />
                                         {getStatusLabel(s.status)}
                                     </span>
                                 </td>
+                                <td style={{ textAlign: 'right' }}>{formatNumber(s.surface)} m²</td>
+                                <td style={{ textAlign: 'right' }}>{formatNumber(s.budget)} Ar</td>
                                 <td>
                                     <div className="progress-cell">
                                         <div className="progress-bar-custom">

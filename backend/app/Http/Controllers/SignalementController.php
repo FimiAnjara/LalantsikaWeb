@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Models\HistoStatut;
 use App\Models\ImageSignalement;
+use App\Models\Tarif;
 
 use OpenApi\Attributes as OA;
 
@@ -119,6 +120,7 @@ class SignalementController extends Controller
                     'daty',
                     'surface',
                     'budget',
+                    'niveau',
                     'description',
                     'id_entreprise',
                     'id_utilisateur',
@@ -148,6 +150,7 @@ class SignalementController extends Controller
                         'budget' => (float) $signalement->budget,
                         'description' => $signalement->description,
                         'statut' => $statut,
+                        'niveau' => $signalement->niveau,
                         'utilisateur' => $signalement->utilisateur ? [
                             'id' => $signalement->utilisateur->id_utilisateur,
                             'nom' => $signalement->utilisateur->nom,
@@ -405,6 +408,7 @@ class SignalementController extends Controller
                     'daty',
                     'surface',
                     'budget',
+                    'niveau',
                     'description',
                     'id_entreprise',
                     'id_utilisateur',
@@ -437,6 +441,7 @@ class SignalementController extends Controller
                     'budget' => (float) $signalement->budget,
                     'description' => $signalement->description,
                     'statut' => $statut,
+                    'niveau' => $signalement->niveau, 
                     'utilisateur' => $signalement->utilisateur,
                     'entreprise' => $signalement->entreprise,
                     'latitude' => $signalement->latitude ? (float) $signalement->latitude : null,
@@ -498,6 +503,7 @@ class SignalementController extends Controller
                 'id_statut' => 'required|exists:statut,id_statut',
                 'description' => 'nullable|string',
                 'daty' => 'required|date',
+                'niveau' => 'nullable|integer|min:1|max:10',
                 'images' => 'nullable|array',
                 'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             ]);
@@ -511,6 +517,20 @@ class SignalementController extends Controller
             $histo->description = $request->description ?? '';
             $histo->daty = $request->daty;
             $histo->save();
+            
+            // Mettre à jour le niveau si le statut est "En cours" et qu'un niveau est fourni
+            $statut = Statut::findOrFail($request->id_statut);
+            if ($statut->libelle === 'En cours' && $request->has('niveau') && $request->niveau) {
+                $signalement->niveau = $request->niveau;
+                
+                // Calculer le budget: prix_par_m2 * niveau * surface
+                $tarif = Tarif::orderBy('date_', 'desc')->first();
+                if ($tarif && $signalement->surface) {
+                    $signalement->budget = $tarif->montant * $request->niveau * $signalement->surface;
+                }
+                
+                $signalement->save();
+            }
 
             // Gestion des images (insertion dans image_signalement)
             $uploadedImages = [];
@@ -557,6 +577,8 @@ class SignalementController extends Controller
                     'id_statut' => $histo->id_statut,
                     'description' => $histo->description,
                     'daty' => $histo->daty,
+                    'niveau' => $signalement->niveau,
+                    'budget' => $signalement->budget,
                     'images' => $uploadedImages,
                 ]
             ], 201);

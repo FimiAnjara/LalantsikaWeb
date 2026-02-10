@@ -201,18 +201,13 @@ export default function SignalementFiche() {
             setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez sélectionner une entreprise." })
             return
         }
-        if (!assignBudget || isNaN(assignBudget) || Number(assignBudget) <= 0) {
-            setModal({ visible: true, type: 'danger', title: 'Erreur', message: "Veuillez saisir un budget valide." })
-            return
-        }
         setAssignLoading(true)
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
             
-            // Mettre à jour le signalement (id_entreprise, budget et synchronized=false)
+            // Mettre à jour le signalement (id_entreprise et synchronized=false)
             const updateData = {
                 id_entreprise: selectedEntreprise,
-                budget: assignBudget,
                 synchronized: false  // Marquer comme non synchronisé pour sync avec Firebase
             }
             
@@ -425,19 +420,25 @@ export default function SignalementFiche() {
                             })()}
 
                             <CRow className="g-4">
-                                <CCol md="4">
+                                <CCol md="3">
                                     <div className="info-box p-3 rounded-3 bg-light h-100">
                                         <div className="text-muted small mb-1"><CIcon icon={cilCalendar} className="me-1" />Date</div>
                                         <div className="fw-bold">{signalement.daty}</div>
                                     </div>
                                 </CCol>
-                                <CCol md="4">
+                                <CCol md="3">
                                     <div className="info-box p-3 rounded-3 bg-light h-100">
                                         <div className="text-muted small mb-1"><CIcon icon={cilLayers} className="me-1" />Surface</div>
                                         <div className="fw-bold">{signalement.surface} m²</div>
                                     </div>
                                 </CCol>
-                                <CCol md="4">
+                                <CCol md="3">
+                                    <div className="info-box p-3 rounded-3 bg-light h-100">
+                                        <div className="text-muted small mb-1"><CIcon icon={cilLayers} className="me-1" />Niveau</div>
+                                        <div className="fw-bold">{signalement.niveau || '-'}</div>
+                                    </div>
+                                </CCol>
+                                <CCol md="3">
                                     <div className="info-box p-3 rounded-3 bg-light h-100">
                                         <div className="text-muted small mb-1"><CIcon icon={cilMoney} className="me-1" />Budget Est.</div>
                                         <div className="fw-bold text-success">Ar {signalement.budget && signalement.budget.toLocaleString()}</div>
@@ -706,21 +707,6 @@ export default function SignalementFiche() {
                                             </div>
                                         )}
                                     </div>
-
-                                    <div className="mb-4">
-                                        <label className="form-label fw-medium">Budget (Ar)</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            value={assignBudget}
-                                            onChange={e => setAssignBudget(e.target.value)}
-                                            min="0"
-                                            step="1000"
-                                            placeholder="Ex: 500000"
-                                            disabled={assignLoading}
-                                        />
-                                        <div className="form-text">Montant en Ariary</div>
-                                    </div>
                                 </div>
                                 <div className="modal-footer border-top-0 bg-light">
                                     <button
@@ -735,7 +721,7 @@ export default function SignalementFiche() {
                                         type="button"
                                         className="btn btn-primary px-4"
                                         onClick={confirmAssign}
-                                        disabled={assignLoading || !selectedEntreprise || !assignBudget}
+                                        disabled={assignLoading || !selectedEntreprise}
                                     >
                                         {assignLoading ? (
                                             <>

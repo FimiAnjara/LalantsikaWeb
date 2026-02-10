@@ -20,6 +20,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->unsignedBigInteger('id_entreprise')->nullable();
             $table->unsignedBigInteger('id_utilisateur');
+            $table->unsignedInteger('niveau')->nullable();
             
             // Colonnes de synchronisation
             $table->boolean('synchronized')->default(false);

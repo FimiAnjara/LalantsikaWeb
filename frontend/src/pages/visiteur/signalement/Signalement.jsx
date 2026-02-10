@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { CAlert, CSpinner } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { subscribeToSignalements, getSignalementHistory } from '../../../services/firebase/signalementService'
+import { ENDPOINTS } from '../../../config/api'
 import {
     cilSearch,
     cilLocationPin,
@@ -142,6 +142,7 @@ export default function Signalement() {
     const [signalementHistory, setSignalementHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [historyImageIndexes, setHistoryImageIndexes] = useState({});
 
     // Collect all available photos for the selected signalement
     const allPhotos = useMemo(() => {
@@ -203,10 +204,22 @@ export default function Signalement() {
     useEffect(() => {
         if (selectedSignalement) {
             setCurrentPhotoIndex(0)
+            setHistoryImageIndexes({})
             setLoadingHistory(true)
-            getSignalementHistory(selectedSignalement.id)
-                .then(history => {
-                    setSignalementHistory(history)
+            fetch(ENDPOINTS.REPORT_HISTO_PUBLIC(selectedSignalement.id))
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success && result.data) {
+                        const history = result.data.map(h => ({
+                            id: h.id_histo_statut,
+                            date: new Date(h.daty).toLocaleDateString('fr-FR'),
+                            description: h.description,
+                            photo: h.images && h.images.length > 0 ? h.images[0].image : null,
+                            images: h.images ? h.images.map(img => img.image) : [],
+                            statut: h.statut
+                        }))
+                        setSignalementHistory(history)
+                    }
                     setLoadingHistory(false)
                 })
                 .catch(err => {
@@ -215,28 +228,40 @@ export default function Signalement() {
                 })
         } else {
             setSignalementHistory([])
+            setHistoryImageIndexes({})
         }
     }, [selectedSignalement])
 
-    // S'abonner aux signalements en temps réel depuis Firestore
+    // Charger les signalements depuis l'API publique
     useEffect(() => {
-        const unsubscribe = subscribeToSignalements(
-            (data) => {
-                const transformed = data.map(s => ({
-                    ...s,
-                    surface: s.surfaceFormatted,
-                    budget: s.budgetFormatted
-                }))
-                setSignalements(transformed)
+        const fetchSignalements = async () => {
+            try {
+                const response = await fetch(ENDPOINTS.REPORTS_PUBLIC)
+                const result = await response.json()
+                if (result.success && result.data) {
+                    const transformed = result.data.map(s => ({
+                        id: s.id_signalement,
+                        problem: s.description,
+                        position: [parseFloat(s.lat), parseFloat(s.lon)],
+                        location: `${parseFloat(s.lat).toFixed(4)}, ${parseFloat(s.lon).toFixed(4)}`,
+                        surface: s.surface ? `${parseFloat(s.surface).toLocaleString('fr-FR')} m²` : 'N/A',
+                        budget: s.budget ? `${parseFloat(s.budget).toLocaleString('fr-FR')} Ar` : 'Non défini',
+                        niveau: s.niveau || null,
+                        date: new Date(s.daty_signalement).toLocaleDateString('fr-FR'),
+                        status: s.dernier_statut?.statut?.libelle || 'Inconnu',
+                        entreprise: s.entreprise?.nom || 'Non assigné',
+                        photo: null
+                    }))
+                    setSignalements(transformed)
+                }
                 setLoading(false)
                 setError(null)
-            },
-            (err) => {
-                setError(`Erreur Firestore: ${err.message}`)
+            } catch (err) {
+                setError(`Erreur lors du chargement: ${err.message}`)
                 setLoading(false)
             }
-        )
-        return () => unsubscribe()
+        }
+        fetchSignalements()
     }, [])
 
     useEffect(() => {
@@ -433,7 +458,13 @@ export default function Signalement() {
                                             <div className="tooltip-body">
                                                 <div className="tooltip-title">{s.problem}</div>
                                                 <div className="tooltip-meta">
-                                                    <span>{s.surface} m²</span>
+                                                    <span>{s.surface}</span>
+                                                    {s.niveau && (
+                                                        <>
+                                                            <span className="separator">•</span>
+                                                            <span>Niveau {s.niveau}</span>
+                                                        </>
+                                                    )}
                                                     <span className="separator">•</span>
                                                     <span>{s.location}</span>
                                                 </div>
@@ -544,6 +575,17 @@ export default function Signalement() {
                                                         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#333' }}>{selectedSignalement.surface} </div>
                                                     </div>
                                                 </div>
+                                                {selectedSignalement.niveau && (
+                                                    <div className="panel-info-card">
+                                                        <div className="panel-info-icon" style={{ background: '#FFF3E0', color: '#E65100' }}>
+                                                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{selectedSignalement.niveau}</span>
+                                                        </div>
+                                                        <div>
+                                                            <small style={{ color: '#999', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>Niveau</small>
+                                                            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#E65100' }}>/ 10</div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <div className="panel-info-card">
                                                     <div className="panel-info-icon" style={{ background: '#E6F4EA', color: '#34A853' }}>
                                                         <CIcon icon={cilMoney} />
@@ -590,13 +632,72 @@ export default function Signalement() {
                                                                 <div className="timeline-date">{h.date}</div>
                                                                 <div className="timeline-title">{h.statut?.libelle || 'Mise à jour du chantier'}</div>
                                                                 <div className="timeline-desc">{h.description || 'Action effectuée pour la résolution du problème.'}</div>
-                                                                {h.photo && (
-                                                                    <img
-                                                                        src={h.photo}
-                                                                        alt="Preuve des travaux"
-                                                                        className="timeline-img"
-                                                                        onClick={() => window.open(h.photo, '_blank')}
-                                                                    />
+                                                                {h.images && h.images.length > 0 && (
+                                                                    <div className="timeline-img-container" style={{ position: 'relative' }}>
+                                                                        <img
+                                                                            src={h.images[historyImageIndexes[h.id] || 0]}
+                                                                            alt="Preuve des travaux"
+                                                                            className="timeline-img"
+                                                                            onClick={() => window.open(h.images[historyImageIndexes[h.id] || 0], '_blank')}
+                                                                        />
+                                                                        {h.images.length > 1 && (
+                                                                            <div className="timeline-img-nav" style={{
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                gap: '8px',
+                                                                                marginTop: '6px'
+                                                                            }}>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        const currentIdx = historyImageIndexes[h.id] || 0;
+                                                                                        const newIdx = currentIdx === 0 ? h.images.length - 1 : currentIdx - 1;
+                                                                                        setHistoryImageIndexes(prev => ({ ...prev, [h.id]: newIdx }));
+                                                                                    }}
+                                                                                    style={{
+                                                                                        background: 'rgba(0,0,0,0.5)',
+                                                                                        border: 'none',
+                                                                                        borderRadius: '50%',
+                                                                                        width: '24px',
+                                                                                        height: '24px',
+                                                                                        display: 'flex',
+                                                                                        alignItems: 'center',
+                                                                                        justifyContent: 'center',
+                                                                                        cursor: 'pointer',
+                                                                                        color: 'white'
+                                                                                    }}
+                                                                                >
+                                                                                    <CIcon icon={cilChevronLeft} size="sm" />
+                                                                                </button>
+                                                                                <span style={{ fontSize: '0.75rem', color: '#666' }}>
+                                                                                    {(historyImageIndexes[h.id] || 0) + 1} / {h.images.length}
+                                                                                </span>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        const currentIdx = historyImageIndexes[h.id] || 0;
+                                                                                        const newIdx = currentIdx === h.images.length - 1 ? 0 : currentIdx + 1;
+                                                                                        setHistoryImageIndexes(prev => ({ ...prev, [h.id]: newIdx }));
+                                                                                    }}
+                                                                                    style={{
+                                                                                        background: 'rgba(0,0,0,0.5)',
+                                                                                        border: 'none',
+                                                                                        borderRadius: '50%',
+                                                                                        width: '24px',
+                                                                                        height: '24px',
+                                                                                        display: 'flex',
+                                                                                        alignItems: 'center',
+                                                                                        justifyContent: 'center',
+                                                                                        cursor: 'pointer',
+                                                                                        color: 'white'
+                                                                                    }}
+                                                                                >
+                                                                                    <CIcon icon={cilChevronRight} size="sm" />
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         ))}

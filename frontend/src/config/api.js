@@ -40,6 +40,9 @@ export const ENDPOINTS = {
     TARIFS: `${API_URL}/tarifs`,
     TARIF_CURRENT: `${API_URL}/tarifs/current`,
     PARAMETRES_RESET_FIREBASE: `${API_URL}/parametres/reset-firebase`,
+
+    // Public History
+    REPORT_HISTO_PUBLIC: (id) => `${API_URL}/public/reports/${id}/histostatut`,
 };
 
 // Helper pour les requêtes authentifiées

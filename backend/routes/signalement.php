@@ -14,6 +14,7 @@ Route::get('/reports', [SignalementController::class, 'index']);
 Route::get('/public/reports', [SignalementController::class, 'indexPublic']); // Route publique pour les visiteurs
 Route::get('/reports/{id}', [SignalementController::class, 'show']);
 Route::get('/statuses', [SignalementController::class, 'getStatuts']);
+Route::get('/public/reports/{id}/histostatut', [SignalementController::class, 'getHistoStatuts']); // Historique public
 
 // Routes protégées (avec authentification)
 Route::middleware('auth:api')->group(function () {

@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "681061277527-k715f7j6ngnfjdtmmjg8og6ke8tnjn9e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lalana.app",
+            "certificate_hash": "83b96e4ba2071108da09e093ea685cd15e5b08e9"
+          }
+        },
+        {
           "client_id": "681061277527-m3vhiehohn1i8tqh9hjtrplses4cvhu8.apps.googleusercontent.com",
           "client_type": 3
         }

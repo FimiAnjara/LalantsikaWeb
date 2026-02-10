@@ -36,6 +36,7 @@ import {
 } from '@ionic/vue';
 import { useRouter } from 'vue-router';
 import { useBackgroundAnimation } from '../composables/useBackgroundAnimation';
+import { sessionService } from '@/services/auth';
 
 const router = useRouter();
 const { setSpeed } = useBackgroundAnimation();
@@ -47,8 +48,11 @@ onMounted(() => {
   }, 100);
 });
 
-const handleGetStarted = () => {
-  // Naviguer vers la page de login ou la page suivante
+const handleGetStarted = async () => {
+  // Marquer que l'utilisateur a vu la page de bienvenue
+  await sessionService.completeFirstLaunch();
+  
+  // Naviguer vers la page de login
   router.push('/login');
 };
 </script>

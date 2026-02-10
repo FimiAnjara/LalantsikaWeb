@@ -3,10 +3,30 @@
  * Lit directement depuis la collection Firestore 'signalements'
  * comme le fait l'application mobile, sans passer par le backend.
  */
-import { collection, getDocs, query, orderBy, onSnapshot } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, onSnapshot, where } from 'firebase/firestore'
 import { db } from '../../config/firebase'
 
 const COLLECTION_NAME = 'signalements'
+const HISTORY_COLLECTION = 'histo_statuts'
+
+/**
+ * Formater une date (Timestamp Firestore ou String)
+ */
+const formatDate = (dateField) => {
+    if (!dateField) return 'N/A'
+
+    // Si c'est un Timestamp Firestore (objet avec méthode toDate)
+    if (dateField && typeof dateField.toDate === 'function') {
+        return dateField.toDate().toLocaleDateString('fr-FR')
+    }
+
+    // Sinon essayer de convertir en Date standard
+    const date = new Date(dateField)
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) return 'Date invalide'
+
+    return date.toLocaleDateString('fr-FR')
+}
 
 /**
  * Récupérer tous les signalements depuis Firestore (lecture unique)
@@ -18,6 +38,52 @@ export async function getAllSignalements() {
     const snapshot = await getDocs(q)
 
     return snapshot.docs.map(doc => transformSignalement(doc))
+}
+
+/**
+ * Récupérer l'historique d'un signalement
+ * @param {string} signalementId - ID Firestore du signalement
+ * @returns {Promise<Array>} Liste de l'historique des statuts
+ */
+export async function getSignalementHistory(signalementId) {
+    try {
+        const colRef = collection(db, HISTORY_COLLECTION)
+        const q = query(
+            colRef,
+            where('firebase_signalement_id', '==', signalementId),
+            orderBy('daty', 'desc')
+        )
+        const snapshot = await getDocs(q)
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: formatDate(doc.data().daty)
+        }))
+    } catch (error) {
+        console.warn('Error fetching history with orderBy, falling back to client-side sort:', error)
+        try {
+            const colRef = collection(db, HISTORY_COLLECTION)
+            const q = query(
+                colRef,
+                where('firebase_signalement_id', '==', signalementId)
+            )
+            const snapshot = await getDocs(q)
+            const results = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                date: formatDate(doc.data().daty)
+            }))
+            // Trier en mémoire par date décroissante
+            return results.sort((a, b) => {
+                const dateA = a.daty?.toDate ? a.daty.toDate().getTime() : new Date(a.daty).getTime()
+                const dateB = b.daty?.toDate ? b.daty.toDate().getTime() : new Date(b.daty).getTime()
+                return dateB - dateA
+            })
+        } catch (innerError) {
+            console.error('Final error fetching history:', innerError)
+            return []
+        }
+    }
 }
 
 /**
@@ -45,7 +111,7 @@ export function subscribeToSignalements(onData, onError) {
  */
 function transformSignalement(doc) {
     const data = doc.data()
-    
+
     const latitude = data.point?.latitude || 0
     const longitude = data.point?.longitude || 0
     const statusLibelle = data.statut?.libelle || 'Nouveau'
@@ -55,7 +121,8 @@ function transformSignalement(doc) {
         position: [latitude, longitude],
         problem: data.description || 'Problème de route',
         location: data.city || 'Non spécifié',
-        date: data.daty ? new Date(data.daty).toLocaleDateString('fr-FR') : 'N/A',
+        date: formatDate(data.daty),
+        dateRaw: data.daty, // Keep raw date for chart processing
         status: statusLibelle,
         surface: data.surface || 0,
         budget: data.budget || 0,
@@ -63,6 +130,8 @@ function transformSignalement(doc) {
         surfaceFormatted: data.surface ? data.surface + ' m²' : 'N/A',
         entreprise: data.entreprise?.nom || 'Non assignée',
         photo: data.photo || null,
-        category: data.category || null
+        category: data.category || null,
+        userUid: data.utilisateur?.firebase_uid || null // User UID for filtering
     }
 }
+

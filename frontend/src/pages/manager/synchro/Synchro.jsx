@@ -21,6 +21,7 @@ export default function Synchro() {
     const [parametreStatus, setParametreStatus] = useState(null)
     const [statutUtilisateurStatus, setStatutUtilisateurStatus] = useState(null)
     const [statutUtilisateurToFirebaseStatus, setStatutUtilisateurToFirebaseStatus] = useState(null)
+    const [signalementsToFirebaseStatus, setSignalementsToFirebaseStatus] = useState(null)
     const [statusLoading, setStatusLoading] = useState(true)
     const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' })
     const [successModal, setSuccessModal] = useState({ visible: false, title: '', message: '' })
@@ -39,7 +40,8 @@ export default function Synchro() {
             fetchHistoToFirebaseStatus(),
             fetchParametreStatus(),
             fetchStatutUtilisateurStatus(),
-            fetchStatutUtilisateurToFirebaseStatus()
+            fetchStatutUtilisateurToFirebaseStatus(),
+            fetchSignalementsToFirebaseStatus()
         ])
         setStatusLoading(false)
     }
@@ -136,6 +138,23 @@ export default function Synchro() {
         }
     }
 
+    // Récupérer le statut des signalements modifiés (budget et entreprise) PostgreSQL -> Firebase
+    const fetchSignalementsToFirebaseStatus = async () => {
+        try {
+            const response = await api.get('/sync/signalements/to-firebase/status')
+            if (response.data.success) {
+                setSignalementsToFirebaseStatus({
+                    total: response.data.data.total || 0,
+                    synced: response.data.data.synchronises || 0,
+                    pending: response.data.data.non_synchronises || 0,
+                    pourcentage: response.data.data.pourcentage_sync || 0
+                })
+            }
+        } catch (err) {
+            console.error('Erreur récupération statut signalements to firebase:', err)
+        }
+    }
+
     // Synchronisation complète bidirectionnelle
     const handleFullSync = async () => {
         try {
@@ -162,7 +181,17 @@ export default function Synchro() {
                 results.hasAnyError = true
             }
 
-            // 3. Sync PostgreSQL -> Firebase (histo_statuts + mise à jour statut signalement)
+            // 3. Sync PostgreSQL -> Firebase (signalements modifiés - budget et entreprise)
+            try {
+                const response = await api.post('/sync/signalements/to-firebase')
+                if (response.data.success) {
+                    results.signalementsToFirebase = response.data.data
+                }
+            } catch (err) {
+                results.hasAnyError = true
+            }
+
+            // 4. Sync PostgreSQL -> Firebase (histo_statuts + mise à jour statut signalement)
             try {
                 const response = await api.post('/sync/histo-statuts/to-firebase')
                 if (response.data.success) {
@@ -172,7 +201,7 @@ export default function Synchro() {
                 results.hasAnyError = true
             }
 
-            // 4. Sync PostgreSQL -> Firebase (paramètres)
+            // 5. Sync PostgreSQL -> Firebase (paramètres)
             try {
                 const response = await api.post('/sync/parametres/to-firebase')
                 if (response.data.success) {
@@ -182,7 +211,7 @@ export default function Synchro() {
                 results.hasAnyError = true
             }
 
-            // 5. Sync PostgreSQL -> Firebase (statuts utilisateurs)
+            // 6. Sync PostgreSQL -> Firebase (statuts utilisateurs)
             try {
                 const response = await api.post('/sync/statut-utilisateurs/to-firebase')
                 if (response.data.success) {
@@ -192,7 +221,7 @@ export default function Synchro() {
                 results.hasAnyError = true
             }
 
-            // 6. Sync Firebase -> PostgreSQL (statuts utilisateurs)
+            // 7. Sync Firebase -> PostgreSQL (statuts utilisateurs)
             try {
                 const response = await api.post('/sync/statut-utilisateurs/from-firebase')
                 if (response.data.success) {
@@ -266,8 +295,13 @@ export default function Synchro() {
         return Math.round((statutUtilisateurToFirebaseStatus.synced / statutUtilisateurToFirebaseStatus.total) * 100)
     }
 
+    const getSignalementsToFirebasePercent = () => {
+        if (!signalementsToFirebaseStatus || signalementsToFirebaseStatus.total === 0) return 100
+        return Math.round((signalementsToFirebaseStatus.synced / signalementsToFirebaseStatus.total) * 100)
+    }
+
     const isAllSynced = () => {
-        return getUserSyncPercent() === 100 && getFirebaseSyncPercent() === 100 && getHistoToFirebasePercent() === 100 && getParametrePercent() === 100 && getStatutUtilisateurPercent() === 100 && getStatutUtilisateurToFirebasePercent() === 100
+        return getUserSyncPercent() === 100 && getFirebaseSyncPercent() === 100 && getHistoToFirebasePercent() === 100 && getParametrePercent() === 100 && getStatutUtilisateurPercent() === 100 && getStatutUtilisateurToFirebasePercent() === 100 && getSignalementsToFirebasePercent() === 100
     }
 
     return (
@@ -379,6 +413,25 @@ export default function Synchro() {
                                 <CProgress 
                                     value={getStatutUtilisateurToFirebasePercent()} 
                                     color={getStatutUtilisateurToFirebasePercent() === 100 ? 'success' : 'info'}
+                                    className="sync-progress"
+                                />
+                            </div>
+
+                            {/* Progression PostgreSQL -> Firebase (Signalements - Budget & Entreprise) */}
+                            <div className="sync-item mb-4">
+                                <div className="sync-item-header">
+                                    <div className="d-flex align-items-center">
+                                        <CIcon icon={cilCloudUpload} className="me-2 text-warning" />
+                                        <span className="fw-semibold">Signalements (Budget & Entreprise)</span>
+                                        <span className="text-muted ms-2">PostgreSQL → Firebase</span>
+                                    </div>
+                                    <span className="sync-stats">
+                                        {signalementsToFirebaseStatus?.synced || 0} / {signalementsToFirebaseStatus?.total || 0}
+                                    </span>
+                                </div>
+                                <CProgress 
+                                    value={getSignalementsToFirebasePercent()} 
+                                    color={getSignalementsToFirebasePercent() === 100 ? 'success' : 'warning'}
                                     className="sync-progress"
                                 />
                             </div>

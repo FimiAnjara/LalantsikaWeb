@@ -10,3 +10,5 @@ docker exec -it laravel_app_signalement apt-get update && apt-get install -y php
 
 ┌──(evil㉿kali)-[~/…/BOSSY/ROJO/Lalantsika/backend]
 └─$ docker compose exec app rm -f /var/www/html/public/storage && docker compose exec app php artisan storage:link
+
+cd /home/evil/Bureau/BOSSY/ROJO/Lalantsika/backend && php artisan route:clear && php artisan config:clear && php artisan cache:clear

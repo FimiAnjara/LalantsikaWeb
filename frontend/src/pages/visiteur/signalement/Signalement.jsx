@@ -1,20 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { CAlert, CSpinner } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { subscribeToSignalements } from '../../../services/firebase/signalementService'
-import { 
+import { subscribeToSignalements, getSignalementHistory } from '../../../services/firebase/signalementService'
+import {
     cilSearch,
-    cilLocationPin, 
-    cilCalendar, 
-    cilResizeBoth, 
-    cilMoney, 
+    cilLocationPin,
+    cilCalendar,
+    cilResizeBoth,
+    cilMoney,
     cilBuilding,
     cilWifiSignalOff,
-    cilLayers
+    cilLayers,
+    cilX,
+    cilImage,
+    cilChevronLeft,
+    cilChevronRight
 } from '@coreui/icons'
 
 // Correction des icônes par défaut de Leaflet
@@ -26,31 +30,60 @@ L.Icon.Default.mergeOptions({
 });
 
 // Custom markers avec couleurs
-const createColoredIcon = (color) => {
+const getMarkerIconPath = (status) => {
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
+        case 'nouveau':
+            return `<g transform="translate(9.5, 9.5) scale(0.38)">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#EA4335" stroke-width="2.5"/>
+                <line x1="12" y1="8" x2="12" y2="13" stroke="#EA4335" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="12" cy="16" r="1.2" fill="#EA4335"/>
+            </g>`;
+        case 'en cours':
+            return `<g transform="translate(9, 9) scale(0.42)">
+                <path d="M21 12a9 9 0 1 1-6.22-8.56" fill="none" stroke="#4285F4" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M21 3v5h-5" fill="none" stroke="#4285F4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>`;
+        case 'terminé':
+            return `<g transform="translate(9, 9) scale(0.42)">
+                <polyline points="20 6 9 17 4 12" fill="none" stroke="#34A853" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>`;
+        default:
+            return `<g transform="translate(9, 9) scale(0.42)">
+                <line x1="18" y1="6" x2="6" y2="18" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
+                <line x1="6" y1="6" x2="18" y2="18" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
+            </g>`;
+    }
+};
+
+const createColoredIcon = (status, isSelected = false) => {
+    const color = getStatusColor(status);
+    const iconPath = getMarkerIconPath(status);
+    const size = isSelected ? 40 : 28;
+    const height = isSelected ? 54 : 38;
+
     return L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="
-            background-color: ${color};
-            width: 30px;
-            height: 30px;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            border: 3px solid white;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-        "></div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 30],
-        popupAnchor: [0, -30]
+        className: `custom-marker ${isSelected ? 'selected' : ''}`,
+        html: `<div class="gm-pin-marker">
+            <svg width="${size}" height="${height}" viewBox="0 0 28 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 0C6.27 0 0 6.27 0 14c0 9.8 14 24 14 24s14-14.2 14-24C28 6.27 21.73 0 14 0z" fill="${color}"/>
+                <circle cx="14" cy="14" r="8" fill="white"/>
+                ${iconPath}
+            </svg>
+        </div>`,
+        iconSize: [size, height],
+        iconAnchor: [size / 2, height],
+        popupAnchor: [0, -height]
     });
 };
 
 const getStatusColor = (status) => {
     const statusLower = status.toLowerCase();
     switch (statusLower) {
-        case 'nouveau': return '#dc3545';
-        case 'en cours': return '#FAB95B';
-        case 'terminé': return '#28a745';
-        default: return '#6c757d';
+        case 'nouveau': return '#EA4335';
+        case 'en cours': return '#4285F4';
+        case 'terminé': return '#34A853';
+        default: return '#78909C';
     }
 };
 
@@ -65,14 +98,32 @@ const getStatusLabel = (status) => {
 };
 
 // Composant pour contrôler le zoom/pan de la carte
-function MapController({ center, zoom }) {
+function MapController({ center, zoom, offset = false }) {
     const map = useMap()
     useEffect(() => {
         if (center) {
-            map.flyTo(center, zoom || 15, { duration: 1.5 })
+            if (offset && window.innerWidth > 768) {
+                // Décaler le centre vers la gauche si le panneau est ouvert sur desktop
+                const targetPoint = map.project(center, zoom || 15);
+                targetPoint.x = targetPoint.x + (200); // Décale de la moitié de la largeur du panel
+                const targetLatLng = map.unproject(targetPoint, zoom || 15);
+                map.flyTo(targetLatLng, zoom || 15, { duration: 1.5 })
+            } else {
+                map.flyTo(center, zoom || 15, { duration: 1.5 })
+            }
         }
-    }, [center, zoom, map])
+    }, [center, zoom, map, offset])
     return null
+}
+
+// Composant pour gérer les clics sur la carte
+function MapEvents({ onMapClick }) {
+    useMapEvents({
+        click: () => {
+            onMapClick();
+        },
+    });
+    return null;
 }
 
 export default function Signalement() {
@@ -87,6 +138,32 @@ export default function Signalement() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
     const [filteredSignalements, setFilteredSignalements] = useState([]);
+    const [selectedSignalement, setSelectedSignalement] = useState(null);
+    const [signalementHistory, setSignalementHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+    // Collect all available photos for the selected signalement
+    const allPhotos = useMemo(() => {
+        if (!selectedSignalement) return [];
+        const photos = [];
+        // Add main photo
+        if (selectedSignalement.photo) photos.push(selectedSignalement.photo);
+
+        // Add photos from history items
+        signalementHistory.forEach(h => {
+            // Support both 'photo' (singular) and 'images' (array)
+            if (h.photo && !photos.includes(h.photo)) {
+                photos.push(h.photo);
+            }
+            if (h.images && Array.isArray(h.images)) {
+                h.images.forEach(img => {
+                    if (!photos.includes(img)) photos.push(img);
+                });
+            }
+        });
+        return photos;
+    }, [selectedSignalement, signalementHistory]);
 
     // Géocoder la ville recherchée via Nominatim (OpenStreetMap)
     useEffect(() => {
@@ -121,6 +198,25 @@ export default function Signalement() {
         }
         geocode()
     }, [searchParams])
+
+    // Fetch history when a signalement is selected
+    useEffect(() => {
+        if (selectedSignalement) {
+            setCurrentPhotoIndex(0)
+            setLoadingHistory(true)
+            getSignalementHistory(selectedSignalement.id)
+                .then(history => {
+                    setSignalementHistory(history)
+                    setLoadingHistory(false)
+                })
+                .catch(err => {
+                    console.error('History error:', err)
+                    setLoadingHistory(false)
+                })
+        } else {
+            setSignalementHistory([])
+        }
+    }, [selectedSignalement])
 
     // S'abonner aux signalements en temps réel depuis Firestore
     useEffect(() => {
@@ -159,18 +255,18 @@ export default function Signalement() {
     // Filter signalements based on activeFilter and searchQuery
     useEffect(() => {
         let filtered = signalements;
-        
+
         if (activeFilter !== 'all') {
             filtered = filtered.filter(s => s.status.toLowerCase() === activeFilter);
         }
-        
+
         if (searchQuery) {
-            filtered = filtered.filter(s => 
+            filtered = filtered.filter(s =>
                 s.problem.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (s.location && s.location.toLowerCase().includes(searchQuery.toLowerCase()))
             );
         }
-        
+
         setFilteredSignalements(filtered);
     }, [signalements, activeFilter, searchQuery]);
 
@@ -181,38 +277,38 @@ export default function Signalement() {
     return (
         <div className="map-page-container">
             {!isOnline ? (
-                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5" 
-                    style={{ 
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5"
+                    style={{
                         background: 'linear-gradient(135deg, #E8E2DB 0%, #d4cfc7 100%)',
                         minHeight: '100vh'
                     }}>
                     <CIcon icon={cilWifiSignalOff} size="7xl" className="mb-4" style={{ color: '#547792', opacity: 0.5 }} />
                     <h2 style={{ color: '#1A3263', fontWeight: 700 }}>Connexion requise</h2>
                     <p className="text-center px-4" style={{ maxWidth: '500px', color: '#666' }}>
-                        La carte interactive nécessite une connexion internet pour charger les fonds de carte. 
+                        La carte interactive nécessite une connexion internet pour charger les fonds de carte.
                         Veuillez vérifier votre accès réseau.
                     </p>
                 </div>
             ) : loading ? (
-                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5" 
-                    style={{ 
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5"
+                    style={{
                         background: 'linear-gradient(135deg, #E8E2DB 0%, #d4cfc7 100%)',
                         minHeight: '100vh'
                     }}>
                     <CSpinner size="xl" className="mb-3" style={{ color: '#1A3263' }} />
                     <h3 style={{ color: '#1A3263', fontWeight: 700 }}>Chargement de la carte...</h3>
-                    <p style={{ color: '#666' }}>Récupération des signalements en cours</p>
+                    🔵 En cours
                 </div>
             ) : error ? (
-                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5" 
-                    style={{ 
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5"
+                    style={{
                         background: 'linear-gradient(135deg, #E8E2DB 0%, #d4cfc7 100%)',
                         minHeight: '100vh'
                     }}>
                     <CAlert color="danger" className="text-center">
                         <h4>Erreur de chargement</h4>
                         <p>{error}</p>
-                        <button 
+                        <button
                             className="btn btn-outline-danger"
                             onClick={() => window.location.reload()}
                         >
@@ -236,10 +332,10 @@ export default function Signalement() {
                     )}
 
                     {/* Controls Bar - Search Left, Filters Right */}
-                    <div className="map-controls-bar">
+                    <div className="map-controls-bar" style={{ right: selectedSignalement ? '415px' : '15px', transition: 'right 0.3s ease-in-out' }}>
                         {/* Search Bar */}
                         <form className="map-search-bar" onSubmit={handleSearch}>
-                            <input 
+                            <input
                                 type="text"
                                 className="map-search-input"
                                 placeholder="Rechercher..."
@@ -253,25 +349,25 @@ export default function Signalement() {
 
                         {/* Filter Bubbles */}
                         <div className="map-filter-bubbles">
-                            <button 
+                            <button
                                 className={`filter-bubble ${activeFilter === 'all' ? 'active' : ''}`}
                                 onClick={() => setActiveFilter('all')}
                             >
                                 Tous ({signalements.length})
                             </button>
-                            <button 
+                            <button
                                 className={`filter-bubble danger ${activeFilter === 'nouveau' ? 'active' : ''}`}
                                 onClick={() => setActiveFilter('nouveau')}
                             >
                                 🔴 Nouveaux
                             </button>
-                            <button 
+                            <button
                                 className={`filter-bubble warning ${activeFilter === 'en cours' ? 'active' : ''}`}
                                 onClick={() => setActiveFilter('en cours')}
                             >
-                                🟡 En cours
+                                🔵 En cours
                             </button>
-                            <button 
+                            <button
                                 className={`filter-bubble success ${activeFilter === 'terminé' ? 'active' : ''}`}
                                 onClick={() => setActiveFilter('terminé')}
                             >
@@ -281,159 +377,251 @@ export default function Signalement() {
                     </div>
 
                     {/* Map */}
-                    <MapContainer 
-                        center={[-18.8792, 47.5079]} 
-                        zoom={13} 
-                        className="map-fullscreen"
-                        zoomControl={false}
-                    >
-                        <MapController center={searchLocation} zoom={15} />
-                        <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        />
-                    
-                        
-                        {filteredSignalements.length === 0 && signalements.length > 0 ? (
-                            <div className="position-absolute top-50 start-50 translate-middle bg-white p-4 rounded shadow border">
-                                <div className="text-center">
-                                    <CIcon icon={cilLocationPin} size="xxl" className="text-muted mb-2" />
-                                    <h5 className="text-muted">Aucun résultat pour cette recherche</h5>
-                                    <p className="text-muted mb-0">Essayez de modifier vos filtres</p>
+                    <div style={{ position: 'relative', height: '100%', width: '100%', overflow: 'hidden' }}>
+                        <MapContainer
+                            center={[-18.8792, 47.5079]}
+                            zoom={13}
+                            className={`map-fullscreen ${selectedSignalement ? 'with-panel' : ''}`}
+                            zoomControl={false}
+                        >
+                            <MapController
+                                center={selectedSignalement ? selectedSignalement.position : searchLocation}
+                                zoom={selectedSignalement ? 18 : 15}
+                                offset={!!selectedSignalement}
+                            />
+                            <MapEvents onMapClick={() => setSelectedSignalement(null)} />
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+
+
+                            {filteredSignalements.length === 0 && signalements.length > 0 ? (
+                                <div className="position-absolute top-50 start-50 translate-middle bg-white p-4 rounded shadow border" style={{ zIndex: 1000 }}>
+                                    <div className="text-center">
+                                        <CIcon icon={cilLocationPin} size="xxl" className="text-muted mb-2" />
+                                        <h5 className="text-muted">Aucun résultat pour cette recherche</h5>
+                                        <p className="text-muted mb-0">Essayez de modifier vos filtres</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ) : signalements.length === 0 ? (
-                            <div className="position-absolute top-50 start-50 translate-middle bg-white p-4 rounded shadow border">
-                                <div className="text-center">
-                                    <CIcon icon={cilLocationPin} size="xxl" className="text-muted mb-2" />
-                                    <h5 className="text-muted">Aucun signalement trouvé</h5>
-                                    <p className="text-muted mb-0">Aucun signalement n'a encore été enregistré</p>
+                            ) : signalements.length === 0 ? (
+                                <div className="position-absolute top-50 start-50 translate-middle bg-white p-4 rounded shadow border" style={{ zIndex: 1000 }}>
+                                    <div className="text-center">
+                                        <CIcon icon={cilLocationPin} size="xxl" className="text-muted mb-2" />
+                                        <h5 className="text-muted">Aucun signalement trouvé</h5>
+                                        <p className="text-muted mb-0">Aucun signalement n'a encore été enregistré</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ) : null}
-                        
-                        {filteredSignalements.map((s) => (
-                            <Marker 
-                                key={s.id} 
-                                position={s.position}
-                                icon={createColoredIcon(getStatusColor(s.status))}
-                            >
-                                <Popup>
-                                    <div style={{ minWidth: '280px', padding: '10px' }}>
-                                        <div style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '10px',
-                                            marginBottom: '15px',
-                                            paddingBottom: '10px',
-                                            borderBottom: '2px solid #E8E2DB'
-                                        }}>
-                                            <div style={{
-                                                width: '40px',
-                                                height: '40px',
-                                                borderRadius: '10px',
-                                                background: getStatusColor(s.status),
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: 'white'
-                                            }}>
-                                                <CIcon icon={cilLocationPin} />
+                            ) : null}
+
+                            {filteredSignalements.map((s) => (
+                                <Marker
+                                    key={s.id}
+                                    position={s.position}
+                                    icon={createColoredIcon(s.status, selectedSignalement?.id === s.id)}
+                                    eventHandlers={{
+                                        click: () => {
+                                            setSelectedSignalement(s)
+                                        },
+                                    }}
+                                >
+                                    <Tooltip direction="top" offset={[0, -45]} opacity={1} permanent={false} className="map-tooltip-wrapper">
+                                        <div className="map-tooltip">
+                                            <div className="tooltip-header">
+                                                <span className="tooltip-status-dot" style={{ backgroundColor: getStatusColor(s.status) }}></span>
+                                                <span className="tooltip-status-text">{getStatusLabel(s.status)}</span>
                                             </div>
-                                            <div>
-                                                <h4 style={{ 
-                                                    margin: 0, 
-                                                    fontSize: '1rem', 
-                                                    fontWeight: 700,
-                                                    color: '#1A3263'
-                                                }}>
-                                                    {s.problem}
-                                                </h4>
-                                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                                                    {s.location}
-                                                </p>
+                                            <div className="tooltip-body">
+                                                <div className="tooltip-title">{s.problem}</div>
+                                                <div className="tooltip-meta">
+                                                    <span>{s.surface} m²</span>
+                                                    <span className="separator">•</span>
+                                                    <span>{s.location}</span>
+                                                </div>
+                                            </div>
+                                            <div className="tooltip-footer">
+                                                Cliquer pour plus de détails
+                                            </div>
+                                        </div>
+                                    </Tooltip>
+                                </Marker>
+                            ))}
+                        </MapContainer>
+
+                        {/* Side Panel */}
+                        <div className={`signalement-side-panel ${selectedSignalement ? 'open' : ''}`}>
+                            {selectedSignalement && (
+                                <>
+                                    <div className="panel-header">
+                                        <button
+                                            className="close-panel-btn"
+                                            onClick={() => setSelectedSignalement(null)}
+                                        >
+                                            <CIcon icon={cilX} />
+                                        </button>
+
+                                        {allPhotos.length > 0 ? (
+                                            <>
+                                                <img
+                                                    src={allPhotos[currentPhotoIndex]}
+                                                    alt={selectedSignalement.problem}
+                                                    className="panel-header-img"
+                                                    onClick={() => window.open(allPhotos[currentPhotoIndex], '_blank')}
+                                                    style={{ cursor: 'zoom-in' }}
+                                                />
+                                                {allPhotos.length > 1 && (
+                                                    <div className="photo-navigation">
+                                                        <button
+                                                            className="photo-nav-btn prev"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setCurrentPhotoIndex(prev => (prev === 0 ? allPhotos.length - 1 : prev - 1));
+                                                            }}
+                                                        >
+                                                            <CIcon icon={cilChevronLeft} />
+                                                        </button>
+                                                        <div className="photo-counter">
+                                                            {currentPhotoIndex + 1} / {allPhotos.length}
+                                                        </div>
+                                                        <button
+                                                            className="photo-nav-btn next"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setCurrentPhotoIndex(prev => (prev === allPhotos.length - 1 ? 0 : prev + 1));
+                                                            }}
+                                                        >
+                                                            <CIcon icon={cilChevronRight} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div className="panel-header-placeholder">
+                                                <CIcon icon={cilImage} size="3xl" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="panel-content">
+                                        <div className="mb-4">
+                                            <div
+                                                className="panel-status-badge"
+                                                style={{
+                                                    backgroundColor: getStatusColor(selectedSignalement.status),
+                                                    color: 'white'
+                                                }}
+                                            >
+                                                {getStatusLabel(selectedSignalement.status)}
+                                            </div>
+                                            <h2 style={{ color: '#1A3263', fontWeight: 800, fontSize: '1.75rem', marginBottom: '8px' }}>
+                                                {selectedSignalement.problem}
+                                            </h2>
+                                            <p style={{ color: '#777', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem' }}>
+                                                <CIcon icon={cilLocationPin} style={{ color: '#EA4335' }} />
+                                                {selectedSignalement.location}
+                                            </p>
+                                        </div>
+
+                                        <div className="panel-section">
+                                            <h3 className="panel-section-title">
+                                                <span>Détails techniques</span>
+                                            </h3>
+                                            <div className="panel-info-grid">
+                                                <div className="panel-info-card">
+                                                    <div className="panel-info-icon" style={{ background: '#F8F9FA', color: '#547792' }}>
+                                                        <CIcon icon={cilCalendar} />
+                                                    </div>
+                                                    <div>
+                                                        <small style={{ color: '#999', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>Soumission</small>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#333' }}>{selectedSignalement.date}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="panel-info-card">
+                                                    <div className="panel-info-icon" style={{ background: '#F8F9FA', color: '#547792' }}>
+                                                        <CIcon icon={cilResizeBoth} />
+                                                    </div>
+                                                    <div>
+                                                        <small style={{ color: '#999', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>Surface</small>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#333' }}>{selectedSignalement.surface} </div>
+                                                    </div>
+                                                </div>
+                                                <div className="panel-info-card">
+                                                    <div className="panel-info-icon" style={{ background: '#E6F4EA', color: '#34A853' }}>
+                                                        <CIcon icon={cilMoney} />
+                                                    </div>
+                                                    <div>
+                                                        <small style={{ color: '#999', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>Budget</small>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#34A853' }}>{selectedSignalement.budget}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="panel-info-card">
+                                                    <div className="panel-info-icon" style={{ background: '#E8F0FE', color: '#4285F4' }}>
+                                                        <CIcon icon={cilBuilding} />
+                                                    </div>
+                                                    <div>
+                                                        <small style={{ color: '#999', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>Prestataire</small>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#333' }}>{selectedSignalement.entreprise}</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                            <div style={{ 
-                                                padding: '10px', 
-                                                background: '#f8f9fa', 
-                                                borderRadius: '8px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px'
-                                            }}>
-                                                <CIcon icon={cilCalendar} style={{ color: '#547792' }} />
-                                                <div>
-                                                    <small style={{ color: '#999', fontSize: '0.7rem' }}>DATE</small>
-                                                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.date}</div>
-                                                </div>
-                                            </div>
-                                            <div style={{ 
-                                                padding: '10px', 
-                                                background: '#f8f9fa', 
-                                                borderRadius: '8px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px'
-                                            }}>
-                                                <CIcon icon={cilResizeBoth} style={{ color: '#547792' }} />
-                                                <div>
-                                                    <small style={{ color: '#999', fontSize: '0.7rem' }}>SURFACE</small>
-                                                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.surface} m²</div>
-                                                </div>
-                                            </div>
-                                            <div style={{ 
-                                                padding: '10px', 
-                                                background: '#f8f9fa', 
-                                                borderRadius: '8px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px'
-                                            }}>
-                                                <CIcon icon={cilMoney} style={{ color: '#28a745' }} />
-                                                <div>
-                                                    <small style={{ color: '#999', fontSize: '0.7rem' }}>BUDGET</small>
-                                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#28a745' }}>{s.budget}</div>
-                                                </div>
-                                            </div>
-                                            <div style={{ 
-                                                padding: '10px', 
-                                                background: '#f8f9fa', 
-                                                borderRadius: '8px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px'
-                                            }}>
-                                                <CIcon icon={cilBuilding} style={{ color: '#547792' }} />
-                                                <div>
-                                                    <small style={{ color: '#999', fontSize: '0.7rem' }}>ENTREPRISE</small>
-                                                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.entreprise}</div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <div className="panel-section">
+                                            <h3 className="panel-section-title">
+                                                <span>Chronologie des travaux</span>
+                                            </h3>
+                                            <div className="status-timeline" style={{ position: 'relative', paddingLeft: '35px' }}>
+                                                {loadingHistory ? (
+                                                    <div className="text-center py-4">
+                                                        <CSpinner size="sm" style={{ color: 'var(--primary-dark)' }} />
+                                                        <p style={{ fontSize: '0.8rem', color: '#999', marginTop: '10px' }}>Chargement de l'historique...</p>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        {selectedSignalement.status.toLowerCase() !== 'terminé' && (
+                                                            <div className="timeline-item">
+                                                                <div className="timeline-title" style={{ color: '#ccc' }}>Prochaines étapes</div>
+                                                                <div className="timeline-desc">En attente des prochaines interventions sur le terrain.</div>
+                                                            </div>
+                                                        )}
 
-                                        <div style={{
-                                            marginTop: '15px',
-                                            padding: '10px 15px',
-                                            background: getStatusColor(s.status),
-                                            color: s.status === 'en cours' ? '#1A3263' : 'white',
-                                            borderRadius: '50px',
-                                            textAlign: 'center',
-                                            fontWeight: 600,
-                                            fontSize: '0.9rem'
-                                        }}>
-                                            Statut: {getStatusLabel(s.status)}
+                                                        {/* Display history items (descending) */}
+                                                        {signalementHistory.map((h, idx) => (
+                                                            <div key={h.id} className="timeline-item active">
+                                                                <div className="timeline-date">{h.date}</div>
+                                                                <div className="timeline-title">{h.statut?.libelle || 'Mise à jour du chantier'}</div>
+                                                                <div className="timeline-desc">{h.description || 'Action effectuée pour la résolution du problème.'}</div>
+                                                                {h.photo && (
+                                                                    <img
+                                                                        src={h.photo}
+                                                                        alt="Preuve des travaux"
+                                                                        className="timeline-img"
+                                                                        onClick={() => window.open(h.photo, '_blank')}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        ))}
+
+                                                        {/* Ensure creation item is visible at the bottom if not in history */}
+                                                        {!signalementHistory.some(h => h.statut?.id_statut === 1 || h.description === 'Signalement créé') && (
+                                                            <div className="timeline-item active">
+                                                                <div className="timeline-date">{selectedSignalement.date}</div>
+                                                                <div className="timeline-title">Signalement enregistré</div>
+                                                                <div className="timeline-desc">Le problème a été identifié et validé par les services techniques.</div>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </Popup>
-                            </Marker>
-                        ))}
-                    </MapContainer>
+                                </>
+                            )}
+                        </div>
+                    </div>
 
                     {/* Info Panel */}
-                    <div className="map-info-panel">
+                    <div className={`map-info-panel ${selectedSignalement ? 'hidden-mobile' : ''}`}>
                         <h4>
                             <CIcon icon={cilLayers} />
                             Légende
@@ -445,7 +633,7 @@ export default function Signalement() {
                             </div>
                             <div className="legend-item">
                                 <span className="legend-dot warning"></span>
-                                Travaux en cours
+                                🔵 En cours
                             </div>
                             <div className="legend-item">
                                 <span className="legend-dot success"></span>
@@ -454,7 +642,8 @@ export default function Signalement() {
                         </div>
                     </div>
                 </>
-            )}
-        </div>
+            )
+            }
+        </div >
     )
 }

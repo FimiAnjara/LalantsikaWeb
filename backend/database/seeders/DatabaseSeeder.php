@@ -31,5 +31,10 @@ class DatabaseSeeder extends Seeder
             HistoStatutSeeder::class,
             ImageSignalementSeeder::class,
         ]);
+
+        // Données de test (optionnel - décommentez pour générer des données de test)
+        // $this->call([
+        //     TestDataSeeder::class,
+        // ]);
     }
 }

@@ -315,7 +315,13 @@ class FirebaseRestService
             if ($response['status'] === 200 && $response['json']) {
                 $documents = [];
                 
-                foreach ($response['json']['documents'] ?? [] as $doc) {
+                // Si pas de clé 'documents', la collection est vide (Firestore retourne {})
+                if (!isset($response['json']['documents'])) {
+                    Log::info("ℹ️ Collection {$collection} is empty (no documents key)");
+                    return [];
+                }
+
+                foreach ($response['json']['documents'] as $doc) {
                     // Extraire l'ID du document du path
                     $pathParts = explode('/', $doc['name']);
                     $docId = end($pathParts);

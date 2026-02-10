@@ -19,5 +19,6 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/', [ParametreController::class, 'store']);
         Route::post('/sync', [ParametreController::class, 'sync']);
         Route::post('/reset-firebase', [ParametreController::class, 'resetFirebaseData']);
+        Route::post('/init-firebase', [ParametreController::class, 'initFirebaseCollections']);
     });
 });

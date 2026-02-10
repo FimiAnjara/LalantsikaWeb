@@ -39,6 +39,7 @@ export const ENDPOINTS = {
     // Tarifs
     TARIFS: `${API_URL}/tarifs`,
     TARIF_CURRENT: `${API_URL}/tarifs/current`,
+    PARAMETRES_RESET_FIREBASE: `${API_URL}/parametres/reset-firebase`,
 };
 
 // Helper pour les requêtes authentifiées

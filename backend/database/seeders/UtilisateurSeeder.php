@@ -12,7 +12,7 @@ class UtilisateurSeeder extends Seeder
     {
         DB::table('utilisateur')->insert([
             [
-                'identifiant' => 'user1',
+                'identifiant' => 'admin',
                 'mdp' => Hash::make('lalantsika123'),
                 'nom' => 'Lalantsika',
                 'prenom' => 'Admin',
@@ -22,7 +22,21 @@ class UtilisateurSeeder extends Seeder
                 'firebase_uid' => null,
                 'id_sexe' => 1,
                 'id_type_utilisateur' => 1,
-                'synchronized' => true,
+                'synchronized' => false,
+                'last_sync_at' => null,
+            ],
+            [
+                'identifiant' => 'user1',
+                'mdp' => Hash::make('user123'),
+                'nom' => 'Teste',
+                'prenom' => 'User',
+                'dtn' => '1995-03-10',
+                'email' => 'userteste@gmail.com',
+                'photo_url' => null,
+                'firebase_uid' => null,
+                'id_sexe' => 1,
+                'id_type_utilisateur' => 2,
+                'synchronized' => false,
                 'last_sync_at' => null,
             ],
         ]);

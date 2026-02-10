@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
 import CIcon from '@coreui/icons-react'
-import { 
-    cilLocationPin, 
-    cilMap, 
+import {
+    cilLocationPin,
+    cilMap,
     cilSpeedometer,
     cilShieldAlt,
     cilChartLine
@@ -21,8 +21,8 @@ export default function Home() {
                             Ensemble pour des <span>routes plus sûres</span> à Madagascar
                         </h1>
                         <p>
-                            Lalantsika est une plateforme citoyenne qui permet de signaler les problèmes 
-                            routiers, suivre les interventions et contribuer à l'amélioration de notre 
+                            Lalantsika est une plateforme citoyenne qui permet de signaler les problèmes
+                            routiers, suivre les interventions et contribuer à l'amélioration de notre
                             réseau routier national.
                         </p>
                         <div className="hero-buttons">
@@ -35,24 +35,10 @@ export default function Home() {
                                 Statistiques
                             </Link>
                         </div>
-                        <div className="hero-stats">
-                            <div className="stat-item">
-                                <span className="stat-number">1,250+</span>
-                                <span className="stat-label">Signalements</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-number">85%</span>
-                                <span className="stat-label">Résolus</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-number">22</span>
-                                <span className="stat-label">Régions</span>
-                            </div>
-                        </div>
                     </div>
                     <div className="hero-image">
-                        <img 
-                            src="/assets/img/slide1.png" 
+                        <img
+                            src="/assets/img/slide1.png"
                             alt="Routes Madagascar"
                         />
                         <div className="hero-floating-card card-1">
@@ -83,7 +69,7 @@ export default function Home() {
                     <div className="section-header">
                         <h2>Comment ça fonctionne ?</h2>
                         <p>
-                            Une solution simple et efficace pour améliorer nos infrastructures routières 
+                            Une solution simple et efficace pour améliorer nos infrastructures routières
                             grâce à la participation citoyenne.
                         </p>
                     </div>
@@ -94,7 +80,7 @@ export default function Home() {
                             </div>
                             <h3>Signalez un problème</h3>
                             <p>
-                                Repérez un nid-de-poule, une route endommagée ou un obstacle ? 
+                                Repérez un nid-de-poule, une route endommagée ou un obstacle ?
                                 Signalez-le facilement avec photo et localisation GPS précise.
                             </p>
                         </div>
@@ -104,7 +90,7 @@ export default function Home() {
                             </div>
                             <h3>Visualisez sur la carte</h3>
                             <p>
-                                Consultez la carte interactive pour voir tous les signalements 
+                                Consultez la carte interactive pour voir tous les signalements
                                 dans votre région et dans tout Madagascar.
                             </p>
                         </div>
@@ -114,7 +100,7 @@ export default function Home() {
                             </div>
                             <h3>Suivez les interventions</h3>
                             <p>
-                                Restez informé de l'avancement des travaux et des interventions 
+                                Restez informé de l'avancement des travaux et des interventions
                                 programmées par les autorités compétentes.
                             </p>
                         </div>
@@ -128,7 +114,7 @@ export default function Home() {
                     <div className="cta-content">
                         <h2>Téléchargez l'application mobile</h2>
                         <p>
-                            Emportez Lalantsika partout avec vous et signalez les problèmes 
+                            Emportez Lalantsika partout avec vous et signalez les problèmes
                             routiers directement depuis votre smartphone.
                         </p>
                         <div className="app-buttons">

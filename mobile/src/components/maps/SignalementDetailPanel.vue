@@ -526,8 +526,8 @@ const formatSurfaceValue = (surface?: number): string => {
 
 .gallery-photo {
   flex-shrink: 0;
-  width: 80px;
-  height: 80px;
+  width: 110px;
+  height: 110px;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;

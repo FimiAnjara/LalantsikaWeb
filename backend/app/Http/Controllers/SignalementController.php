@@ -44,6 +44,7 @@ class SignalementController extends Controller
                 'daty',
                 'surface',
                 'budget',
+                'niveau',
                 'id_entreprise',
                 DB::raw('ST_Y(point::geometry) as lat'),
                 DB::raw('ST_X(point::geometry) as lon')
@@ -66,6 +67,7 @@ class SignalementController extends Controller
                         'lon' => $signalement->lon,
                         'surface' => $signalement->surface,
                         'budget' => $signalement->budget,
+                        'niveau' => $signalement->niveau,
                         'entreprise' => $signalement->entreprise,
                         'dernier_statut' => $signalement->histoStatuts->first(),
                     ];

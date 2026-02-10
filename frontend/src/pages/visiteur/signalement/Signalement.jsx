@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { CAlert, CSpinner } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { subscribeToSignalements, getSignalementHistory } from '../../../services/firebase/signalementService'
+import { ENDPOINTS } from '../../../config/api'
 import {
     cilSearch,
     cilLocationPin,
@@ -204,9 +204,20 @@ export default function Signalement() {
         if (selectedSignalement) {
             setCurrentPhotoIndex(0)
             setLoadingHistory(true)
-            getSignalementHistory(selectedSignalement.id)
-                .then(history => {
-                    setSignalementHistory(history)
+            fetch(ENDPOINTS.REPORT_HISTO_PUBLIC(selectedSignalement.id))
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success && result.data) {
+                        const history = result.data.map(h => ({
+                            id: h.id_histo_statut,
+                            date: new Date(h.daty).toLocaleDateString('fr-FR'),
+                            description: h.description,
+                            photo: h.images && h.images.length > 0 ? h.images[0].image : null,
+                            images: h.images ? h.images.map(img => img.image) : [],
+                            statut: h.statut
+                        }))
+                        setSignalementHistory(history)
+                    }
                     setLoadingHistory(false)
                 })
                 .catch(err => {
@@ -218,25 +229,36 @@ export default function Signalement() {
         }
     }, [selectedSignalement])
 
-    // S'abonner aux signalements en temps réel depuis Firestore
+    // Charger les signalements depuis l'API publique
     useEffect(() => {
-        const unsubscribe = subscribeToSignalements(
-            (data) => {
-                const transformed = data.map(s => ({
-                    ...s,
-                    surface: s.surfaceFormatted,
-                    budget: s.budgetFormatted
-                }))
-                setSignalements(transformed)
+        const fetchSignalements = async () => {
+            try {
+                const response = await fetch(ENDPOINTS.REPORTS_PUBLIC)
+                const result = await response.json()
+                if (result.success && result.data) {
+                    const transformed = result.data.map(s => ({
+                        id: s.id_signalement,
+                        problem: s.description,
+                        position: [parseFloat(s.lat), parseFloat(s.lon)],
+                        location: `${parseFloat(s.lat).toFixed(4)}, ${parseFloat(s.lon).toFixed(4)}`,
+                        surface: s.surface ? `${parseFloat(s.surface).toLocaleString('fr-FR')} m²` : 'N/A',
+                        budget: s.budget ? `${parseFloat(s.budget).toLocaleString('fr-FR')} Ar` : 'Non défini',
+                        niveau: s.niveau || null,
+                        date: new Date(s.daty_signalement).toLocaleDateString('fr-FR'),
+                        status: s.dernier_statut?.statut?.libelle || 'Inconnu',
+                        entreprise: s.entreprise?.nom || 'Non assigné',
+                        photo: null
+                    }))
+                    setSignalements(transformed)
+                }
                 setLoading(false)
                 setError(null)
-            },
-            (err) => {
-                setError(`Erreur Firestore: ${err.message}`)
+            } catch (err) {
+                setError(`Erreur lors du chargement: ${err.message}`)
                 setLoading(false)
             }
-        )
-        return () => unsubscribe()
+        }
+        fetchSignalements()
     }, [])
 
     useEffect(() => {
@@ -433,7 +455,13 @@ export default function Signalement() {
                                             <div className="tooltip-body">
                                                 <div className="tooltip-title">{s.problem}</div>
                                                 <div className="tooltip-meta">
-                                                    <span>{s.surface} m²</span>
+                                                    <span>{s.surface}</span>
+                                                    {s.niveau && (
+                                                        <>
+                                                            <span className="separator">•</span>
+                                                            <span>Niveau {s.niveau}</span>
+                                                        </>
+                                                    )}
                                                     <span className="separator">•</span>
                                                     <span>{s.location}</span>
                                                 </div>
@@ -544,6 +572,17 @@ export default function Signalement() {
                                                         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#333' }}>{selectedSignalement.surface} </div>
                                                     </div>
                                                 </div>
+                                                {selectedSignalement.niveau && (
+                                                    <div className="panel-info-card">
+                                                        <div className="panel-info-icon" style={{ background: '#FFF3E0', color: '#E65100' }}>
+                                                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{selectedSignalement.niveau}</span>
+                                                        </div>
+                                                        <div>
+                                                            <small style={{ color: '#999', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>Niveau</small>
+                                                            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#E65100' }}>/ 10</div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <div className="panel-info-card">
                                                     <div className="panel-info-icon" style={{ background: '#E6F4EA', color: '#34A853' }}>
                                                         <CIcon icon={cilMoney} />

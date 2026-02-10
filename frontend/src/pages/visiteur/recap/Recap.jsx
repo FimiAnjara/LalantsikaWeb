@@ -12,7 +12,7 @@ import {
     cilCloudDownload,
     cilFilter
 } from '@coreui/icons'
-import { subscribeToSignalements } from '../../../services/firebase/signalementService'
+import { ENDPOINTS } from '../../../config/api'
 
 // Fonction pour formater les nombres avec des points comme séparateurs (gère les entiers et les doubles)
 const formatNumber = (num) => {
@@ -78,34 +78,33 @@ export default function Recap() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const fetchSignalements = () => {
-        const unsubscribe = subscribeToSignalements(
-            (data) => {
-                const transformed = data.map(s => ({
-                    id: s.id,
-                    problem: s.problem,
-                    location: s.location,
-                    date: s.date,
-                    status: s.status,
+    const fetchSignalements = async () => {
+        try {
+            const response = await fetch(ENDPOINTS.REPORTS_PUBLIC)
+            const result = await response.json()
+            if (result.success && result.data) {
+                const transformed = result.data.map(s => ({
+                    id: s.id_signalement,
+                    problem: s.description,
+                    location: `${parseFloat(s.lat).toFixed(4)}, ${parseFloat(s.lon).toFixed(4)}`,
+                    date: new Date(s.daty_signalement).toLocaleDateString('fr-FR'),
+                    status: (s.dernier_statut?.statut?.libelle || 'Inconnu').toLowerCase(),
                     surface: Number(s.surface) || 0,
                     budget: Number(s.budget) || 0,
-                    entreprise: s.entreprise
+                    entreprise: s.entreprise?.nom || 'Non assigné'
                 }))
                 setSignalements(transformed)
-                setLoading(false)
-                setError(null)
-            },
-            (err) => {
-                setError(`Erreur Firestore: ${err.message}`)
-                setLoading(false)
             }
-        )
-        return unsubscribe
+            setLoading(false)
+            setError(null)
+        } catch (err) {
+            setError(`Erreur lors du chargement: ${err.message}`)
+            setLoading(false)
+        }
     }
 
     useEffect(() => {
-        const unsubscribe = fetchSignalements()
-        return () => { if (unsubscribe) unsubscribe() }
+        fetchSignalements()
     }, []);
 
     const totalPoints = signalements.length;

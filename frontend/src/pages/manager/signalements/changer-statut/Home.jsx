@@ -47,6 +47,7 @@ export default function ChangerStatut() {
     const [description, setDescription] = useState('')
     const [selectedImages, setSelectedImages] = useState([])
     const [previewImages, setPreviewImages] = useState([])
+    const [niveau, setNiveau] = useState('')
     const [statutDate, setStatutDate] = useState(() => {
         const now = new Date()
         const pad = n => n.toString().padStart(2, '0')
@@ -190,6 +191,12 @@ export default function ChangerStatut() {
             formData.append('description', description || getDefaultDescription(nextStatuts.find(s => s.id_statut === parseInt(selectedStatut))?.libelle))
             formData.append('daty', statutDate)
             
+            // Ajouter le niveau si le statut est "En cours"
+            const selectedStatutObj = nextStatuts.find(s => s.id_statut === parseInt(selectedStatut))
+            if (selectedStatutObj?.libelle === 'En cours' && niveau) {
+                formData.append('niveau', niveau)
+            }
+            
             // Ajouter les images si présentes
             selectedImages.forEach((image, index) => {
                 formData.append(`images[${index}]`, image)
@@ -209,8 +216,6 @@ export default function ChangerStatut() {
             if (!result.success) {
                 throw new Error(result.message || "Erreur lors du changement de statut")
             }
-            
-            const selectedStatutObj = nextStatuts.find(s => s.id_statut === parseInt(selectedStatut))
             
             setSuccessModal({
                 visible: true,
@@ -318,6 +323,28 @@ export default function ChangerStatut() {
 
                                     <hr className="my-4" />
 
+                                    {/* Niveau du signalement (si En cours) */}
+                                    {String(selectedStatut) && nextStatuts.find(s => s.id_statut === parseInt(selectedStatut))?.libelle === 'En cours' && (
+                                        <div className="mb-4">
+                                            <CFormLabel className="fw-bold">Niveau du signalement (1-10)</CFormLabel>
+                                            <div className="d-flex flex-wrap gap-2">
+                                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                                                    <label key={num} className={`checkbox-level p-2 rounded-2 cursor-pointer text-center ${niveau === String(num) ? 'selected bg-primary text-white' : 'border'}`} style={{ minWidth: '45px', border: niveau !== String(num) ? '1px solid #dee2e6' : 'none' }}>
+                                                        <input
+                                                            type="radio"
+                                                            name="niveau"
+                                                            value={num}
+                                                            checked={niveau === String(num)}
+                                                            onChange={(e) => setNiveau(String(num))}
+                                                            className="d-none"
+                                                        />
+                                                        <span className="fw-bold">{num}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Date du changement */}
                                     <div className="mb-4">
                                         <CFormLabel className="fw-bold">Date du changement</CFormLabel>
@@ -406,7 +433,7 @@ export default function ChangerStatut() {
                                             type="submit"
                                             color="primary"
                                             className="btn-theme px-4"
-                                            disabled={saving || !selectedStatut}
+                                            disabled={saving || !selectedStatut || (selectedStatut && nextStatuts.find(s => s.id_statut === parseInt(selectedStatut))?.libelle === 'En cours' && !niveau)}
                                         >
                                             {saving ? (
                                                 <>
